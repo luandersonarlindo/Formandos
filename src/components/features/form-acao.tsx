@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { EstadoForm } from "@/actions/tipos";
+import { Check, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ export function FormAcao({
       {children}
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="sm" variant={variante} disabled={pendente}>
+          {pendente && <LoaderCircle className="animate-spin" aria-hidden />}
           {pendente ? rotuloPendente : rotulo}
         </Button>
         <p
@@ -40,9 +42,10 @@ export function FormAcao({
           className={
             estado.erro
               ? "text-sm text-destructive"
-              : "text-sm text-muted-foreground"
+              : "flex items-center gap-1.5 text-sm text-muted-foreground"
           }
         >
+          {!estado.erro && estado.ok && <Check className="size-4 text-emerald-600" aria-hidden />}
           {estado.erro ?? estado.ok}
         </p>
       </div>

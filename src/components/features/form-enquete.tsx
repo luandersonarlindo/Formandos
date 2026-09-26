@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { adicionarEnquete } from "@/actions/catalogos";
 import type { EstadoForm } from "@/actions/tipos";
+import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,7 @@ export function FormEnquete({ categoriaId }: { categoriaId: string }) {
             value="unica"
             checked={tipo === "unica"}
             onChange={() => setTipo("unica")}
-            className="accent-primary"
+            className="accent-[var(--vitrine-a)]"
           />
           Escolha única
         </label>
@@ -44,7 +45,7 @@ export function FormEnquete({ categoriaId }: { categoriaId: string }) {
             value="multipla"
             checked={tipo === "multipla"}
             onChange={() => setTipo("multipla")}
-            className="accent-primary"
+            className="accent-[var(--vitrine-a)]"
           />
           Escolha múltipla
         </label>
@@ -68,6 +69,7 @@ export function FormEnquete({ categoriaId }: { categoriaId: string }) {
       )}
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="sm" disabled={pendente}>
+          {pendente && <LoaderCircle className="animate-spin" aria-hidden />}
           {pendente ? "Adicionando…" : "Adicionar pergunta"}
         </Button>
         <p
