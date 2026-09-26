@@ -1,0 +1,38 @@
+import {
+  CalendarDays,
+  CircleHelp,
+  KeyRound,
+  LayoutDashboard,
+  Users,
+  Vote,
+} from "lucide-react";
+import { AppShell, type ItemMenu } from "@/components/features/app-shell";
+import { exigirAdmin, exigirSessao } from "@/lib/dal";
+
+const itens: ItemMenu[] = [
+  { href: "/admin", rotulo: "Resumo", icone: LayoutDashboard, exato: true },
+  { href: "/admin/membros", rotulo: "Membros", icone: Users },
+  { href: "/admin/convite", rotulo: "Convite", icone: KeyRound },
+  { href: "/admin/evento", rotulo: "Evento", icone: CalendarDays },
+  { href: "/admin/duvidas", rotulo: "Dúvidas", icone: CircleHelp },
+  { href: "/admin/votacoes", rotulo: "Votações", icone: Vote },
+];
+
+// Exige login, turma e papel de administrador.
+// Layouts não são reexecutados a cada navegação: páginas e Server Actions
+// também devem chamar exigirSessao().
+export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
+  const { user } = await exigirSessao();
+  const membro = await exigirAdmin();
+
+  return (
+    <AppShell
+      titulo={`Administração · ${membro.turmaNome}`}
+      itens={itens}
+      usuario={{ nome: user.name, email: user.email, imagem: user.image }}
+      rodape={{ href: "/dashboard", rotulo: "Voltar para a turma" }}
+    >
+      {children}
+    </AppShell>
+  );
+}
