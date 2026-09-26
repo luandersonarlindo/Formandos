@@ -10,7 +10,7 @@
 
 O aplicativo funciona como um *hub* central de organização, dividindo as responsabilidades de forma clara entre a **Comissão Organizadora / Administradores** (professores/representantes) e os **Participantes** (formandos/alunos).
 
-* **Acesso Restrito por Turma:** Autenticação exclusivamente com a conta Google ("Entrar com Google"). Cada utilizador pertence a **uma única turma por vez**. O acesso a uma turma é feito através de um **código de convite privado** gerado pelo administrador.
+* **Acesso Restrito por Turma:** Login com a conta Google ("Entrar com Google") ou com **email e senha** (com confirmação do email pelo link enviado). Cada utilizador pertence a **uma única turma por vez**. O acesso a uma turma é feito através de um **código de convite privado** gerado pelo administrador.
 
 * **Gestão de Permissões (RBAC):** Somente os Administradores possuem privilégios para criar catálogos de enquetes personalizados, responder e destacar dúvidas, definir data/local do evento e gerir membros.
 
@@ -46,7 +46,8 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 * **React 19:** Construção de interfaces declarativas baseadas em componentes.
 * **Next.js 16 (App Router):** Roteamento, renderização no servidor e *Server Actions*. O antigo *Middleware* chama-se **Proxy** (`proxy.ts`) nesta versão.
 * **PostgreSQL:** Base de dados relacional principal, acessada diretamente por consultas SQL nativas (sempre parametrizadas) no lado do servidor via driver `pg`.
-* **Better Auth:** Autenticação de utilizadores (login social exclusivo com Google). Guarda utilizadores e sessões no próprio PostgreSQL.
+* **Better Auth:** Autenticação de utilizadores (login com Google e com email e senha). Guarda utilizadores e sessões no próprio PostgreSQL.
+* **Nodemailer:** Envio de emails por SMTP (confirmação de conta, definir senha e boas-vindas).
 * **Tailwind CSS v4:** Estilização utilitária moderna e responsiva.
 * **shadcn/ui + Radix UI:** Componentes de interface acessíveis e reutilizáveis, copiados para `src/components/ui` conforme o uso (`Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`).
 * **Recharts:** Visualização de dados e gráficos para os relatórios automatizados das enquetes.
@@ -61,7 +62,7 @@ Cada utilizador pertence a uma única turma, por isso as URLs **não** levam o i
 
 | Grupo | Acesso | Rotas |
 |---|---|---|
-| `(publico)` | Qualquer pessoa | `/` (apresentação), `/entrar` (login com Google) |
+| `(publico)` | Qualquer pessoa | `/` (apresentação), `/entrar` (login com Google ou email e senha), `/esqueci-senha`, `/redefinir-senha` |
 | `(onboarding)` | Autenticado, sem turma | `/convite` (informar código de convite ou criar turma) |
 | `(app)` | Autenticado, com turma | `/dashboard`, `/tarefas`, `/votacoes`, `/votacoes/[catalogoId]`, `/votacoes/relatorio`, `/duvidas`, `/terceiros` |
 | `(admin)` | Administrador da turma | `/admin`, `/admin/membros`, `/admin/convite`, `/admin/evento`, `/admin/duvidas`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
@@ -88,7 +89,8 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/components/features`:** Componentes de domínio (menu lateral, cartão de votação, gráfico da enquete, botão de upvote, formulários de tarefa, fornecedor, evento e catálogo, contagem regressiva…).
 * **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `votos.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `catalogos.ts` e `admin.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
 * **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
-* **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (provedor Google) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
+* **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (Google e email e senha) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
+* **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
 * **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas: `exigirSessao()`, `getMembro()`, `exigirMembro()` e `exigirAdmin()`.
 * **`/src/lib` (consultas e utilitários):** consultas de leitura por área (`votacoes.ts`, `relatorio.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `dashboard.ts`, `admin.ts`) e funções puras (`convite.ts`, `datas.ts`), estas com testes em `*.test.ts`.
 * **`/db`:** `schema.sql` (tabelas do domínio), `apply-schema.mjs` e `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`).
@@ -144,8 +146,8 @@ As 8 categorias do catálogo padrão:
    pnpm install
    ```
 
-3. **Criar as credenciais do Google (gratuito):**
-   No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto, configure a tela de consentimento OAuth e crie um *ID do cliente OAuth* (tipo "Aplicativo da Web"). Em *URIs de redirecionamento autorizados*, adicione `http://localhost:3000/api/auth/callback/google`. Use apenas os escopos básicos (`openid`, `email`, `profile`).
+3. **Criar as credenciais do Google (gratuito, opcional):**
+   Sem elas, o botão do Google some e só o login por email e senha funciona. No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto, configure a tela de consentimento OAuth e crie um *ID do cliente OAuth* (tipo "Aplicativo da Web"). Em *URIs de redirecionamento autorizados*, adicione `http://localhost:3000/api/auth/callback/google`. Use apenas os escopos básicos (`openid`, `email`, `profile`).
 
 4. **Configurar as Variáveis de Ambiente:**
    Copie `.env.example` para `.env.local` na raiz do projeto (nunca o comite) e preencha a string de conexão do PostgreSQL e as credenciais do Better Auth. Gere o segredo com `openssl rand -base64 32`:
@@ -155,7 +157,20 @@ As 8 categorias do catálogo padrão:
    BETTER_AUTH_URL="http://localhost:3000"
    GOOGLE_CLIENT_ID="seu_google_client_id"
    GOOGLE_CLIENT_SECRET="seu_google_client_secret"
+   # Envio de email (veja o passo abaixo)
+   SMTP_HOST="smtp.gmail.com"
+   SMTP_PORT="587"
+   SMTP_USER="seu@gmail.com"
+   SMTP_PASS="senha_de_app_de_16_letras"
+   EMAIL_FROM="Formandos <seu@gmail.com>"
    ```
+
+   **Envio de email (necessário para o login por email e senha).** O cadastro só vale depois de o utilizador clicar no link de confirmação enviado por email, e o mesmo envio serve para "Esqueci a senha" e para o email de boas-vindas. Sem `SMTP_HOST`, o email não é enviado: o texto (com o link) aparece só no terminal do servidor, e quem cria conta por email e senha não recebe o link e não consegue entrar. O login com Google não depende disso. Com Gmail:
+   1. Ative a verificação em duas etapas na conta que vai enviar os emails.
+   2. Gere uma *senha de app* em [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) e use-a em `SMTP_PASS` (nunca a senha normal da conta).
+   3. Contas institucionais (Google Workspace) podem ter esse recurso bloqueado pelo administrador. Nesse caso use um Gmail pessoal.
+
+   Quem entrou pelo Google e quer também usar email e senha usa **"Esqueci a senha"** na tela de login: o link enviado por email cria a senha na mesma conta, com os mesmos dados.
 
 5. **Criar o banco e as tabelas** (nesta ordem):
    ```bash
@@ -199,6 +214,7 @@ Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.en
 ## 🛡️ Segurança e Acessibilidade
 
 * Toda página protegida e toda Server Action validam sessão, turma e papel em `src/lib/dal.ts`. O `proxy.ts` é só a primeira barreira.
+* O login por email e senha exige confirmar o email pelo link enviado. Um Google já verificado não se junta a uma conta local não verificada.
 * Entradas validadas com Zod; consultas SQL sempre parametrizadas.
 * Tentativas de código de convite inválido são limitadas (10 a cada 15 minutos por utilizador). Não há limite de envio de dúvidas nem de votos por utilizador.
 * Cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) configurados em `next.config.ts`.

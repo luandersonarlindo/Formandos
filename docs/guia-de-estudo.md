@@ -15,7 +15,7 @@ Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação e
 | Item | Situação |
 |---|---|
 | Next.js 16.3.6 + React 19.2.8 + TypeScript + Tailwind v4 | Em uso; React Compiler ativo em `next.config.ts` |
-| Login com Google (Better Auth) | Pronto: `src/lib/auth.ts`, `src/proxy.ts`, `src/lib/dal.ts` |
+| Login com Google e com e-mail e senha (Better Auth) | Pronto: `src/lib/auth.ts`, `src/proxy.ts`, `src/lib/dal.ts`. Confirmação de e-mail, "esqueci a senha" e e-mail de boas-vindas via SMTP (`src/lib/email.ts`) |
 | Banco PostgreSQL (SQL puro com `pg`) | Pronto: `db/schema.sql` e o login do Better Auth (17 tabelas no total) e `db/seed.mjs` |
 | Turmas, convites e papéis | Pronto (uma turma por aluno; admin e participante) |
 | Votações e relatório com gráficos | Pronto (`/votacoes`, `/votacoes/relatorio`) |
@@ -35,7 +35,7 @@ Respostas às dúvidas levantadas na primeira versão deste guia.
 | # | Tema | Decisão |
 |---|---|---|
 | 1 | Biblioteca de autenticação | **Better Auth** (estável), no lugar do Auth.js/NextAuth, que segue em beta na v5. |
-| 2 | Login | Somente "Entrar com Google" (OAuth). Sem e-mail e sem senha. **É gratuito** (ver abaixo). |
+| 2 | Login | "Entrar com Google" (OAuth, **gratuito**, ver abaixo) **e** e-mail e senha como alternativa, para quando o Google estiver indisponível. O e-mail precisa ser confirmado por link. Decisão posterior à versão inicial, que era só Google. |
 | 3 | Nomes das categorias | Seguem `docs/catalogo-enquetes.md`. README já ajustado. |
 | 4 | Pergunta neutra/negativa | É uma opção normal com marca `exclusiva`. Em pergunta múltipla, marcá-la desmarca as outras. |
 | 5 | Pergunta 5.2 | Passa a ser **Seleção Múltipla**. |
@@ -45,22 +45,29 @@ Respostas às dúvidas levantadas na primeira versão deste guia.
 | 9 | Rotas | Reorganizadas: ver "Mapa de rotas" ao fim desta seção. |
 | 10 | Catálogos | Existe o catálogo **padrão** (8 categorias) e o ADM pode criar catálogos **personalizados**. |
 
-### Autenticação: Better Auth + Google (decisões 1 e 2)
+### Autenticação: Better Auth + Google + e-mail e senha (decisões 1 e 2)
 
 **Custo do Google.** O login com Google é **gratuito**. Criar o projeto e o ID do cliente OAuth no Google Cloud Console não tem tarifa de uso. Limites que existem:
 
 - **Modo "Testing"** (padrão de um projeto novo): máximo de **100 usuários de teste** cadastrados à mão, e a autorização expira em 7 dias.
 - **Modo "In production"**: ao publicar o app na tela de consentimento, qualquer conta Google entra. Se o app pedir **só** os escopos básicos (`openid`, `email`, `profile`), a doc do Google diz que **não há verificação, não há limite de usuários, não aparece aviso** e a autorização não expira em 7 dias.
 
-Portanto: durante o desenvolvimento, use o modo Testing e cadastre os 4 membros como usuários de teste. Antes do uso real, clique em "Publicar app". Não peça nenhum escopo além dos três básicos. Não vejo motivo para voltar a e-mail e senha.
+Portanto: durante o desenvolvimento, use o modo Testing e cadastre os 4 membros como usuários de teste. Antes do uso real, clique em "Publicar app". Não peça nenhum escopo além dos três básicos.
 
 Fontes: [Manage App Audience (Google)](https://support.google.com/cloud/answer/15549945?hl=en) e [Google OAuth 100 User Limit (Unipile)](https://www.unipile.com/google-oauth-100-user-limit/). Ponto não verificado: se o Google Cloud pede cartão de crédito ao criar a conta ou o projeto. Para OAuth básico não deveria, mas confirmem na hora de criar.
 
-**Se um dia precisarem de e-mail e senha:** o Better Auth também suporta, de graça, com `emailAndPassword: { enabled: true }`. Dá para adicionar depois sem trocar de biblioteca.
+**E-mail e senha (adicionado depois).** Serve de alternativa ao Google. Não é a senha do Google: o app nunca vê essa senha, que só o Google pode conferir. O usuário cria uma senha própria do app (mínimo de 8 caracteres). Como funciona:
+
+- **Confirmação de e-mail:** o cadastro envia um link. Sem clicar, o login é bloqueado (`EMAIL_NOT_VERIFIED`). É isso que prova que o e-mail existe e é da pessoa. Configurado em `src/lib/auth.ts` com `requireEmailVerification: true`.
+- **Boas-vindas:** o e-mail de parabéns sai quando a conta nasce pelo Google (e-mail já verificado) ou depois de confirmar o e-mail no cadastro por senha.
+- **Conta Google que também quer senha:** usa "Esqueci a senha" (`/esqueci-senha`). O link enviado por e-mail cria a senha na **mesma** conta (mesmo `usuarios.id`, mesmos dados). O Better Auth grava uma linha `credential` na tabela `account`, ao lado da linha `google`.
+- **Conta local não verificada não se junta ao Google:** vale o padrão `requireLocalEmailVerified` do Better Auth. Assim, ninguém cadastra o e-mail de outra pessoa para tomar a conta dela.
+- **Envio:** `src/lib/email.ts`, com `nodemailer` e SMTP. Com Gmail, use uma *senha de app* (exige verificação em duas etapas; contas institucionais podem ter isso bloqueado). Sem `SMTP_HOST`, o e-mail aparece só no terminal do servidor, e quem se cadastra por senha não consegue confirmar a conta.
+- **Sem Google configurado:** se `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` faltarem, o botão do Google some e só o e-mail e senha funciona.
 
 **Better Auth na prática** (conferido na doc oficial em 2026-09-25):
 
-- Variáveis: `BETTER_AUTH_SECRET` (mínimo 32 caracteres) e `BETTER_AUTH_URL`, mais `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
+- Variáveis: `BETTER_AUTH_SECRET` (mínimo 32 caracteres) e `BETTER_AUTH_URL`, mais `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` (opcionais) e `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `EMAIL_FROM` (necessárias para o login por e-mail e senha).
 - Banco: recebe um `Pool` do pacote `pg` (`betterAuth({ database: new Pool(...) })`). Então o projeto usa `pg` como driver.
 - Tabelas: o próprio Better Auth cria as suas (`user`, `session`, `account`, `verification`) com `npx auth@latest migrate`. **A tabela `usuarios` do rascunho de modelo passa a ser a tabela `user` dele.** As tabelas do domínio (`membros`, `votos`…) apontam para `user.id`.
 - Rota: `src/app/api/auth/[...all]/route.ts` usando `toNextJsHandler(auth)`.
@@ -98,7 +105,9 @@ src/
    ├─ error.tsx, global-error.tsx, not-found.tsx   Telas de erro e 404 (também há error.tsx e loading.tsx em (app) e (admin)/admin)
    ├─ (publico)/
    │  ├─ page.tsx                    /                Apresentação + botão "Entrar com Google"
-   │  └─ entrar/page.tsx             /entrar          Tela de login
+   │  ├─ entrar/page.tsx             /entrar          Tela de login (Google e e-mail e senha)
+   │  ├─ esqueci-senha/page.tsx      /esqueci-senha   Pede o link para definir a senha
+   │  └─ redefinir-senha/page.tsx    /redefinir-senha Define a senha a partir do link do e-mail
    ├─ (onboarding)/                  Logado, mas sem turma
    │  └─ convite/page.tsx            /convite         Digitar código de convite OU criar turma
    ├─ (app)/                         Logado e com turma. layout.tsx = menu/barra lateral
@@ -121,7 +130,7 @@ src/
    │     ├─ nova/page.tsx            /admin/votacoes/nova            Criar catálogo personalizado
    │     ├─ [catalogoId]/page.tsx    /admin/votacoes/[catalogoId]    Editar catálogo, categorias, perguntas
    │     └─ votos/[enqueteId]/page.tsx  /admin/votacoes/votos/[enqueteId]   Ver quem votou em cada opção
-   └─ api/auth/[...all]/route.ts    /api/auth/*      Único Route Handler (Better Auth, login Google)
+   └─ api/auth/[...all]/route.ts    /api/auth/*      Único Route Handler (Better Auth: login, cadastro, confirmação de e-mail)
 ```
 
 Parênteses como `(app)` são *route groups*: organizam pastas e layouts **sem** aparecer na URL.
@@ -240,7 +249,7 @@ O relatório automatizado sai de uma consulta agregada (`count` por opção, com
 ### 3.6 Autenticação e autorização
 Três conceitos separados (a doc `02-guides/authentication.md` explica):
 
-1. **Autenticação:** quem é o usuário (login Google).
+1. **Autenticação:** quem é o usuário (login Google ou e-mail e senha).
 2. **Sessão:** como lembrar dele entre requisições (cookie).
 3. **Autorização:** o que ele pode fazer (papel `admin` ou `participante` **naquela turma**).
 
@@ -250,8 +259,8 @@ Pontos-chave:
 - Centralize as checagens num *Data Access Layer* (funções como `getUsuarioAtual()`, `getMembro()`, `exigirAdmin()`), e chame-as em toda Server Action e toda leitura protegida. A doc do Next recomenda isso e o pacote `server-only` para impedir que esse código vá parar no navegador.
 - Esconder um botão no front **não** protege nada. A checagem tem de estar na Server Action.
 - Código de convite: gere com `crypto.randomBytes` (aleatório e difícil de adivinhar), único, e considere expiração ou opção de regenerar.
-- Só há login com Google, via Better Auth (lista de bibliotecas recomendadas pela doc do Next). Detalhes na seção 2.
-- Sem senha no projeto: não há hash nem recuperação de senha para implementar.
+- O login é feito pelo Better Auth (lista de bibliotecas recomendadas pela doc do Next), com Google e com e-mail e senha. Detalhes na seção 2.
+- A senha própria (e-mail e senha) é guardada com hash pelo Better Auth, e a recuperação é o fluxo "Esqueci a senha" por e-mail. Não há hash nem recuperação para implementar à mão.
 
 ### 3.7 Formulários e validação
 - `<form action={serverAction}>` e o hook `useActionState` (React 19) para mostrar erros.
