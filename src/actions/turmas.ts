@@ -22,6 +22,9 @@ const esquemaCodigo = z.object({
     .pipe(z.string().min(6, "Informe o código de convite.").max(20)),
 });
 
+const MAX_TENTATIVAS = 10;
+const JANELA_MINUTOS = 15;
+
 type ErroPg = { code?: string; constraint?: string };
 
 export async function criarTurma(
@@ -80,11 +83,32 @@ export async function entrarPorConvite(
 
   try {
     const resultado = await transacao(async (db) => {
+      // Limite de tentativas erradas por usuário, para não dar para adivinhar
+      // o código de convite por força bruta.
+      const recentes = await db.query(
+        `select count(*)::int as n from tentativas_convite
+          where usuario_id = $1
+            and created_at > now() - make_interval(mins => $2)`,
+        [usuario.id, JANELA_MINUTOS],
+      );
+      if (recentes.rows[0].n >= MAX_TENTATIVAS) return "bloqueado" as const;
+
       const { rows } = await db.query(
         "select id from turmas where codigo_convite = $1",
         [dados.data.codigo],
       );
-      if (rows.length === 0) return "invalido" as const;
+      if (rows.length === 0) {
+        await db.query(
+          "insert into tentativas_convite (usuario_id) values ($1)",
+          [usuario.id],
+        );
+        // Aproveita para descartar tentativas antigas deste usuário.
+        await db.query(
+          "delete from tentativas_convite where usuario_id = $1 and created_at < now() - interval '1 day'",
+          [usuario.id],
+        );
+        return "invalido" as const;
+      }
       await db.query(
         `insert into membros (turma_id, usuario_id, papel)
          values ($1, $2, 'participante')`,
@@ -92,6 +116,11 @@ export async function entrarPorConvite(
       );
       return "ok" as const;
     });
+    if (resultado === "bloqueado") {
+      return {
+        erro: "Muitas tentativas com código inválido. Tente de novo em alguns minutos.",
+      };
+    }
     if (resultado === "invalido") return { erro: "Código de convite inválido." };
   } catch (erro) {
     if ((erro as ErroPg).code !== "23505") throw erro;
