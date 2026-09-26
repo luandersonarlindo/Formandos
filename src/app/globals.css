@@ -135,3 +135,47 @@
 .dark {
   --viz-serie-1: #3987e5;
 }
+
+/* Vitrine (página inicial) -------------------------------------------------- */
+:root {
+  --vitrine-a: oklch(0.55 0.19 262);
+  --vitrine-b: oklch(0.68 0.19 335);
+}
+
+/* Elementos animados pelo Anime.js começam invisíveis só quando há JavaScript
+   e a pessoa não pediu menos movimento. Sem JS, ou se a animação falhar, o
+   conteúdo aparece normalmente (o componente marca html[data-sem-animacao]). */
+@media (scripting: enabled) {
+  html:not([data-sem-animacao]) [data-hero],
+  html:not([data-sem-animacao]) [data-reveal],
+  html:not([data-sem-animacao]) [data-item] {
+    opacity: 0;
+  }
+}
+
+.vitrine-texto-gradiente {
+  background-image: linear-gradient(100deg, var(--vitrine-a), var(--vitrine-b));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.vitrine-fundo-hero {
+  background-image:
+    radial-gradient(60rem 30rem at 15% -10%, color-mix(in oklch, var(--vitrine-a) 18%, transparent), transparent 70%),
+    radial-gradient(50rem 28rem at 90% 0%, color-mix(in oklch, var(--vitrine-b) 16%, transparent), transparent 70%);
+}
+.vitrine-cartao {
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+.vitrine-cartao:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in oklch, var(--vitrine-a) 45%, var(--border));
+  box-shadow: 0 12px 30px -12px color-mix(in oklch, var(--vitrine-a) 35%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vitrine-cartao,
+  .vitrine-cartao:hover {
+    transition: none;
+    transform: none;
+  }
+}

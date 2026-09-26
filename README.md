@@ -49,6 +49,7 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 * **Next.js 16 (App Router):** Roteamento, renderização no servidor e *Server Actions*. O antigo *Middleware* chama-se **Proxy** (`proxy.ts`) nesta versão.
 * **PostgreSQL:** Base de dados relacional principal, acessada diretamente por consultas SQL nativas (sempre parametrizadas) no lado do servidor via driver `pg`.
 * **Better Auth:** Autenticação de utilizadores (login com Google e com email e senha). Guarda utilizadores e sessões no próprio PostgreSQL.
+* **Anime.js:** Animações da página inicial (entrada do topo, revelação ao rolar, contadores e barras). O conteúdo é renderizado no servidor e a animação é só um acréscimo; quem pede "menos movimento" no sistema vê a página parada.
 * **Nodemailer:** Envio de emails por SMTP (confirmação de conta, definir senha e boas-vindas).
 * **Tailwind CSS v4:** Estilização utilitária moderna e responsiva.
 * **shadcn/ui + Radix UI:** Componentes de interface acessíveis e reutilizáveis, copiados para `src/components/ui` conforme o uso (`Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`).
@@ -64,7 +65,7 @@ As URLs **não** levam o identificador da turma: o servidor descobre a turma em 
 
 | Grupo | Acesso | Rotas |
 |---|---|---|
-| `(publico)` | Qualquer pessoa | `/` (apresentação), `/entrar` (login com Google ou email e senha), `/esqueci-senha`, `/redefinir-senha` |
+| `(publico)` | Qualquer pessoa | `/` (vitrine do projeto, com animações), `/entrar` (login com Google ou email e senha), `/esqueci-senha`, `/redefinir-senha` |
 | `(onboarding)` | Autenticado, sem turma | `/convite` (informar código de convite ou criar turma) |
 | `(app)` | Autenticado, com turma | `/dashboard`, `/tarefas`, `/votacoes`, `/votacoes/[catalogoId]`, `/votacoes/relatorio`, `/duvidas`, `/terceiros` |
 | `(master)` | Administrador master (`ADMIN_MASTER_EMAILS`); para os demais a página não existe (404) | `/master`, `/master/turmas`, `/master/turmas/[turmaId]`, `/master/usuarios` |

@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "animejs": "^4.5.0",
     "better-auth": "^1.7.6",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
