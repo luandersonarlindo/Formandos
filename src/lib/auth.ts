@@ -4,7 +4,8 @@ import { pool } from "./db";
 
 export const auth = betterAuth({
   database: pool,
-  baseURL: process.env.BETTER_AUTH_URL,
+  // No Render, RENDER_EXTERNAL_URL traz o endereço público do serviço.
+  baseURL: process.env.BETTER_AUTH_URL ?? process.env.RENDER_EXTERNAL_URL,
   // A tabela de usuários do Better Auth se chama `usuarios` (e não `user`,
   // que é palavra reservada no PostgreSQL).
   user: { modelName: "usuarios" },

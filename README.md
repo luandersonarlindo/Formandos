@@ -197,7 +197,9 @@ Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.en
 
 ## 🚀 Deploy
 
-O passo a passo para publicar (Vercel, banco PostgreSQL gerenciado e login do Google em produção) está em [`docs/deploy.md`](docs/deploy.md).
+O grupo escolheu o **Render** (aplicação e banco PostgreSQL). O passo a passo está em [`docs/deploy-render.md`](docs/deploy-render.md), com a configuração em [`render.yaml`](render.yaml). O guia geral, com a alternativa Vercel, checklist e segurança, está em [`docs/deploy.md`](docs/deploy.md).
+
+> O PostgreSQL do plano gratuito do Render **expira 30 dias depois de criado**. Veja a seção 6 do guia antes de contar com ele.
 
 ---
 

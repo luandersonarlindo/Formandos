@@ -1,6 +1,6 @@
 # Guia de deploy — Formandos
 
-Como publicar o app na internet. A arquitetura recomendada é **Vercel** (aplicação) + **PostgreSQL gerenciado** (banco) + **Google Cloud** (login). Nenhum passo abaixo foi executado pelo agente: ele exige as contas do grupo.
+Como publicar o app na internet. O grupo escolheu o **Render** (aplicação e banco juntos): o passo a passo está em [`deploy-render.md`](deploy-render.md). Este guia descreve a alternativa **Vercel** (aplicação) + **PostgreSQL gerenciado** (banco) e traz o que vale para os dois caminhos: Google Cloud, checklist pós-deploy, segurança e rollback. Nenhum passo abaixo foi executado pelo agente: ele exige as contas do grupo.
 
 > O que foi verificado no projeto: o build funciona **sem acesso ao banco**, o servidor de produção (`next start`) sobe, protege as rotas e devolve a URL de login do Google com o redirecionamento certo, e os scripts `db:auth`, `db:schema` e `db:seed` funcionam usando **só** a variável `DATABASE_URL` (sem `.env.local`).
 > O que **não** foi verificado: preços e limites atuais dos planos gratuitos de cada serviço. Confira nas páginas dos fornecedores antes de decidir.
