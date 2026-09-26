@@ -44,3 +44,6 @@ next-env.d.ts
 client_secret_*.json
 docs/image.png
 !.env.example
+
+# Cookies e capturas dos scripts de teste
+scripts/teste/.tmp/
