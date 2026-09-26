@@ -10,7 +10,7 @@
 
 O aplicativo funciona como um *hub* central de organização, dividindo as responsabilidades de forma clara entre a **Comissão Organizadora / Administradores** (professores/representantes) e os **Participantes** (formandos/alunos).
 
-* **Acesso Restrito por Turma:** Login com a conta Google ("Entrar com Google") ou com **email e senha** (com confirmação do email pelo link enviado). Cada utilizador pertence a **uma única turma por vez**. O acesso a uma turma é feito através de um **código de convite privado** gerado pelo administrador.
+* **Acesso Restrito por Turma:** Login com a conta Google ("Entrar com Google") ou com **email e senha** (com confirmação do email pelo link enviado). Um participante pertence a **uma turma**; quem é **administrador** em alguma turma pode participar de **várias** (entrando por convite ou criando outras) e escolhe a turma em uso num seletor na barra lateral. O acesso a uma turma é feito através de um **código de convite privado** gerado pelo administrador.
 
 * **Administrador master:** gestor de toda a plataforma. Vê todas as turmas e usuários, gere membros e papéis em qualquer turma, exclui turmas e usuários. Quem é master é definido pela variável `ADMIN_MASTER_EMAILS` (não há tela para isso).
 
@@ -60,7 +60,7 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 
 ## 📂 Estrutura de Domínios (Next.js App Router)
 
-Cada utilizador pertence a uma única turma, por isso as URLs **não** levam o identificador da turma: o servidor descobre a turma pelo utilizador autenticado. As pastas entre parênteses são *route groups* e não aparecem na URL.
+As URLs **não** levam o identificador da turma: o servidor descobre a turma em uso pelo utilizador autenticado (turma escolhida no seletor, guardada num cookie e sempre conferida no banco). As pastas entre parênteses são *route groups* e não aparecem na URL.
 
 | Grupo | Acesso | Rotas |
 |---|---|---|
