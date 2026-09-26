@@ -1,37 +1,79 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  Building2,
+  Camera,
+  ExternalLink,
+  Flower2,
+  Globe,
+  Handshake,
+  Mail,
+  Music,
+  Phone,
+  Plus,
+  Store,
+  Trash2,
+  UserRound,
+  Users,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
 import { excluirFornecedor } from "@/actions/terceiros";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { exigirMembro } from "@/lib/dal";
 import { cn } from "@/lib/utils";
 import { CATEGORIAS_FORNECEDOR, listarFornecedores } from "@/lib/terceiros";
 
 export const metadata: Metadata = { title: "Terceiros" };
 
-// Só vira link se for um endereço web; qualquer outro texto (telefone, e-mail)
-// aparece como texto puro.
+const ICONE_CATEGORIA: Record<string, LucideIcon> = {
+  Buffet: UtensilsCrossed,
+  "Música e DJ": Music,
+  "Fotografia e vídeo": Camera,
+  Decoração: Flower2,
+  "Equipe de apoio": Users,
+  Espaço: Building2,
+  Outros: Store,
+};
+
+// Só vira link o que é claramente um site, e-mail ou telefone; qualquer outro
+// texto aparece como texto puro.
 function Contato({ valor }: { valor: string }) {
+  const classe = "inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[var(--vitrine-a)]";
   if (/^https?:\/\//i.test(valor)) {
     return (
-      <a
-        href={valor}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline underline-offset-4"
-      >
+      <a href={valor} target="_blank" rel="noopener noreferrer" className={classe}>
+        <Globe className="size-4 shrink-0" aria-hidden />
+        <span className="wrap-anywhere">{valor}</span>
+        <ExternalLink className="size-3.5 shrink-0" aria-hidden />
+      </a>
+    );
+  }
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)) {
+    return (
+      <a href={`mailto:${valor}`} className={classe}>
+        <Mail className="size-4 shrink-0" aria-hidden />
+        <span className="wrap-anywhere">{valor}</span>
+      </a>
+    );
+  }
+  if (/^\+?[\d\s()-]{8,}$/.test(valor)) {
+    return (
+      <a href={`tel:${valor.replace(/[^\d+]/g, "")}`} className={classe}>
+        <Phone className="size-4 shrink-0" aria-hidden />
         {valor}
       </a>
     );
   }
-  return <>{valor}</>;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <UserRound className="size-4 shrink-0" aria-hidden />
+      <span className="wrap-anywhere">{valor}</span>
+    </span>
+  );
 }
 
 export default async function TerceirosPage(props: PageProps<"/terceiros">) {
@@ -44,82 +86,116 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
     ? fornecedores.filter((f) => f.categoria === categoriaAtiva)
     : fornecedores;
   const ehAdmin = membro.papel === "admin";
+  const contagem = (c?: string) =>
+    c ? fornecedores.filter((f) => f.categoria === c).length : fornecedores.length;
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Terceiros</h1>
-      <p className="mt-2 text-muted-foreground">
+    <div className="mx-auto w-full max-w-4xl">
+      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Terceiros</h1>
+      <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
         Fornecedores e prestadores de serviço indicados pela comissão
         organizadora.
       </p>
 
       {ehAdmin && (
         <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Adicionar fornecedor</CardTitle>
-          </CardHeader>
           <CardContent>
-            <FormNovoFornecedor categorias={CATEGORIAS_FORNECEDOR} />
+            <details open={fornecedores.length === 0} className="group">
+              <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+                <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
+                  <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
+                </span>
+                Adicionar fornecedor
+              </summary>
+              <div className="mt-4">
+                <FormNovoFornecedor categorias={CATEGORIAS_FORNECEDOR} />
+              </div>
+            </details>
           </CardContent>
         </Card>
       )}
 
-      <nav aria-label="Categorias" className="mt-6 flex flex-wrap gap-2">
-        {[undefined, ...CATEGORIAS_FORNECEDOR].map((c) => (
-          <Link
-            key={c ?? "todas"}
-            href={c ? `/terceiros?categoria=${encodeURIComponent(c)}` : "/terceiros"}
-            aria-current={c === categoriaAtiva ? "page" : undefined}
-            className={cn(
-              "rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-              c === categoriaAtiva && "bg-muted font-medium",
-            )}
-          >
-            {c ?? "Todas"}
-          </Link>
-        ))}
+      <nav
+        aria-label="Categorias"
+        className="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {[undefined, ...CATEGORIAS_FORNECEDOR].map((c) => {
+          const ativo = c === categoriaAtiva;
+          return (
+            <Link
+              key={c ?? "todas"}
+              href={c ? `/terceiros?categoria=${encodeURIComponent(c)}` : "/terceiros"}
+              aria-current={ativo ? "page" : undefined}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
+                ativo
+                  ? "border-[var(--vitrine-a)]/40 bg-[color-mix(in_oklch,var(--vitrine-a)_10%,transparent)] font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {c ?? "Todas"}
+              <span className="text-xs tabular-nums text-muted-foreground">{contagem(c)}</span>
+            </Link>
+          );
+        })}
       </nav>
 
-      <h2 className="mt-8 text-lg font-semibold">
-        {visiveis.length === 0
-          ? "Nenhum fornecedor por aqui"
-          : `${visiveis.length} ${visiveis.length === 1 ? "fornecedor" : "fornecedores"}`}
-      </h2>
-
-      <ul data-grupo className="mt-3 grid gap-3">
-        {visiveis.map((f) => (
-          <li key={f.id}>
-            <Card>
-              <CardContent className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium">{f.nome}</p>
-                    <Badge variant="secondary">{f.categoria}</Badge>
-                  </div>
-                  {f.descricao && (
-                    <p className="mt-1 wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">
-                      {f.descricao}
-                    </p>
-                  )}
-                  {f.contato && (
-                    <p className="mt-2 wrap-break-word text-sm">
-                      Contato: <Contato valor={f.contato} />
-                    </p>
-                  )}
-                </div>
-                {ehAdmin && (
-                  <form action={excluirFornecedor}>
-                    <input type="hidden" name="id" value={f.id} />
-                    <Button type="submit" variant="destructive" size="sm">
-                      Remover
-                    </Button>
-                  </form>
-                )}
-              </CardContent>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      {visiveis.length === 0 ? (
+        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
+          <Handshake className="size-8 text-muted-foreground" aria-hidden />
+          <p className="font-medium">Nenhum fornecedor por aqui</p>
+          <p className="text-sm text-muted-foreground">
+            {fornecedores.length === 0
+              ? ehAdmin
+                ? "Adicione o primeiro fornecedor no formulário acima."
+                : "A comissão ainda não indicou fornecedores."
+              : "Escolha outra categoria para ver os demais."}
+          </p>
+        </div>
+      ) : (
+        <ul data-grupo className="mt-4 grid gap-4 md:grid-cols-2">
+          {visiveis.map((f) => {
+            const Icone = ICONE_CATEGORIA[f.categoria] ?? Store;
+            return (
+              <li key={f.id}>
+                <Card className="vitrine-cartao h-full">
+                  <CardContent className="flex h-full flex-col gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-[var(--vitrine-a)]">
+                        <Icone className="size-5" aria-hidden />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-medium wrap-break-word">{f.nome}</p>
+                        <Badge variant="secondary" className="mt-1">
+                          {f.categoria}
+                        </Badge>
+                      </div>
+                    </div>
+                    {f.descricao && (
+                      <p className="wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">
+                        {f.descricao}
+                      </p>
+                    )}
+                    {f.contato && (
+                      <p className="wrap-break-word text-sm">
+                        <Contato valor={f.contato} />
+                      </p>
+                    )}
+                    {ehAdmin && (
+                      <form action={excluirFornecedor} className="mt-auto border-t pt-3">
+                        <input type="hidden" name="id" value={f.id} />
+                        <Button type="submit" variant="destructive" size="sm">
+                          <Trash2 aria-hidden /> Remover
+                        </Button>
+                      </form>
+                    )}
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import { ThumbsUp } from "lucide-react";
 import { startTransition, useOptimistic } from "react";
 import { alternarUpvote } from "@/actions/duvidas";
-import { Button } from "@/components/ui/button";
 
 type Estado = { votos: number; votei: boolean };
 
@@ -26,16 +25,19 @@ export function BotaoUpvote({
   }
 
   return (
-    <Button
+    <button
       type="button"
-      variant={otimista.votei ? "default" : "outline"}
-      size="sm"
       onClick={alternar}
       aria-pressed={otimista.votei}
       aria-label={otimista.votei ? "Remover meu voto" : "Votar nesta dúvida"}
+      className={
+        otimista.votei
+          ? "flex w-12 shrink-0 flex-col items-center gap-0.5 self-start rounded-xl border border-[var(--vitrine-a)]/40 bg-[color-mix(in_oklch,var(--vitrine-a)_12%,transparent)] py-2 text-[var(--vitrine-a)] transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          : "flex w-12 shrink-0 flex-col items-center gap-0.5 self-start rounded-xl border py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      }
     >
       <ThumbsUp className="size-4" aria-hidden />
-      {otimista.votos}
-    </Button>
+      <span className="text-sm font-semibold tabular-nums">{otimista.votos}</span>
+    </button>
   );
 }

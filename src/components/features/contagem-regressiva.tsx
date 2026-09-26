@@ -14,7 +14,7 @@ export function ContagemRegressiva({ dataIso }: { dataIso: string }) {
   }, []);
 
   if (agora === null) {
-    return <p className="text-3xl font-semibold tracking-tight">&nbsp;</p>;
+    return <div className="h-[4.5rem]" aria-hidden />;
   }
 
   const falta = new Date(dataIso).getTime() - agora;
@@ -35,13 +35,15 @@ export function ContagemRegressiva({ dataIso }: { dataIso: string }) {
   ];
 
   return (
-    <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <div className="grid max-w-md grid-cols-4 gap-2 sm:gap-3">
       {partes.map(({ valor, rotulo }) => (
-        <span key={rotulo}>
-          <span className="text-4xl font-semibold tracking-tight">{valor}</span>{" "}
-          <span className="text-sm text-muted-foreground">{rotulo}</span>
-        </span>
+        <div key={rotulo} className="rounded-xl border bg-background/80 px-2 py-2.5 text-center">
+          <p className="vitrine-texto-gradiente text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+            {String(valor).padStart(2, "0")}
+          </p>
+          <p className="text-xs text-muted-foreground">{rotulo}</p>
+        </div>
       ))}
-    </p>
+    </div>
   );
 }

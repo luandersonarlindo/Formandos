@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
@@ -18,6 +19,7 @@ export function BotaoSair() {
 
   return (
     <Button variant="ghost" size="sm" onClick={sair} disabled={saindo}>
+      <LogOut aria-hidden />
       {saindo ? "Saindo…" : "Sair"}
     </Button>
   );

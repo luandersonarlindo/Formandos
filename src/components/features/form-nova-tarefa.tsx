@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { criarTarefa } from "@/actions/tarefas";
 import type { EstadoForm } from "@/actions/tipos";
+import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,7 @@ export function FormNovaTarefa({
       </div>
       <div className="flex items-center gap-3 md:col-span-2">
         <Button type="submit" disabled={pendente}>
+          {pendente && <LoaderCircle className="animate-spin" aria-hidden />}
           {pendente ? "Criando…" : "Criar tarefa"}
         </Button>
         <p
