@@ -59,7 +59,7 @@ export default async function TarefasPage() {
         <CardHeader>
           <CardDescription>Progresso geral</CardDescription>
           <CardTitle className="text-2xl">
-            {concluidas}{" "}
+            <span data-contar={concluidas}>{concluidas}</span>{" "}
             <span className="text-base font-normal text-muted-foreground">
               de {tarefas.length} concluídas
             </span>
@@ -87,7 +87,7 @@ export default async function TarefasPage() {
         {tarefas.length === 0 ? "Nenhuma tarefa ainda" : "Lista de tarefas"}
       </h2>
 
-      <ul className="mt-3 grid gap-3">
+      <ul data-grupo className="mt-3 grid gap-3">
         {tarefas.map((t) => {
           const atrasada = !!t.prazo && t.status !== "concluida" && t.prazo < hoje;
           const ehResponsavel = t.responsavelId === membro.usuarioId;

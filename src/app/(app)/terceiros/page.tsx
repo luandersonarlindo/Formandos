@@ -86,7 +86,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
           : `${visiveis.length} ${visiveis.length === 1 ? "fornecedor" : "fornecedores"}`}
       </h2>
 
-      <ul className="mt-3 grid gap-3">
+      <ul data-grupo className="mt-3 grid gap-3">
         {visiveis.map((f) => (
           <li key={f.id}>
             <Card>

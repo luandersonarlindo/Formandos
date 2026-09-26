@@ -55,7 +55,7 @@ export default async function ModeracaoDuvidasPage() {
           : `${abertas} sem resposta de ${duvidas.length} no total. As não respondidas aparecem primeiro.`}
       </p>
 
-      <ul className="mt-6 grid gap-4">
+      <ul data-grupo className="mt-6 grid gap-4">
         {duvidas.map((d) => (
           <li key={d.id}>
             <Card>

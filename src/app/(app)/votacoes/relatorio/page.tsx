@@ -62,7 +62,7 @@ export default async function RelatorioPage(
       {relatorio?.categorias.map((categoria) => (
         <section key={categoria.id} className="mt-8">
           <h2 className="text-lg font-semibold">{categoria.nome}</h2>
-          <div className="mt-3 grid gap-4">
+          <div data-grupo className="mt-3 grid gap-4">
             {categoria.enquetes.map((enquete) => (
               <Card key={enquete.id}>
                 <CardHeader>

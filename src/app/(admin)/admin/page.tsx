@@ -37,13 +37,19 @@ export default async function AdminPage() {
       <p className="mt-2 text-muted-foreground">
         Resumo de {admin.turmaNome} e atalhos para a gestão da turma.
       </p>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div data-grupo className="mt-6 grid gap-4 md:grid-cols-2">
         {cartoes.map((c) => (
           <Link key={c.titulo} href={c.href} className="block">
             <Card className="h-full transition-colors hover:bg-muted/50">
               <CardHeader>
                 <CardDescription>{c.titulo}</CardDescription>
-                <CardTitle className="text-2xl">{c.valor}</CardTitle>
+                <CardTitle className="text-2xl">
+                  {typeof c.valor === "number" ? (
+                    <span data-contar={c.valor}>{c.valor}</span>
+                  ) : (
+                    c.valor
+                  )}
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">{c.texto}</p>
               </CardHeader>
             </Card>

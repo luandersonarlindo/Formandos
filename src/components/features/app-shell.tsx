@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { trocarTurma } from "@/actions/turmas";
 import type { LucideIcon } from "lucide-react";
+import { AnimarPagina } from "@/components/animacao/animar-pagina";
 import { BotaoSair } from "./botao-sair";
 import { NavLink } from "./nav-link";
 
@@ -124,7 +125,9 @@ export function AppShell({
           <BotaoSair />
         </div>
       </aside>
-      <main id="conteudo" tabIndex={-1} className="flex-1 p-4 outline-none md:p-8">{children}</main>
+      <main id="conteudo" tabIndex={-1} className="flex-1 p-4 outline-none md:p-8">
+        <AnimarPagina>{children}</AnimarPagina>
+      </main>
     </div>
   );
 }

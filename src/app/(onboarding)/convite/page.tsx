@@ -19,7 +19,7 @@ export default async function ConvitePage() {
           ? "Como administrador, você pode participar de mais de uma turma. Use um código de convite ou crie uma nova turma."
           : "Você precisa de uma turma para usar o Formandos. Use o código de convite do seu administrador ou crie uma nova turma."}
       </p>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div data-grupo className="mt-6 grid gap-4 md:grid-cols-2">
         <FormEntrarConvite />
         <FormCriarTurma />
       </div>

@@ -23,7 +23,7 @@ export default async function UsuariosMasterPage() {
         {usuarios.length} {usuarios.length === 1 ? "usuário" : "usuários"} cadastrados. Para mudar o papel de alguém em uma turma, abra a turma.
       </p>
 
-      <ul className="mt-6 divide-y rounded-lg border">
+      <ul data-grupo className="mt-6 divide-y rounded-lg border">
         {usuarios.map((u) => {
           const ehMasterAlvo = masters.includes(u.email.toLowerCase());
           const podeExcluir = u.id !== master.id && !ehMasterAlvo;
