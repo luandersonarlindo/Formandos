@@ -17,7 +17,35 @@ node scripts/teste/auditoria.mjs scripts/teste/.tmp/cookie.txt 360,768,1024,1920
 scripts/teste/limpar.sh        # apaga tudo
 ```
 
+## Testes de fluxo (preencher e clicar de verdade)
+
+`fluxos.mjs` abre o Chrome, preenche formulários, clica e confere a tela e o
+banco. São 59 passos em 6 grupos: `auth` (criar conta, confirmar email, entrar,
+sair, esqueci a senha, estados vazios), `participante`, `app` (tarefas, votos,
+dúvidas, terceiros), `admin` (membros, convite, evento, moderação, catálogos),
+`master` e `extras` (tela de erro, animação em movimento, foco por teclado,
+celular e TV).
+
+Suba o servidor **com o SMTP desligado**, para nenhum email real ser enviado (o
+email cai no log e o teste lê o link de lá), e com a conta fictícia como master:
+
+```bash
+mkdir -p scripts/teste/.tmp
+SMTP_HOST= ADMIN_MASTER_EMAILS="seu@email,teste-sh@example.invalid" \
+  npm run dev > scripts/teste/.tmp/dev.log 2>&1
+scripts/teste/semear.sh
+node scripts/teste/fluxos.mjs              # todos os grupos (~4 min)
+node scripts/teste/fluxos.mjs admin,master # só alguns
+```
+
+Para reiniciar o servidor, mate pelo PID (`ss -ltnp | grep :3000`); `pkill -f`
+derruba o próprio terminal do agente. O grupo `extras` cria e apaga
+temporariamente `src/app/(app)/teste-erro/` para provocar a tela de erro.
+
 ## O que cada arquivo faz
+
+- `fluxos.mjs` e `lib/navegador.mjs`: os testes de fluxo acima e o pequeno
+  controle do Chrome que eles usam.
 
 - `semear.sh`: cria a admin Maria Souza e o participante João Lima, a turma
   "Sistemas de Informação 2026" (código `TESTESH0001`) com evento, programação,
