@@ -16,14 +16,14 @@ export function FormNovaDuvida() {
 
   return (
     <form action={acao} className="flex flex-col gap-2">
-      <Label htmlFor="conteudo" className="gap-2">
+      <Label htmlFor="texto-duvida" className="gap-2">
         <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
           <MessageCircleQuestion className="size-4" aria-hidden />
         </span>
         Envie a sua dúvida
       </Label>
       <Textarea
-        id="conteudo"
+        id="texto-duvida"
         name="conteudo"
         maxLength={500}
         rows={3}
