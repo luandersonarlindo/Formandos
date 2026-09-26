@@ -125,7 +125,7 @@ create table if not exists tarefas (
 );
 create index if not exists idx_tarefas_turma on tarefas (turma_id);
 
--- Vitrine de terceiros: por enquanto global (igual para todas as turmas).
+-- Vitrine de terceiros: fornecedores cadastrados pelo administrador da turma.
 create table if not exists fornecedores (
   id         uuid primary key default gen_random_uuid(),
   nome       varchar(255) not null,
@@ -135,3 +135,18 @@ create table if not exists fornecedores (
   imagem_url text,
   created_at timestamptz not null default now()
 );
+-- Bancos criados antes desta coluna a recebem aqui.
+alter table fornecedores
+  add column if not exists turma_id uuid references turmas(id) on delete cascade;
+create index if not exists idx_fornecedores_turma on fornecedores (turma_id);
+
+-- Programação oficial da festa, exibida no dashboard.
+create table if not exists programacao (
+  id         uuid primary key default gen_random_uuid(),
+  turma_id   uuid not null references turmas(id) on delete cascade,
+  horario    timestamptz not null,
+  titulo     varchar(255) not null,
+  descricao  text,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_programacao_turma on programacao (turma_id, horario);
