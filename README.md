@@ -178,6 +178,12 @@ As 8 categorias do catálogo padrão:
 
 ---
 
+## 🚀 Deploy
+
+O passo a passo para publicar (Vercel, banco PostgreSQL gerenciado e login do Google em produção) está em [`docs/deploy.md`](docs/deploy.md).
+
+---
+
 ## 🛡️ Segurança e Acessibilidade
 
 * Toda página protegida e toda Server Action validam sessão, turma e papel em `src/lib/dal.ts`. O `proxy.ts` é só a primeira barreira.
