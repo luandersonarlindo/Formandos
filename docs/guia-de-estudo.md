@@ -4,7 +4,7 @@ Guia para quem está criando o primeiro projeto com Next.js e React. Cobre os as
 
 Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação embarcada do Next.js instalado (`node_modules/next/dist/docs/`).
 
-> **Situação (26/09/2026):** o MVP está implementado (etapas 0 a 11 do roteiro da seção 4). A etapa 12, o deploy, está **preparada** em [`docs/deploy.md`](deploy.md), mas depende das contas do grupo. Este guia continua útil como material de estudo: cada assunto aponta para o arquivo do projeto onde ele foi aplicado.
+> **Situação (26/09/2026):** o MVP está implementado (etapas 0 a 11 do roteiro da seção 4). O projeto **não será hospedado**: o código fica no GitHub e roda localmente. Este guia continua útil como material de estudo: cada assunto aponta para o arquivo do projeto onde ele foi aplicado.
 
 > **Regra do projeto (`AGENTS.md`):** este é o Next.js **16.3.6** com React **19.2.8**. Ele tem mudanças que quebram o que se aprende em tutoriais antigos. Na dúvida, leia a doc local em `node_modules/next/dist/docs/01-app/` antes de copiar código da internet.
 
@@ -23,7 +23,6 @@ Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação e
 | Dashboard, tarefas e terceiros | Pronto |
 | Painel do administrador | Pronto: membros, convite, evento, programação, catálogos personalizados e quem votou |
 | Acabamento | Telas de erro, carregamento e 404; cabeçalhos de segurança; limite de tentativas de convite; testes unitários (`npm test`) |
-| Deploy | **Preparado**, não executado. Ver `docs/deploy.md` |
 | ESLint, testes de ponta a ponta, alternância de tema escuro | **Não existem** |
 | `.mcp.json` do `next-devtools-mcp` | **Não criado** |
 
@@ -197,7 +196,7 @@ Conceitos que mais confundem iniciantes:
 - Driver: `pg` (o Better Auth exige um `Pool` dele). **Sempre use consultas parametrizadas** (nunca concatene texto do usuário no SQL), para evitar SQL injection: `pool.query('select * from turmas where id = $1', [id])`.
 - Um arquivo `src/lib/db.ts` cria a conexão uma vez e é importado pelas actions e pelas funções de leitura.
 - Migrações: `db/schema.sql` usa `create table if not exists`, então repete sem erro, mas **não altera tabelas que já existem**. Quando o esquema mudar depois do MVP em uso, passe a numerar arquivos (`001_init.sql`, `002_...`) para o grupo aplicar as mudanças na mesma ordem.
-- Onde rodar o banco: o PostgreSQL 18 já roda localmente nesta máquina (conexão por socket Unix, sem senha). O Docker **não está instalado**. Opções: PostgreSQL local (instalado pelo sistema) ou um Postgres gratuito na nuvem (Neon, Supabase, etc.). A nuvem facilita para o grupo de 4 usar o mesmo banco de desenvolvimento, mas exige cuidado com o que é dado real.
+- Onde rodar o banco: o PostgreSQL 18 já roda localmente nesta máquina (conexão por socket Unix, sem senha). O Docker **não está instalado**. Cada pessoa do grupo roda um PostgreSQL local (instalado pelo sistema) e cria o próprio banco com os scripts `db:*`.
 
 **Modelo de dados** (implementado em `db/schema.sql`; as tabelas do Better Auth vêm de `npm run db:auth`):
 
@@ -234,7 +233,7 @@ programacao     (id, turma_id, horario, titulo, descricao)                      
 | `npm run db:schema` | Aplica `db/schema.sql` (13 tabelas do domínio). |
 | `npm run db:seed` | Insere o catálogo padrão (8 categorias, 16 enquetes, 84 opções) lendo `docs/catalogo-enquetes.md`. `-- --dry` só mostra o que leria. |
 
-Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`. Isso permite testar em um banco descartável e criar as tabelas do banco de produção (ver `docs/deploy.md`).
+Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`. Isso permite testar em um banco descartável.
 
 O relatório automatizado sai de uma consulta agregada (`count` por opção, com `left join` para mostrar também as opções sem voto) em `src/lib/relatorio.ts`. Não precisa de tabela própria.
 
@@ -288,11 +287,6 @@ Pontos-chave:
 - Testes: existe `npm test` (Vitest) para as funções puras de `src/lib` (`convite.test.ts`, `datas.test.ts`). O restante foi verificado à mão contra o servidor; testes de ponta a ponta (Playwright) ficam para depois.
 - Variáveis de ambiente: nunca comite `.env.local`. Crie um `.env.example` sem segredos para o grupo.
 
-### 3.11 Deploy
-- O passo a passo completo está em [`docs/deploy.md`](deploy.md): banco gerenciado, Google Cloud em produção, variáveis na Vercel, checklist de teste e rollback.
-- Vercel é o caminho mais simples para Next.js. Precisa de banco acessível pela internet e das variáveis de ambiente configuradas.
-- Login Google exige cadastrar a URL de callback de produção no Google Cloud Console e publicar o app na tela de consentimento.
-- A doc local `02-guides/production-checklist.md` lista o que revisar antes de publicar.
 
 ---
 
@@ -314,7 +308,7 @@ Cada etapa termina com algo que você consegue ver funcionando. Faça uma de cad
 | **9. Dashboard, tarefas, terceiros** | Restante do MVP. | MVP completo | Feito |
 | **10. Admin** | Edição do evento, programação, enquetes personalizadas, quem votou. | Painel admin | Feito |
 | **11. Acabamento** | Erros, carregamento (`loading.tsx`), acessibilidade, limite de convite, testes. | Pronto para uso | Feito |
-| **12. Deploy** | Vercel + banco em nuvem + Google callback. | URL pública | **Preparado** (`docs/deploy.md`); falta executar |
+| **12. Deploy** | Publicar em uma hospedagem. | URL pública | **Fora do escopo**: o projeto fica no GitHub |
 
 Sugestão de divisão para 4 pessoas depois da etapa 1: uma pessoa por área (votações, dúvidas, admin/turmas, dashboard/tarefas/terceiros), com a etapa 3–5 (banco, login, turmas) feitas juntas, porque tudo depende delas.
 
@@ -374,4 +368,3 @@ Situação: as skills abaixo estão disponíveis no ambiente de desenvolvimento 
 - Recharts: https://recharts.org
 - Zod: https://zod.dev
 - Vitest: https://vitest.dev
-- Vercel: https://vercel.com/docs

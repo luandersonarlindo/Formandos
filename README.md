@@ -2,7 +2,7 @@
 
 **Formandos** é uma aplicação de gestão administrativa de formaturas e eventos desenvolvida com React e Next.js. O app proporciona autonomia, praticidade e organização para que turmas e comissões organizadoras planeiem todos os recursos necessários para a realização do evento.
 
-> **Estado do projeto:** o MVP está implementado e testado localmente. O deploy está preparado em [`docs/deploy.md`](docs/deploy.md), mas ainda não foi executado.
+> **Estado do projeto:** o MVP está implementado e roda localmente (veja "Como Executar o Projeto"). O projeto não está hospedado: o código fica no GitHub.
 
 ---
 
@@ -92,7 +92,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas: `exigirSessao()`, `getMembro()`, `exigirMembro()` e `exigirAdmin()`.
 * **`/src/lib` (consultas e utilitários):** consultas de leitura por área (`votacoes.ts`, `relatorio.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `dashboard.ts`, `admin.ts`) e funções puras (`convite.ts`, `datas.ts`), estas com testes em `*.test.ts`.
 * **`/db`:** `schema.sql` (tabelas do domínio), `apply-schema.mjs` e `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`).
-* **`/docs`:** catálogo de enquetes, guia de estudo e guia de deploy.
+* **`/docs`:** catálogo de enquetes e guia de estudo.
 
 ---
 
@@ -192,14 +192,6 @@ As 8 categorias do catálogo padrão:
 | `npm run db:seed` | Catálogo padrão (`-- --dry` só mostra o que leria) |
 
 Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`.
-
----
-
-## 🚀 Deploy
-
-O grupo escolheu o **Render** (aplicação e banco PostgreSQL). O passo a passo está em [`docs/deploy-render.md`](docs/deploy-render.md), com a configuração em [`render.yaml`](render.yaml). O guia geral, com a alternativa Vercel, checklist e segurança, está em [`docs/deploy.md`](docs/deploy.md).
-
-> O PostgreSQL do plano gratuito do Render **expira 30 dias depois de criado**. Veja a seção 6 do guia antes de contar com ele.
 
 ---
 
