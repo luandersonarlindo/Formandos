@@ -19,6 +19,7 @@ export const config = {
     "/duvidas/:path*",
     "/terceiros/:path*",
     "/admin/:path*",
+    "/master/:path*",
     "/convite/:path*",
   ],
 };
