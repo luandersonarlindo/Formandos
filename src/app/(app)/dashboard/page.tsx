@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  CalendarDays,
+  CircleHelp,
+  ClipboardCheck,
+  MapPin,
+  Users,
+  Vote,
+  type LucideIcon,
+} from "lucide-react";
 import { ContagemRegressiva } from "@/components/features/contagem-regressiva";
 import { FormSairTurma } from "@/components/features/form-sair-turma";
 import { Badge } from "@/components/ui/badge";
@@ -27,26 +36,38 @@ function Indicador({
   total,
   href,
   rotulo,
+  icone: Icone,
 }: {
   titulo: string;
   valor: number;
-  total: number;
+  total?: number;
   href: string;
-  rotulo: string;
+  rotulo?: string;
+  icone: LucideIcon;
 }) {
   return (
     <Link href={href} className="block">
-      <Card className="h-full transition-colors hover:bg-muted/50">
+      <Card className="vitrine-cartao h-full">
         <CardHeader>
-          <CardDescription>{titulo}</CardDescription>
-          <CardTitle className="text-2xl">
-            <span data-contar={valor}>{valor}</span> <span className="text-base font-normal text-muted-foreground">de {total}</span>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
+              <Icone className="size-4" aria-hidden />
+            </span>
+            <CardDescription>{titulo}</CardDescription>
+          </div>
+          <CardTitle className="mt-1 text-3xl tabular-nums">
+            <span data-contar={valor}>{valor}</span>
+            {total !== undefined && (
+              <span className="ml-1.5 text-base font-normal text-muted-foreground">de {total}</span>
+            )}
           </CardTitle>
-          <Progress
-            className="mt-2"
-            value={total === 0 ? 0 : (valor / total) * 100}
-            aria-label={rotulo}
-          />
+          {total !== undefined && (
+            <Progress
+              className="mt-2"
+              value={total === 0 ? 0 : (valor / total) * 100}
+              aria-label={rotulo}
+            />
+          )}
         </CardHeader>
       </Card>
     </Link>
@@ -61,52 +82,56 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {membro.turmaNome}
-        </h1>
-        <Badge variant={membro.papel === "admin" ? "default" : "secondary"}>
-          {membro.papel === "admin" ? "Administrador" : "Participante"}
-        </Badge>
-      </div>
-      <p className="mt-2 text-muted-foreground">
-        {resumo.membros} {resumo.membros === 1 ? "membro" : "membros"} na turma.
-      </p>
+    <div className="mx-auto w-full max-w-4xl">
+      <section className="vitrine-fundo-hero rounded-2xl border bg-card p-5 md:p-7">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            {membro.turmaNome}
+          </h1>
+          <Badge variant={membro.papel === "admin" ? "default" : "secondary"}>
+            {membro.papel === "admin" ? "Administrador" : "Participante"}
+          </Badge>
+        </div>
+        <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Users className="size-4" aria-hidden />
+          <span data-contar={resumo.membros}>{resumo.membros}</span>{" "}
+          {resumo.membros === 1 ? "membro na turma" : "membros na turma"}
+        </p>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardDescription>Contagem regressiva</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <div className="mt-6">
+          <p className="mb-2 text-sm font-medium text-muted-foreground">Contagem regressiva</p>
           {membro.dataEvento ? (
             <ContagemRegressiva dataIso={membro.dataEvento.toISOString()} />
           ) : (
-            <p className="text-muted-foreground">
+            <p className="rounded-xl border border-dashed bg-background/60 p-4 text-sm text-muted-foreground">
               A data do evento ainda não foi definida pelo administrador.
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      <div data-grupo className="mt-4 grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardDescription>Data do evento</CardDescription>
-            <CardTitle>
-              {membro.dataEvento
-                ? formatarDataHora.format(membro.dataEvento)
-                : "Não definida"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Local</CardDescription>
-            <CardTitle>{membro.localEvento ?? "Não definido"}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+        <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
+            <CalendarDays className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
+            <div className="min-w-0">
+              <dt className="text-xs text-muted-foreground">Data do evento</dt>
+              <dd className="text-sm font-medium">
+                {membro.dataEvento
+                  ? formatarDataHora.format(membro.dataEvento)
+                  : "Não definida"}
+              </dd>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
+            <MapPin className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
+            <div className="min-w-0">
+              <dt className="text-xs text-muted-foreground">Local</dt>
+              <dd className="text-sm font-medium wrap-break-word">
+                {membro.localEvento ?? "Não definido"}
+              </dd>
+            </div>
+          </div>
+        </dl>
+      </section>
 
       <div data-grupo className="mt-4 grid gap-4 md:grid-cols-3">
         <Indicador
@@ -115,6 +140,7 @@ export default async function DashboardPage() {
           total={resumo.tarefasTotal}
           href="/tarefas"
           rotulo="Progresso das tarefas"
+          icone={ClipboardCheck}
         />
         <Indicador
           titulo="Enquetes respondidas por você"
@@ -122,22 +148,19 @@ export default async function DashboardPage() {
           total={resumo.enquetesTotal}
           href="/votacoes"
           rotulo="Seu progresso nas votações"
+          icone={Vote}
         />
-        <Link href="/duvidas" className="block">
-          <Card className="h-full transition-colors hover:bg-muted/50">
-            <CardHeader>
-              <CardDescription>Dúvidas sem resposta</CardDescription>
-              <CardTitle className="text-2xl">
-                <span data-contar={resumo.duvidasAbertas}>{resumo.duvidasAbertas}</span>
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </Link>
+        <Indicador
+          titulo="Dúvidas sem resposta"
+          valor={resumo.duvidasAbertas}
+          href="/duvidas"
+          icone={CircleHelp}
+        />
       </div>
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Programação da festa</CardTitle>
+          <CardTitle className="text-lg">Programação da festa</CardTitle>
           <CardDescription>
             {programacao.length === 0
               ? "A programação ainda não foi divulgada pelo administrador."
@@ -146,25 +169,25 @@ export default async function DashboardPage() {
         </CardHeader>
         {programacao.length > 0 && (
           <CardContent>
-            <ol className="divide-y">
+            <ol className="mt-1 ml-1.5 border-l">
               {programacao.map((item) => (
-                <li key={item.id} className="flex gap-4 py-3">
-                  <div className="w-28 shrink-0 text-sm">
-                    <p className="font-medium">
-                      {formatarHora.format(item.horario)}
+                <li key={item.id} className="relative pb-6 pl-6 last:pb-0">
+                  <span
+                    aria-hidden
+                    className="absolute top-1.5 -left-[5px] size-2.5 rounded-full bg-[var(--vitrine-a)] ring-4 ring-card"
+                  />
+                  <p className="text-sm font-semibold text-[var(--vitrine-a)]">
+                    {formatarHora.format(item.horario)}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      · {formatarDiaCurto.format(item.horario)}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 font-medium">{item.titulo}</p>
+                  {item.descricao && (
+                    <p className="mt-0.5 wrap-break-word text-sm text-muted-foreground">
+                      {item.descricao}
                     </p>
-                    <p className="text-muted-foreground">
-                      {formatarDiaCurto.format(item.horario)}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium">{item.titulo}</p>
-                    {item.descricao && (
-                      <p className="mt-0.5 wrap-break-word text-sm text-muted-foreground">
-                        {item.descricao}
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </li>
               ))}
             </ol>
@@ -172,14 +195,14 @@ export default async function DashboardPage() {
         )}
       </Card>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Sua participação</CardTitle>
-          <CardDescription>
-            Se você for o único membro, a turma será apagada ao sair.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Card className="mt-4 border-dashed bg-transparent ring-0 border">
+        <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-medium">Sua participação</p>
+            <p className="text-sm text-muted-foreground">
+              Se você for o único membro, a turma será apagada ao sair.
+            </p>
+          </div>
           <FormSairTurma />
         </CardContent>
       </Card>
