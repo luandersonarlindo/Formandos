@@ -7,7 +7,7 @@ type PaginaVaziaProps = {
 // Marcador das telas ainda não implementadas.
 export function PaginaVazia({ titulo, descricao, children }: PaginaVaziaProps) {
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-3xl 2xl:max-w-5xl">
       <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
       <p className="mt-2 text-muted-foreground">{descricao}</p>
       {children}

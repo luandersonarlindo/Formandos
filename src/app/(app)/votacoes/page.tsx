@@ -19,7 +19,7 @@ export default async function VotacoesPage() {
   const catalogos = await listarCatalogos(membro);
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Votações</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
         Escolha um catálogo e responda às enquetes. Você pode mudar o seu voto

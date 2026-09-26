@@ -25,7 +25,7 @@ export default async function ConviteAdminPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
         Código de convite
       </h1>

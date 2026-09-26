@@ -123,7 +123,7 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
             {!criando && (
               <Link
                 href="/esqueci-senha"
-                className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                className="py-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground pointer-coarse:py-2.5"
               >
                 Esqueci a senha
               </Link>
@@ -160,7 +160,7 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
         <button
           type="button"
           onClick={() => trocarModo(!criando)}
-          className="font-medium text-foreground underline underline-offset-4"
+          className="py-1 font-medium text-foreground underline underline-offset-4 pointer-coarse:py-2.5"
         >
           {criando ? "Entrar" : "Criar conta"}
         </button>

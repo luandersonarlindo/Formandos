@@ -96,7 +96,7 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
   const hoje = hojeIso();
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Tarefas</h1>
       <p className="mt-2 text-muted-foreground">
         Acompanhe o que falta para a festa acontecer.

@@ -35,7 +35,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
           Painel do administrador

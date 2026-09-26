@@ -51,7 +51,7 @@ export function Cabecalho({ logado }: Sessao) {
   ];
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="text-lg font-semibold tracking-tight">
           Formandos <span aria-hidden>🎓</span>
         </Link>
@@ -91,7 +91,7 @@ const RESULTADO_EXEMPLO = [
 export function Hero({ logado }: Sessao) {
   return (
     <section className="vitrine-fundo-hero relative overflow-hidden">
-      <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-16 md:py-24 lg:grid-cols-2">
+      <div className="relative mx-auto grid w-full max-w-6xl 2xl:max-w-7xl items-center gap-12 px-4 py-16 md:py-24 lg:grid-cols-2">
         <div>
           <span data-hero="selo" className="inline-flex">
             <Badge variant="secondary" className="gap-1.5 px-3 py-1">
@@ -203,7 +203,7 @@ const RECURSOS = [
 
 export function Recursos() {
   return (
-    <section id="recursos" className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 py-16 md:py-24">
+    <section id="recursos" className="mx-auto w-full max-w-6xl 2xl:max-w-7xl scroll-mt-20 px-4 py-16 md:py-24">
       <Titulo
         selo="Recursos"
         titulo="Tudo o que a comissão precisa, sem planilha perdida"
@@ -282,7 +282,7 @@ const CATEGORIAS = [
 
 export function Catalogo() {
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-16 md:py-24">
+    <section className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 py-16 md:py-24">
       <Titulo
         selo="Catálogo de enquetes"
         titulo="Perguntas que vão além do sim ou não"
@@ -332,7 +332,7 @@ const PAPEIS = [
 export function Papeis() {
   return (
     <section id="papeis" className="scroll-mt-20 bg-muted/40 py-16 md:py-24">
-      <div className="mx-auto w-full max-w-6xl px-4">
+      <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4">
         <Titulo selo="Perfis" titulo="Cada pessoa vê o que precisa" texto="Três níveis de acesso mantêm a organização e a segurança da plataforma." />
         <div data-grupo className="mt-12 grid gap-4 md:grid-cols-3">
           {PAPEIS.map(({ icone: Icone, titulo, itens }) => (
@@ -382,7 +382,7 @@ function iniciais(nome: string) {
 
 export function Equipe() {
   return (
-    <section id="equipe" className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 py-16 md:py-24">
+    <section id="equipe" className="mx-auto w-full max-w-6xl 2xl:max-w-7xl scroll-mt-20 px-4 py-16 md:py-24">
       <Titulo selo="Quem faz" titulo="Feito por estudantes, para turmas de verdade" />
       <ul data-grupo className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {EQUIPE.map((nome) => (
@@ -442,7 +442,7 @@ export function ChamadaFinal({ logado }: Sessao) {
 export function Rodape() {
   return (
     <footer className="border-t">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground">
+      <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground">
         <p>Formandos 🎓 · Gestão administrativa de formaturas e eventos</p>
         <nav aria-label="Links do projeto" className="flex gap-5">
           <a href={REPOSITORIO} className="hover:text-foreground" rel="noreferrer" target="_blank">

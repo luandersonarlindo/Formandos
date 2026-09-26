@@ -35,7 +35,7 @@ export default async function EventoPage() {
   const rotulo = "flex items-center gap-1.5";
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Evento</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
         Estes dados aparecem no dashboard de todos os membros. Os horários são

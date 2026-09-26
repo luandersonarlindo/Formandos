@@ -20,7 +20,7 @@ export default async function UsuariosMasterPage() {
   const masters = emailsMaster();
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Usuários</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
         {usuarios.length} {usuarios.length === 1 ? "usuário" : "usuários"} cadastrados. Para mudar o papel de alguém em uma turma, abra a turma.

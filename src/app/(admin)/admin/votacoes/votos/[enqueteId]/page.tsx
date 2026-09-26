@@ -32,7 +32,7 @@ export default async function VotosEnquetePage(
   const maisVotos = Math.max(0, ...dados.opcoes.map((o) => o.votantes.length));
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <Link
         href={`/admin/votacoes/${dados.catalogoId}`}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"

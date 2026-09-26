@@ -15,7 +15,7 @@ export default async function TurmasMasterPage() {
   const turmas = await listarTurmas();
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Turmas</h1>
       <p className="mt-2 text-muted-foreground">
         {turmas.length} {turmas.length === 1 ? "turma" : "turmas"} na plataforma.

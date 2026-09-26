@@ -33,7 +33,7 @@ export default async function MembrosPage() {
   const participantes = rows.length - totalAdmins;
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Membros</h1>
       <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
         <span>
