@@ -8,7 +8,8 @@
     "start": "next start",
     "db:schema": "node --env-file=.env.local db/apply-schema.mjs",
     "db:seed": "node --env-file=.env.local db/seed.mjs",
-    "db:auth": "node --env-file=.env.local node_modules/auth/dist/index.mjs migrate --config src/lib/auth.ts -y"
+    "db:auth": "node --env-file=.env.local node_modules/auth/dist/index.mjs migrate --config src/lib/auth.ts -y",
+    "test": "vitest run"
   },
   "dependencies": {
     "better-auth": "^1.7.6",
@@ -28,13 +29,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22.20.4",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "auth": "^1.7.6",
     "babel-plugin-react-compiler": "1.0.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.2"
   }
 }
