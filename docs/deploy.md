@@ -16,11 +16,10 @@ Como publicar o app na internet. A arquitetura recomendada é **Vercel** (aplica
 | Domínio | O endereço gratuito da hospedagem (`algo.vercel.app`) | Domínio próprio |
 | Repositório | GitHub | GitLab ou Bitbucket |
 
-O repositório local **ainda não tem remoto**. Crie um repositório no GitHub (privado) e envie o código:
+O código já está no GitHub: <https://github.com/luandersonarlindo/Formandos>. Confira se o repositório está **privado**, a não ser que o grupo queira o código público (o histórico não contém segredos, mas mostra a estrutura do projeto e os nomes dos membros). Para enviar novas mudanças:
 
 ```bash
-git remote add origin https://github.com/SEU-USUARIO/formandos.git
-git push -u origin main
+git push origin main
 ```
 
 ---
@@ -138,7 +137,7 @@ Coloque um proxy reverso com HTTPS na frente (por exemplo Nginx ou Caddy). Defin
 
 ## 10. Resumo do que falta você fazer
 
-1. Criar o repositório no GitHub e enviar o código.
+1. Manter o código em dia no GitHub (`git push origin main`).
 2. Criar o banco de produção e rodar `db:auth`, `db:schema` e `db:seed`.
 3. Cadastrar a URL de produção no Google Cloud e publicar o app.
 4. Criar o projeto na Vercel com as variáveis de ambiente.
