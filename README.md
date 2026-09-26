@@ -2,6 +2,8 @@
 
 **Formandos** é uma aplicação de gestão administrativa de formaturas e eventos desenvolvida com React e Next.js. O app proporciona autonomia, praticidade e organização para que turmas e comissões organizadoras planeiem todos os recursos necessários para a realização do evento.
 
+> **Estado do projeto:** o MVP está implementado e testado localmente. O deploy está preparado em [`docs/deploy.md`](docs/deploy.md), mas ainda não foi executado.
+
 ---
 
 ## 🚀 Visão Geral e Âmbito (MVP)
@@ -24,7 +26,9 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
   * **Sistema de Upvotes:** Os alunos votam nas perguntas mais relevantes de outros colegas para dar visibilidade às dúvidas comuns.
   * **Destaque e Resposta do ADM:** A comissão responde oficialmente e pode marcar a dúvida como *"Respondida"* ou *"Em Destaque"*.
 
-* **Vitrine de Terceiros (Marketplace):** Catálogo para conectar a turma a prestadores de serviços (buffet, músicos, equipa de apoio/mordomos, fotógrafos).
+* **Tarefas e Dashboard:** contagem regressiva para a festa, data, local, programação e indicadores da turma; lista de tarefas com responsável, prazo e progresso.
+
+* **Vitrine de Terceiros (Marketplace):** Catálogo para conectar a turma a prestadores de serviços (buffet, músicos, equipa de apoio/mordomos, fotógrafos), cadastrados pelo administrador de cada turma.
 
 ---
 
@@ -41,12 +45,13 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 
 * **React 19:** Construção de interfaces declarativas baseadas em componentes.
 * **Next.js 16 (App Router):** Roteamento, renderização no servidor e *Server Actions*. O antigo *Middleware* chama-se **Proxy** (`proxy.ts`) nesta versão.
-* **PostgreSQL:** Base de dados relacional principal, acessada diretamente por consultas SQL nativas no lado do servidor via driver `pg` (ou `postgres.js`).
+* **PostgreSQL:** Base de dados relacional principal, acessada diretamente por consultas SQL nativas (sempre parametrizadas) no lado do servidor via driver `pg`.
 * **Better Auth:** Autenticação de utilizadores (login social exclusivo com Google). Guarda utilizadores e sessões no próprio PostgreSQL.
 * **Tailwind CSS v4:** Estilização utilitária moderna e responsiva.
-* **shadcn/ui + Radix UI:** Componentes de interface acessíveis e reutilizáveis (`Card`, `Dialog`, `ToggleGroup`, `Select`, `DropdownMenu`, `Progress`, `Badge`, etc.).
+* **shadcn/ui + Radix UI:** Componentes de interface acessíveis e reutilizáveis, copiados para `src/components/ui` conforme o uso (`Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`).
 * **Recharts:** Visualização de dados e gráficos para os relatórios automatizados das enquetes.
 * **Zod:** Validação dos dados recebidos pelas Server Actions.
+* **Vitest:** Testes unitários das funções puras.
 
 ---
 
@@ -78,15 +83,16 @@ Cada utilizador pertence a uma única turma, por isso as URLs **não** levam o i
 O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 
 * **`/src/proxy.ts`:** Redireciona para o login quem não tem sessão. É uma verificação rápida, **não** a barreira final de segurança.
+* **`/src/app`:** Rotas, layouts, telas de erro (`error.tsx`, `global-error.tsx`), carregamento (`loading.tsx`) e `not-found.tsx`.
 * **`/src/components/ui`:** Componentes genéricos da biblioteca shadcn/ui.
-* **`/src/components/features`:** Componentes de domínio complexos (ex: cards interativos de votação, lista de dúvidas com botões de upvote, seletores de restrição alimentar, gráficos de relatório).
-* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL (ex: registar voto na enquete, dar like numa pergunta, marcar dúvida como respondida, gerar código de convite), substituindo o uso de `useEffect` para persistência. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
-* **`/src/lib/db.ts`:** Configuração e exportação da conexão direta com o banco de dados PostgreSQL.
-* **`/src/lib/auth.ts`:** Configuração do Better Auth (provedor Google, conexão com o PostgreSQL). A tabela de utilizadores chama-se `usuarios`.
-* **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas (`getUsuarioAtual()`, `getMembro()`, `exigirAdmin()`).
-* **`/src/lib`:** Funções puras utilitárias, formatação de dados e configurações de integrações.
-* **`/src/hooks`:** Hooks customizados focados no estado local de UI e interatividade do cliente.
+* **`/src/components/features`:** Componentes de domínio (menu lateral, cartão de votação, gráfico da enquete, botão de upvote, formulários de tarefa, fornecedor, evento e catálogo, contagem regressiva…).
+* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `votos.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `catalogos.ts` e `admin.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
+* **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
+* **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (provedor Google) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
+* **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas: `exigirSessao()`, `getMembro()`, `exigirMembro()` e `exigirAdmin()`.
+* **`/src/lib` (consultas e utilitários):** consultas de leitura por área (`votacoes.ts`, `relatorio.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `dashboard.ts`, `admin.ts`) e funções puras (`convite.ts`, `datas.ts`), estas com testes em `*.test.ts`.
 * **`/db`:** `schema.sql` (tabelas do domínio), `apply-schema.mjs` e `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`).
+* **`/docs`:** catálogo de enquetes, guia de estudo e guia de deploy.
 
 ---
 
@@ -142,9 +148,9 @@ As 8 categorias do catálogo padrão:
    No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto, configure a tela de consentimento OAuth e crie um *ID do cliente OAuth* (tipo "Aplicativo da Web"). Em *URIs de redirecionamento autorizados*, adicione `http://localhost:3000/api/auth/callback/google`. Use apenas os escopos básicos (`openid`, `email`, `profile`).
 
 4. **Configurar as Variáveis de Ambiente:**
-   Crie um ficheiro `.env.local` na raiz do projeto (nunca o comite) com a string de conexão do PostgreSQL e as credenciais do Better Auth:
+   Copie `.env.example` para `.env.local` na raiz do projeto (nunca o comite) e preencha a string de conexão do PostgreSQL e as credenciais do Better Auth. Gere o segredo com `openssl rand -base64 32`:
    ```env
-   DATABASE_URL="postgres://usuario:senha@localhost:5432/formandos"
+   DATABASE_URL="postgres://usuario:senha@localhost:5432/formandos"   # ou por socket: postgresql://usuario@localhost/formandos?host=/var/run/postgresql
    BETTER_AUTH_SECRET="gere_um_valor_aleatorio_com_32_ou_mais_caracteres"
    BETTER_AUTH_URL="http://localhost:3000"
    GOOGLE_CLIENT_ID="seu_google_client_id"
@@ -174,7 +180,18 @@ As 8 categorias do catálogo padrão:
 8. **Aceder à aplicação:**
    Abra `http://localhost:3000` no seu navegador.
 
-> As pastas de `/src` descritas em "Arquitetura" (`components`, `actions`, `hooks`, `dal.ts`…) ainda serão criadas durante o desenvolvimento.
+### Comandos úteis
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | Servidor de desenvolvimento |
+| `npm run build` / `npm start` | Build e servidor de produção |
+| `npm test` | Testes unitários (Vitest) |
+| `npm run db:auth` | Tabelas do Better Auth |
+| `npm run db:schema` | Tabelas do domínio (`db/schema.sql`) |
+| `npm run db:seed` | Catálogo padrão (`-- --dry` só mostra o que leria) |
+
+Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`.
 
 ---
 
@@ -188,7 +205,7 @@ O passo a passo para publicar (Vercel, banco PostgreSQL gerenciado e login do Go
 
 * Toda página protegida e toda Server Action validam sessão, turma e papel em `src/lib/dal.ts`. O `proxy.ts` é só a primeira barreira.
 * Entradas validadas com Zod; consultas SQL sempre parametrizadas.
-* Tentativas de código de convite inválido são limitadas (10 a cada 15 minutos por utilizador).
+* Tentativas de código de convite inválido são limitadas (10 a cada 15 minutos por utilizador). Não há limite de envio de dúvidas nem de votos por utilizador.
 * Cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) configurados em `next.config.ts`.
 * Link "Pular para o conteúdo", títulos por página, tabela alternativa nos gráficos e mensagens de erro anunciadas para leitores de ecrã.
 * Telas de carregamento (`loading.tsx`), erro (`error.tsx`, `global-error.tsx`) e página não encontrada em português.
@@ -200,3 +217,4 @@ O passo a passo para publicar (Vercel, banco PostgreSQL gerenciado e login do Go
 * **NLW-06-ReactJS (Rocketseat - Letmeask):** [Repositório GitHub](https://github.com/rocketseat-education/nlw-06-reactjs)
 * **Figma (Letmeask):** [Layout de Referência](https://www.figma.com/design/2r8K23o2jmF2z17AtBilZe/Letmeask--Community-%253Fnode-id%253D0-1%2526p%253Df%2526t%253D8VVmpO1EYRbg9LfF-0)
 * **Better Auth:** [Documentação](https://www.better-auth.com/docs)
+* **Guia de estudo do projeto:** [`docs/guia-de-estudo.md`](docs/guia-de-estudo.md)

@@ -4,6 +4,8 @@ Guia para quem está criando o primeiro projeto com Next.js e React. Cobre os as
 
 Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação embarcada do Next.js instalado (`node_modules/next/dist/docs/`).
 
+> **Situação (26/09/2026):** o MVP está implementado (etapas 0 a 11 do roteiro da seção 4). A etapa 12, o deploy, está **preparada** em [`docs/deploy.md`](deploy.md), mas depende das contas do grupo. Este guia continua útil como material de estudo: cada assunto aponta para o arquivo do projeto onde ele foi aplicado.
+
 > **Regra do projeto (`AGENTS.md`):** este é o Next.js **16.3.6** com React **19.2.8**. Ele tem mudanças que quebram o que se aprende em tutoriais antigos. Na dúvida, leia a doc local em `node_modules/next/dist/docs/01-app/` antes de copiar código da internet.
 
 ---
@@ -12,13 +14,18 @@ Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação e
 
 | Item | Situação |
 |---|---|
-| Next.js 16.3.6 + React 19.2.8 + TypeScript + Tailwind v4 | Instalado (create-next-app) |
-| React Compiler | Ativo em `next.config.ts` (`reactCompiler: true`) |
-| `src/app` | Só o template padrão (`layout.tsx`, `page.tsx`, `globals.css`) |
-| Alias `@/*` → `./src/*` | Configurado em `tsconfig.json` |
-| Banco, autenticação, shadcn/ui, Recharts | **Não instalados** |
-| `db/schema.sql` e seed (citados no README) | **Não existem ainda** |
-| `.env*` | Já ignorado pelo `.gitignore` |
+| Next.js 16.3.6 + React 19.2.8 + TypeScript + Tailwind v4 | Em uso; React Compiler ativo em `next.config.ts` |
+| Login com Google (Better Auth) | Pronto: `src/lib/auth.ts`, `src/proxy.ts`, `src/lib/dal.ts` |
+| Banco PostgreSQL (SQL puro com `pg`) | Pronto: `db/schema.sql` e o login do Better Auth (17 tabelas no total) e `db/seed.mjs` |
+| Turmas, convites e papéis | Pronto (uma turma por aluno; admin e participante) |
+| Votações e relatório com gráficos | Pronto (`/votacoes`, `/votacoes/relatorio`) |
+| Dúvidas com upvote e moderação | Pronto (`/duvidas`, `/admin/duvidas`) |
+| Dashboard, tarefas e terceiros | Pronto |
+| Painel do administrador | Pronto: membros, convite, evento, programação, catálogos personalizados e quem votou |
+| Acabamento | Telas de erro, carregamento e 404; cabeçalhos de segurança; limite de tentativas de convite; testes unitários (`npm test`) |
+| Deploy | **Preparado**, não executado. Ver `docs/deploy.md` |
+| ESLint, testes de ponta a ponta, alternância de tema escuro | **Não existem** |
+| `.mcp.json` do `next-devtools-mcp` | **Não criado** |
 
 ---
 
@@ -68,27 +75,28 @@ Recomendo **manter a tabela `membros`** (usuário, turma, papel) e impor a regra
 - **Por quê:** guardar `turma_id` direto em `usuarios` parece mais simples, mas mistura conta com turma e complica o papel (o papel vale por turma). Com `membros`, permitir várias turmas no futuro é só remover a restrição `UNIQUE`.
 - **Efeito nas rotas:** como o aluno só tem uma turma, a URL **não precisa** de `[turmaId]`. O servidor descobre a turma pelo usuário logado. Isso simplifica bastante todas as telas.
 - **Fluxo:** login → sem turma? vai para `/convite` (digitar código ou criar turma) → com turma? vai para `/dashboard`.
-- **Ponto aberto:** o aluno pode **sair** da turma para entrar em outra? Sugiro que sim (ação "Sair da turma"), e que o ADM possa remover membros. E se o único ADM sair? Bloquear até promover outro.
+- **Resolvido:** o aluno pode **sair** da turma (botão no dashboard) e entrar em outra. O ADM pode remover membros. O único ADM não pode sair enquanto houver outros membros: é preciso promover alguém antes. Se o último membro sair, a turma é apagada.
 
 ### Interpretação da decisão 10 (catálogos)
 
-Entendi assim; confirme:
+Como ficou implementado:
 
 - **Catálogo padrão:** global, igual para todas as turmas, somente leitura. Contém as 8 categorias e 16 perguntas de `catalogo-enquetes.md`. Vem do *seed* do banco. Toda turma nova já o enxerga.
 - **Catálogo personalizado:** pertence a **uma turma**. Só o ADM cria e edita. Tem nome, categorias próprias e perguntas próprias (única ou múltipla).
 - **Votos** ficam sempre ligados à turma, pois o catálogo padrão é compartilhado e cada turma tem votos e relatório próprios.
 
-Pergunta em aberto: o ADM pode **ocultar** perguntas do catálogo padrão para a sua turma? Se sim, precisamos de uma tabela de itens ocultos. Sugiro deixar para depois do MVP.
+Ficou de fora do MVP: **ocultar** perguntas do catálogo padrão para uma turma. Se for necessário, cria-se uma tabela de itens ocultos por turma.
 
 ### Mapa de rotas (decisão 9)
 
-Mudanças em relação ao README: sem `[turmaId]` na URL (uma turma por aluno), telas de entrada separadas, votações divididas por catálogo, e o painel `/admin` dividido em subrotas. Um *endpoint* de API de verdade existe **só um** (o do login). Todas as mutações (votar, upvote, responder…) são **Server Actions**, que não têm URL própria.
+Mapa implementado. Mudanças em relação ao desenho inicial: sem `[turmaId]` na URL (uma turma por aluno), telas de entrada separadas, votações divididas por catálogo, e o painel `/admin` dividido em subrotas. Um *endpoint* de API de verdade existe **só um** (o do login). Todas as mutações (votar, upvote, responder…) são **Server Actions**, que não têm URL própria.
 
 ```
 src/
 ├─ proxy.ts                          Redireciona quem não está logado (checagem rápida, não é a segurança final)
 └─ app/
-   ├─ layout.tsx                     Layout raiz (fonte, html, body)
+   ├─ layout.tsx                     Layout raiz (fonte, html, body, link "Pular para o conteúdo")
+   ├─ error.tsx, global-error.tsx, not-found.tsx   Telas de erro e 404 (também há error.tsx e loading.tsx em (app) e (admin)/admin)
    ├─ (publico)/
    │  ├─ page.tsx                    /                Apresentação + botão "Entrar com Google"
    │  └─ entrar/page.tsx             /entrar          Tela de login
@@ -143,7 +151,7 @@ Observação sobre `/admin/votacoes/votos/[enqueteId]`: como o ADM vê quem voto
 ### 3.2 React
 - Componentes, JSX, props, `children`.
 - Estado (`useState`), efeitos (`useEffect`), listas e `key`, formulários controlados e não controlados.
-- Regras dos Hooks e hooks customizados (pasta `src/hooks`).
+- Regras dos Hooks. Hooks customizados ficam em `src/hooks` (pasta ainda não criada: o projeto não precisou de nenhum).
 - **React Compiler** (ativo no projeto): memoriza componentes automaticamente. Na prática, você quase não precisa de `useMemo`/`useCallback`, mas precisa seguir as regras do React (componentes puros, sem mutar estado).
 - Fonte oficial: https://react.dev/learn
 
@@ -200,6 +208,7 @@ session, account, verification                                                  
 turmas          (id, nome, codigo_convite UNIQUE, data_evento, local_evento, criado_por -> usuarios.id)
 membros         (turma_id, usuario_id UNIQUE -> usuarios.id, papel CHECK ('admin','participante'))   PK (turma_id, usuario_id)
                 -- UNIQUE (usuario_id) = uma turma por aluno. Remover essa restrição libera várias turmas.
+tentativas_convite (id, usuario_id, created_at)        -- códigos inválidos, para limitar tentativas (10 a cada 15 min)
 
 catalogos       (id, turma_id NULL, nome)              -- turma_id NULL = catálogo padrão (global); preenchido = personalizado
 categorias      (id, catalogo_id, nome, ordem)
@@ -213,20 +222,21 @@ duvida_upvotes  (duvida_id, usuario_id)                PK (duvida_id, usuario_id
                 -- respondida e destaque são independentes: uma dúvida respondida também pode estar em destaque
 
 tarefas         (id, turma_id, titulo, descricao, status CHECK ('pendente','em_andamento','concluida'), responsavel_id, prazo)
-fornecedores    (id, nome, categoria, descricao, contato, imagem_url)   -- global por enquanto (ponto em aberto: quem cadastra?)
+fornecedores    (id, turma_id, nome, categoria, descricao, contato, imagem_url)   -- por turma; imagem_url existe mas não é usada
+programacao     (id, turma_id, horario, titulo, descricao)                        -- programação da festa, mostrada no dashboard
 ```
 
-**Comandos do banco** (leem o `.env.local`; podem ser repetidos sem duplicar dados):
+**Comandos do banco** (leem o `.env.local` se ele existir; podem ser repetidos sem duplicar dados):
 
 | Comando | O que faz |
 |---|---|
 | `npm run db:auth` | Cria as tabelas do Better Auth (`usuarios`, `session`, `account`, `verification`). **Rodar primeiro.** |
-| `npm run db:schema` | Aplica `db/schema.sql` (tabelas do domínio). |
+| `npm run db:schema` | Aplica `db/schema.sql` (13 tabelas do domínio). |
 | `npm run db:seed` | Insere o catálogo padrão (8 categorias, 16 enquetes, 84 opções) lendo `docs/catalogo-enquetes.md`. `-- --dry` só mostra o que leria. |
 
-Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`. Isso permite testar em um banco descartável.
+Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`. Isso permite testar em um banco descartável e criar as tabelas do banco de produção (ver `docs/deploy.md`).
 
-O relatório automatizado sai de um `SELECT opcao, COUNT(*) ... GROUP BY opcao`. Não precisa de tabela própria.
+O relatório automatizado sai de uma consulta agregada (`count` por opção, com `left join` para mostrar também as opções sem voto) em `src/lib/relatorio.ts`. Não precisa de tabela própria.
 
 ### 3.6 Autenticação e autorização
 Três conceitos separados (a doc `02-guides/authentication.md` explica):
@@ -246,36 +256,43 @@ Pontos-chave:
 
 ### 3.7 Formulários e validação
 - `<form action={serverAction}>` e o hook `useActionState` (React 19) para mostrar erros.
-- Validação com **Zod** (recomendo instalar): valida no servidor o que chega do formulário.
-- `useFormStatus` ou `useOptimistic` para o upvote responder na hora, antes de o servidor confirmar.
+- Validação com **Zod**, feita em toda Server Action (`src/actions/`): valida no servidor o que chega do formulário.
+- `useOptimistic` no botão de upvote (`botao-upvote.tsx`) para responder na hora, antes de o servidor confirmar.
+- `FormAcao` (`form-acao.tsx`) é um formulário genérico ligado a uma Server Action, para não repetir o código de mensagem de sucesso e erro.
 - Doc: `02-guides/forms.md`.
 
 ### 3.8 Gráficos (Recharts)
 - Biblioteca de componentes React. Precisa de `"use client"`.
 - Os dados vêm de uma query SQL feita no Server Component e passados como props para o gráfico.
-- Comece com barras horizontais por opção (é o que enquete pede), com rótulos e percentuais. Evite gráfico de pizza com muitas fatias.
+- Implementado em `grafico-enquete.tsx`: barras horizontais por opção, ordenadas da mais votada para a menos votada, com valor e percentual na ponta. Evite gráfico de pizza com muitas fatias.
+- A cor da barra foi validada com o validador de paleta da skill `dataviz` para tema claro e escuro (`--viz-serie-1` em `globals.css`).
+- Todo gráfico precisa de uma alternativa: a página traz "Ver como tabela" para cada enquete.
 
 ### 3.9 Regras de negócio específicas do app
 - **Enquete de seleção única:** um voto por usuário por enquete. Ao votar de novo, substitui o anterior.
 - **Seleção múltipla:** vários votos por usuário. Opção `exclusiva` limpa as demais. Ao mudar, o conjunto novo substitui o antigo.
 - **Voto identificado:** o ADM vê quem votou em cada opção. O formando vê só os totais (defina se ele também vê a porcentagem antes de votar).
 - **Upvote:** um por usuário por dúvida, alternável. A lista ordena por votos, com dúvidas em destaque fixadas no topo.
-- **Status da dúvida:** `aberta`, `respondida`, `destaque`. Só admin muda.
+- **Dúvida:** `respondida` e `destaque` são indicadores independentes; só o admin muda. Responder com texto marca como respondida; salvar em branco remove a resposta.
 - **Seed do catálogo padrão:** script que lê `catalogo-enquetes.md` (8 categorias, 16 perguntas) e insere **uma vez** no banco, com `turma_id` nulo. Todas as turmas enxergam esse catálogo.
-- **Catálogos personalizados:** só o admin da turma cria e edita. Aparecem só para aquela turma.
+- **Catálogos personalizados:** só o admin da turma cria e edita (categorias e perguntas; não dá para editar o texto de uma pergunta depois de criada). Aparecem só para aquela turma.
+- **Tarefas:** o admin cria, edita e exclui; o responsável muda só o andamento da própria tarefa.
+- **Terceiros:** o admin cadastra fornecedores da turma; o contato só vira link se começar com `http://` ou `https://`.
+- **Convite:** 8 caracteres aleatórios; no máximo 10 códigos inválidos a cada 15 minutos por usuário.
 - **Turma:** ao criar, o usuário vira admin. Ao entrar por código, vira participante. Não pode sair sendo o último admin.
 
 ### 3.10 Qualidade, Git e trabalho em equipe
 - Git com branches por funcionalidade e Pull Requests, já que são 4 pessoas.
 - Commits pequenos e com mensagem clara (padrão *Conventional Commits*: `feat:`, `fix:`).
 - ESLint e Prettier. **O projeto ainda não tem ESLint** (o `package.json` não tem script `lint`). Considere adicionar.
-- Testes: comece pelo básico (funções puras de `src/lib`). Testes de ponta a ponta (Playwright) ficam para depois.
+- Testes: existe `npm test` (Vitest) para as funções puras de `src/lib` (`convite.test.ts`, `datas.test.ts`). O restante foi verificado à mão contra o servidor; testes de ponta a ponta (Playwright) ficam para depois.
 - Variáveis de ambiente: nunca comite `.env.local`. Crie um `.env.example` sem segredos para o grupo.
 
 ### 3.11 Deploy
+- O passo a passo completo está em [`docs/deploy.md`](deploy.md): banco gerenciado, Google Cloud em produção, variáveis na Vercel, checklist de teste e rollback.
 - Vercel é o caminho mais simples para Next.js. Precisa de banco acessível pela internet e das variáveis de ambiente configuradas.
-- Antes de publicar, siga `02-guides/production-checklist.md`.
-- Login Google exige cadastrar a URL de callback de produção no Google Cloud Console.
+- Login Google exige cadastrar a URL de callback de produção no Google Cloud Console e publicar o app na tela de consentimento.
+- A doc local `02-guides/production-checklist.md` lista o que revisar antes de publicar.
 
 ---
 
@@ -283,21 +300,21 @@ Pontos-chave:
 
 Cada etapa termina com algo que você consegue ver funcionando. Faça uma de cada vez.
 
-| Etapa | O que fazer | Resultado visível |
-|---|---|---|
-| **0. Base** | Estudar 3.1–3.3. Rodar `npm run dev`. Trocar o texto da `page.tsx`. | Site local mudando |
-| **1. Layout** | Limpar o template. Criar `layout.tsx` com barra lateral/menu e as rotas vazias do README. Instalar shadcn/ui. | Navegação entre páginas vazias |
-| **2. UI com dados falsos** | Montar `/votacoes` e `/duvidas` com dados fixos em arquivos `.ts`. Nenhum banco ainda. | Telas bonitas e clicáveis |
-| **3. Banco** | Instalar Postgres, criar `schema.sql`, `src/lib/db.ts`, script de seed do catálogo. | Dados aparecendo do banco |
-| **4. Login** | Better Auth com Google, `npx auth@latest migrate`, `proxy.ts` protegendo rotas. | Entrar e sair |
-| **5. Turmas e convite** | Criar turma (vira admin), gerar código, entrar por código. Papéis em `membros`. | Duas contas na mesma turma |
-| **6. Votação** | Server Action de votar. Regras de única/múltipla. | Voto persistido |
-| **7. Relatório** | Query de contagem + Recharts. | Gráfico por pergunta |
-| **8. Dúvidas** | Enviar, upvote, ordenação. Depois painel de resposta/destaque do admin. | Q&A completo |
-| **9. Dashboard, tarefas, terceiros** | Restante do MVP. | MVP completo |
-| **10. Admin** | Gestão de membros, edição do evento, enquetes personalizadas. | Painel admin |
-| **11. Acabamento** | Erros, carregamento (`loading.tsx`), responsivo, acessibilidade, testes. | Pronto para uso |
-| **12. Deploy** | Vercel + banco em nuvem + Google callback. | URL pública |
+| Etapa | O que fazer | Resultado visível | Situação |
+|---|---|---|---|
+| **0. Base** | Estudar 3.1–3.3. Rodar `npm run dev`. Trocar o texto da `page.tsx`. | Site local mudando | Feito |
+| **1. Layout** | Limpar o template. Criar `layout.tsx` com barra lateral/menu e as rotas vazias. Instalar shadcn/ui. | Navegação entre páginas vazias | Feito |
+| **2. UI com dados falsos** | Montar `/votacoes` e `/duvidas` com dados fixos em arquivos `.ts`. | Telas bonitas e clicáveis | Pulada: as telas foram feitas direto com o banco |
+| **3. Banco** | Instalar Postgres, criar `schema.sql`, `src/lib/db.ts`, script de seed do catálogo. | Dados aparecendo do banco | Feito |
+| **4. Login** | Better Auth com Google, `npx auth@latest migrate`, `proxy.ts` protegendo rotas. | Entrar e sair | Feito |
+| **5. Turmas e convite** | Criar turma (vira admin), gerar código, entrar por código. Papéis em `membros`. | Duas contas na mesma turma | Feito |
+| **6. Votação** | Server Action de votar. Regras de única/múltipla. | Voto persistido | Feito |
+| **7. Relatório** | Query de contagem + Recharts. | Gráfico por pergunta | Feito |
+| **8. Dúvidas** | Enviar, upvote, ordenação. Depois painel de resposta/destaque do admin. | Q&A completo | Feito |
+| **9. Dashboard, tarefas, terceiros** | Restante do MVP. | MVP completo | Feito |
+| **10. Admin** | Edição do evento, programação, enquetes personalizadas, quem votou. | Painel admin | Feito |
+| **11. Acabamento** | Erros, carregamento (`loading.tsx`), acessibilidade, limite de convite, testes. | Pronto para uso | Feito |
+| **12. Deploy** | Vercel + banco em nuvem + Google callback. | URL pública | **Preparado** (`docs/deploy.md`); falta executar |
 
 Sugestão de divisão para 4 pessoas depois da etapa 1: uma pessoa por área (votações, dúvidas, admin/turmas, dashboard/tarefas/terceiros), com a etapa 3–5 (banco, login, turmas) feitas juntas, porque tudo depende delas.
 
@@ -305,7 +322,7 @@ Sugestão de divisão para 4 pessoas depois da etapa 1: uma pessoa por área (vo
 
 ## 5. Ferramentas que ajudam (plugins, skills, MCP)
 
-Nada abaixo está instalado por mim. Decida o que quer.
+Situação: as skills abaixo estão disponíveis no ambiente de desenvolvimento com o Claude Code e foram usadas quando cabiam (por exemplo `dataviz` para o gráfico do relatório). Nenhum servidor MCP foi instalado; decida o que quer.
 
 ### Já disponíveis nesta sessão (skills)
 - **`/run`**: sobe o app e confirma que a mudança funciona de verdade.
@@ -324,7 +341,7 @@ Nada abaixo está instalado por mim. Decida o que quer.
    ```
 2. **Playwright MCP**: testar telas no navegador. Alternativa: a skill `claude-in-chrome`, que já existe.
 3. **MCP do shadcn/ui**: permite buscar e instalar componentes por conversa. Confirme o comando atual na doc do shadcn antes de usar.
-4. **Pacotes do projeto**: `zod` (validação), `server-only` (proteção de código de servidor), `better-auth`, `pg`, `recharts`, e ESLint/Prettier.
+4. **Pacotes do projeto**: `zod`, `server-only`, `better-auth`, `pg`, `recharts` e `vitest` já estão instalados. Faltam ESLint e Prettier.
 
 ### Opcional
 - **Skill própria do projeto** (com `skill-creator`): guardar as convenções do grupo (nomes de tabelas, como escrever uma Server Action, padrão de checagem de admin). Só vale a pena depois das primeiras funcionalidades.
@@ -356,3 +373,5 @@ Nada abaixo está instalado por mim. Decida o que quer.
 - Better Auth: https://www.better-auth.com/docs
 - Recharts: https://recharts.org
 - Zod: https://zod.dev
+- Vitest: https://vitest.dev
+- Vercel: https://vercel.com/docs
