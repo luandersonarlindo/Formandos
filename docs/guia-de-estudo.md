@@ -17,7 +17,7 @@ Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação e
 | Next.js 16.3.6 + React 19.2.8 + TypeScript + Tailwind v4 | Em uso; React Compiler ativo em `next.config.ts` |
 | Login com Google e com e-mail e senha (Better Auth) | Pronto: `src/lib/auth.ts`, `src/proxy.ts`, `src/lib/dal.ts`. Confirmação de e-mail, "esqueci a senha" e e-mail de boas-vindas via SMTP (`src/lib/email.ts`) |
 | Banco PostgreSQL (SQL puro com `pg`) | Pronto: `db/schema.sql` e o login do Better Auth (17 tabelas no total) e `db/seed.mjs` |
-| Turmas, convites e papéis | Pronto (uma turma por aluno; admin e participante) |
+| Turmas, convites e papéis | Pronto (admin e participante; participante em uma turma, admin em várias) |
 | Votações e relatório com gráficos | Pronto (`/votacoes`, `/votacoes/relatorio`) |
 | Dúvidas com upvote e moderação | Pronto (`/duvidas`, `/admin/duvidas`) |
 | Dashboard, tarefas e terceiros | Pronto |
@@ -74,13 +74,16 @@ Fontes: [Manage App Audience (Google)](https://support.google.com/cloud/answer/1
 - Next 16: o Better Auth funciona com `proxy.ts`. O `getSessionCookie()` só checa se o cookie existe. A doc dele mesmo avisa que **isso não é seguro** e manda validar em cada página e ação com `auth.api.getSession({ headers: await headers() })`. É o que o guia já recomendava.
 - Server Actions: instalar o plugin `nextCookies()`, como **último** plugin da lista.
 
-### Recomendação para a decisão 8 (uma turma por aluno)
+### Recomendação para a decisão 8 (uma turma por aluno; várias para admins)
 
-Recomendo **manter a tabela `membros`** (usuário, turma, papel) e impor a regra "uma turma" com `UNIQUE (usuario_id)`.
+A tabela `membros` (usuário, turma, papel) foi mantida. Na versão inicial a regra "uma turma" era um `UNIQUE (usuario_id)`. **Depois, o grupo decidiu que administradores podem participar de várias turmas**, e essa restrição foi removida (`db/schema.sql` faz `drop constraint if exists`).
 
-- **Por quê:** guardar `turma_id` direto em `usuarios` parece mais simples, mas mistura conta com turma e complica o papel (o papel vale por turma). Com `membros`, permitir várias turmas no futuro é só remover a restrição `UNIQUE`.
-- **Efeito nas rotas:** como o aluno só tem uma turma, a URL **não precisa** de `[turmaId]`. O servidor descobre a turma pelo usuário logado. Isso simplifica bastante todas as telas.
-- **Fluxo:** login → sem turma? vai para `/convite` (digitar código ou criar turma) → com turma? vai para `/dashboard`.
+- **Regra atual:** só entra ou cria outra turma quem ainda não tem turma ou é admin em alguma (`src/lib/vinculos.ts`, conferida dentro de uma transação com trava por usuário). Depois, se o admin virar participante, ele **mantém** as turmas que já tinha, mas não entra em novas.
+- **Turma em uso:** seletor na barra lateral. A escolha fica no cookie `turma_ativa`, só como preferência: `getMembro()` em `src/lib/dal.ts` usa o cookie apenas entre as turmas das quais a pessoa é membro; qualquer outro valor cai na turma mais antiga.
+
+- **Por quê:** guardar `turma_id` direto em `usuarios` parece mais simples, mas mistura conta com turma e complica o papel (o papel vale por turma). Com `membros`, permitir várias turmas foi só remover a restrição `UNIQUE`.
+- **Efeito nas rotas:** a URL **não precisa** de `[turmaId]`. O servidor descobre a turma em uso pelo usuário logado (e pelo cookie de turma ativa, conferido no banco). Isso simplifica bastante todas as telas.
+- **Fluxo:** login → sem turma? vai para `/convite` (digitar código ou criar turma) → com turma? vai para `/dashboard`. Admin também acessa `/convite` pelo link "Entrar em outra turma ou criar" do seletor.
 - **Resolvido:** o aluno pode **sair** da turma (botão no dashboard) e entrar em outra. O ADM pode remover membros. O único ADM não pode sair enquanto houver outros membros: é preciso promover alguém antes. Se o último membro sair, a turma é apagada.
 
 ### Interpretação da decisão 10 (catálogos)
@@ -215,8 +218,8 @@ usuarios        (id uuid, name, email, emailVerified, image, createdAt, updatedA
 session, account, verification                                                       -- do Better Auth
 
 turmas          (id, nome, codigo_convite UNIQUE, data_evento, local_evento, criado_por -> usuarios.id)
-membros         (turma_id, usuario_id UNIQUE -> usuarios.id, papel CHECK ('admin','participante'))   PK (turma_id, usuario_id)
-                -- UNIQUE (usuario_id) = uma turma por aluno. Remover essa restrição libera várias turmas.
+membros         (turma_id, usuario_id -> usuarios.id, papel CHECK ('admin','participante'))   PK (turma_id, usuario_id)
+                -- sem UNIQUE em usuario_id: admin pode ter várias turmas (regra na aplicação, src/lib/vinculos.ts)
 tentativas_convite (id, usuario_id, created_at)        -- códigos inválidos, para limitar tentativas (10 a cada 15 min)
 
 catalogos       (id, turma_id NULL, nome)              -- turma_id NULL = catálogo padrão (global); preenchido = personalizado
@@ -257,7 +260,7 @@ Três conceitos separados (a doc `02-guides/authentication.md` explica):
 Pontos-chave:
 - O papel vale **por turma**, não global. Por isso está na tabela `membros`.
 - **Administrador master:** gestor de todas as turmas e usuários (`/master`). Não é papel no banco: vem da variável `ADMIN_MASTER_EMAILS` e só vale com email confirmado (`src/lib/master.ts`, `exigirMaster()` no DAL). Diferente do admin de turma, as ações dele não filtram pela turma da sessão, por isso **toda** Server Action de `src/actions/master.ts` começa com `exigirMaster()`. Exclusões pedem digitar o nome da turma ou o email do usuário; a turma nunca fica sem administrador e o master não se exclui.
-- Como cada aluno tem uma turma só, as funções descobrem a turma pelo usuário logado, sem receber `turmaId` da tela. Isso evita que alguém troque o id no formulário para mexer em outra turma.
+- As funções descobrem a turma pelo usuário logado e pela turma ativa (cookie conferido no banco), sem receber `turmaId` da tela. Isso evita que alguém troque o id no formulário para mexer em outra turma.
 - Centralize as checagens num *Data Access Layer* (funções como `getUsuarioAtual()`, `getMembro()`, `exigirAdmin()`), e chame-as em toda Server Action e toda leitura protegida. A doc do Next recomenda isso e o pacote `server-only` para impedir que esse código vá parar no navegador.
 - Esconder um botão no front **não** protege nada. A checagem tem de estar na Server Action.
 - Código de convite: gere com `crypto.randomBytes` (aleatório e difícil de adivinhar), único, e considere expiração ou opção de regenerar.

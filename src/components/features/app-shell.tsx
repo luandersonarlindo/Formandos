@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { trocarTurma } from "@/actions/turmas";
 import type { LucideIcon } from "lucide-react";
 import { BotaoSair } from "./botao-sair";
 import { NavLink } from "./nav-link";
@@ -12,8 +13,15 @@ export type ItemMenu = {
 
 type Rodape = { href: string; rotulo: string };
 
+export type SeletorTurmas = {
+  ativaId: string;
+  lista: { id: string; nome: string; papel: "admin" | "participante" }[];
+  podeAdicionar: boolean;
+};
+
 type AppShellProps = {
   titulo: string;
+  turmas?: SeletorTurmas;
   itens: ItemMenu[];
   rodape?: Rodape | Rodape[];
   usuario: { nome: string; email: string; imagem?: string | null };
@@ -23,6 +31,7 @@ type AppShellProps = {
 // Barra lateral no desktop, barra de rolagem horizontal no celular.
 export function AppShell({
   titulo,
+  turmas,
   itens,
   rodape,
   usuario,
@@ -40,6 +49,43 @@ export function AppShell({
             {titulo}
           </span>
         </div>
+        {turmas && (turmas.lista.length > 1 || turmas.podeAdicionar) && (
+          <div className="px-3 pb-3 md:pb-4">
+            <p id="rotulo-turmas" className="px-2 text-xs font-medium text-muted-foreground">
+              Minhas turmas
+            </p>
+            <ul aria-labelledby="rotulo-turmas" className="mt-1 flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+              {turmas.lista.map((t) => (
+                <li key={t.id}>
+                  <form action={trocarTurma}>
+                    <input type="hidden" name="turmaId" value={t.id} />
+                    <button
+                      type="submit"
+                      aria-current={t.id === turmas.ativaId ? "true" : undefined}
+                      className={
+                        t.id === turmas.ativaId
+                          ? "w-full rounded-md bg-muted px-2 py-1.5 text-left text-sm font-medium whitespace-nowrap"
+                          : "w-full rounded-md px-2 py-1.5 text-left text-sm whitespace-nowrap text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      }
+                    >
+                      {t.nome}
+                    </button>
+                  </form>
+                </li>
+              ))}
+              {turmas.podeAdicionar && (
+                <li>
+                  <Link
+                    href="/convite"
+                    className="block rounded-md px-2 py-1.5 text-sm whitespace-nowrap text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  >
+                    + Entrar em outra turma ou criar
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
         <nav
           aria-label={titulo}
           className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:overflow-visible md:pb-0"

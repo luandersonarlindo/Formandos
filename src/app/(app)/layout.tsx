@@ -7,7 +7,7 @@ import {
   Vote,
 } from "lucide-react";
 import { AppShell, type ItemMenu } from "@/components/features/app-shell";
-import { exigirMembro, exigirSessao } from "@/lib/dal";
+import { exigirMembro, exigirSessao, getSeletorTurmas } from "@/lib/dal";
 import { ehMaster } from "@/lib/master";
 
 const itens: ItemMenu[] = [
@@ -29,6 +29,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <AppShell
       titulo={membro.turmaNome}
+      turmas={await getSeletorTurmas(membro.turmaId)}
       itens={itens}
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}
       rodape={[

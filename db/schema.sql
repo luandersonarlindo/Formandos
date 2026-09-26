@@ -21,16 +21,22 @@ create table if not exists turmas (
   created_at     timestamptz not null default now()
 );
 
--- Um aluno pertence a uma única turma (unique em usuario_id).
--- Para permitir várias turmas no futuro, basta remover essa restrição.
+-- Quem é administrador em alguma turma pode participar de várias. Essa regra
+-- ("só admin entra em outra turma") é conferida na aplicação, em
+-- src/lib/vinculos.ts, e não no banco.
 create table if not exists membros (
   turma_id   uuid not null references turmas(id) on delete cascade,
-  usuario_id uuid not null unique references usuarios(id) on delete cascade,
+  usuario_id uuid not null references usuarios(id) on delete cascade,
   papel      varchar(20) not null default 'participante'
              check (papel in ('admin', 'participante')),
   created_at timestamptz not null default now(),
   primary key (turma_id, usuario_id)
 );
+
+-- Bancos criados antes de existirem várias turmas por admin tinham
+-- `unique (usuario_id)`. Remove a restrição, se ainda existir.
+alter table membros drop constraint if exists membros_usuario_id_key;
+create index if not exists idx_membros_usuario on membros (usuario_id);
 
 -- Enquetes -----------------------------------------------------------------
 

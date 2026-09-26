@@ -42,10 +42,14 @@ export default async function UsuariosMasterPage() {
                 </div>
                 {ehMasterAlvo && <Badge>Master</Badge>}
                 {!u.emailVerificado && <Badge variant="outline">Email não confirmado</Badge>}
-                {u.turmaId ? (
-                  <Link href={`/master/turmas/${u.turmaId}`} className="text-sm underline underline-offset-4">
-                    {u.turmaNome} · {u.papel === "admin" ? "admin" : "participante"}
-                  </Link>
+                {u.turmas.length > 0 ? (
+                  <div className="flex flex-col items-end gap-0.5">
+                    {u.turmas.map((t) => (
+                      <Link key={t.id} href={`/master/turmas/${t.id}`} className="text-sm underline underline-offset-4">
+                        {t.nome} · {t.papel === "admin" ? "admin" : "participante"}
+                      </Link>
+                    ))}
+                  </div>
                 ) : (
                   <span className="text-sm text-muted-foreground">Sem turma</span>
                 )}

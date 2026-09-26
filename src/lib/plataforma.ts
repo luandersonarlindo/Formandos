@@ -95,19 +95,21 @@ export type UsuarioPlataforma = {
   image: string | null;
   emailVerificado: boolean;
   criadoEm: Date;
-  turmaId: string | null;
-  turmaNome: string | null;
-  papel: "admin" | "participante" | null;
+  turmas: { id: string; nome: string; papel: "admin" | "participante" }[];
 };
 
 export async function listarUsuarios(): Promise<UsuarioPlataforma[]> {
   const { rows } = await pool.query(
     `select u.id, u.name, u.email, u.image, u."emailVerified" as "emailVerificado",
             u."createdAt" as "criadoEm",
-            t.id as "turmaId", t.nome as "turmaNome", m.papel
+            coalesce(
+              json_agg(json_build_object('id', t.id, 'nome', t.nome, 'papel', m.papel)
+                       order by t.nome) filter (where t.id is not null),
+              '[]'::json) as turmas
        from usuarios u
        left join membros m on m.usuario_id = u.id
        left join turmas t on t.id = m.turma_id
+      group by u.id
       order by u.name
       limit 500`,
   );
