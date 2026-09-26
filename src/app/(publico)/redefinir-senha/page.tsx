@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { AnimarPagina } from "@/components/animacao/animar-pagina";
 import Link from "next/link";
+import { TriangleAlert } from "lucide-react";
 import { FormNovaSenha } from "@/components/features/form-senha";
+import { LayoutAuth } from "@/components/features/layout-auth";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Nova senha" };
 
@@ -11,20 +13,25 @@ export default async function RedefinirSenhaPage({
   const { token } = await searchParams;
 
   return (
-    <main id="conteudo" className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
-      <AnimarPagina className="flex flex-col items-center gap-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Nova senha</h1>
-        {typeof token === "string" ? (
-          <FormNovaSenha token={token} />
-        ) : (
-          <>
-            <p role="alert">Link inválido ou expirado.</p>
-            <Link href="/esqueci-senha" className="underline underline-offset-4">
-              Pedir um novo link
-            </Link>
-          </>
-        )}
-      </AnimarPagina>
-    </main>
+    <LayoutAuth voltar={{ href: "/entrar", rotulo: "Voltar ao login" }}>
+      {typeof token === "string" ? (
+        <FormNovaSenha token={token} />
+      ) : (
+        <div data-grupo className="flex flex-col gap-5">
+          <span className="flex size-12 items-center justify-center rounded-full border bg-destructive/10">
+            <TriangleAlert className="size-5 text-destructive" aria-hidden />
+          </span>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Link inválido ou expirado</h1>
+            <p role="alert" className="mt-1 text-sm text-muted-foreground">
+              O link de redefinição vale por 1 hora e só pode ser usado uma vez. Peça um novo.
+            </p>
+          </div>
+          <Button asChild className="h-10 w-full text-sm">
+            <Link href="/esqueci-senha">Pedir um novo link</Link>
+          </Button>
+        </div>
+      )}
+    </LayoutAuth>
   );
 }
