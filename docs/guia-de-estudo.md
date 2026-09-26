@@ -107,7 +107,7 @@ src/
    ├─ layout.tsx                     Layout raiz (fonte, html, body, link "Pular para o conteúdo")
    ├─ error.tsx, global-error.tsx, not-found.tsx   Telas de erro e 404 (também há error.tsx e loading.tsx em (app) e (admin)/admin)
    ├─ (publico)/
-   │  ├─ page.tsx                    /                Apresentação + botão "Entrar com Google"
+   │  ├─ page.tsx                    /                Vitrine do projeto (recursos, como funciona, perfis, equipe) com animações Anime.js
    │  ├─ entrar/page.tsx             /entrar          Tela de login (Google e e-mail e senha)
    │  ├─ esqueci-senha/page.tsx      /esqueci-senha   Pede o link para definir a senha
    │  └─ redefinir-senha/page.tsx    /redefinir-senha Define a senha a partir do link do e-mail

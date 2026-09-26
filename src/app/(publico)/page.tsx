@@ -1,16 +1,42 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import type { Metadata } from "next";
+import {
+  Cabecalho,
+  Catalogo,
+  ChamadaFinal,
+  ComoFunciona,
+  Equipe,
+  Hero,
+  Papeis,
+  Recursos,
+  Rodape,
+} from "@/components/vitrine/secoes";
+import { VitrineAnimada } from "@/components/vitrine/vitrine-animada";
+import { getSessao } from "@/lib/dal";
 
-export default function Home() {
+export const metadata: Metadata = {
+  title: { absolute: "Formandos · Gestão de formaturas e eventos" },
+  description:
+    "Enquetes, dúvidas, tarefas e fornecedores da sua turma num só lugar. Organize a formatura com participação de todos.",
+};
+
+// Vitrine do projeto. O conteúdo é todo renderizado no servidor; as animações
+// (Anime.js) entram só no navegador, em VitrineAnimada.
+export default async function Home() {
+  const logado = Boolean(await getSessao());
+
   return (
-    <main id="conteudo" className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
-      <h1 className="text-4xl font-semibold tracking-tight">Formandos 🎓</h1>
-      <p className="max-w-md text-muted-foreground">
-        Gestão de formaturas e eventos para turmas e comissões organizadoras.
-      </p>
-      <Button asChild size="lg">
-        <Link href="/entrar">Entrar</Link>
-      </Button>
-    </main>
+    <VitrineAnimada>
+      <Cabecalho logado={logado} />
+      <main id="conteudo" tabIndex={-1} className="outline-none">
+        <Hero logado={logado} />
+        <Recursos />
+        <ComoFunciona />
+        <Catalogo />
+        <Papeis />
+        <Equipe />
+        <ChamadaFinal logado={logado} />
+      </main>
+      <Rodape />
+    </VitrineAnimada>
   );
 }
