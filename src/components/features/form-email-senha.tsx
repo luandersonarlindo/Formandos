@@ -3,17 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { LoaderCircle } from "lucide-react";
+import { CampoSenha } from "@/components/features/campo-senha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
-export function FormEmailSenha() {
+export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
   const router = useRouter();
   const [criando, setCriando] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+
+  function trocarModo(criar: boolean) {
+    setCriando(criar);
+    setErro(null);
+    setAviso(null);
+  }
 
   async function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,64 +62,110 @@ export function FormEmailSenha() {
   }
 
   return (
-    <form onSubmit={enviar} className="flex w-full max-w-sm flex-col gap-3 text-left">
-      {criando && (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" name="nome" autoComplete="name" required />
-        </div>
-      )}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+    <div data-grupo className="flex flex-col gap-5">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {criando ? "Crie a sua conta" : "Bem-vindo de volta"}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {criando
+            ? "Leva menos de um minuto. Você confirma o email por um link."
+            : "Entre para acompanhar a formatura da sua turma."}
+        </p>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="senha">Senha</Label>
-        <Input
-          id="senha"
-          name="senha"
-          type="password"
-          autoComplete={criando ? "new-password" : "current-password"}
-          minLength={criando ? 8 : undefined}
-          required
-        />
+
+      <div role="group" aria-label="Tipo de acesso" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+        {[
+          { valor: false, rotulo: "Entrar" },
+          { valor: true, rotulo: "Criar conta" },
+        ].map((op) => (
+          <button
+            key={op.rotulo}
+            type="button"
+            aria-pressed={criando === op.valor}
+            onClick={() => trocarModo(op.valor)}
+            className={
+              criando === op.valor
+                ? "rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm"
+                : "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            }
+          >
+            {op.rotulo}
+          </button>
+        ))}
+      </div>
+
+      {google && (
+        <>
+          {google}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden>
+            <span className="h-px flex-1 bg-border" />
+            ou com email
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
+
+      <form onSubmit={enviar} className="flex flex-col gap-4">
         {criando && (
-          <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="nome">Nome</Label>
+            <Input id="nome" name="nome" autoComplete="name" className="h-10" required />
+          </div>
         )}
-      </div>
-      {aviso && (
-        <p role="status" className="text-sm text-foreground">
-          {aviso}
-        </p>
-      )}
-      {erro && (
-        <p role="alert" className="text-sm text-destructive">
-          {erro}
-        </p>
-      )}
-      <Button type="submit" disabled={carregando}>
-        {carregando ? "Aguarde…" : criando ? "Criar conta" : "Entrar"}
-      </Button>
-      {!criando && (
-        <Link
-          href="/esqueci-senha"
-          className="text-sm text-muted-foreground underline underline-offset-4"
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" autoComplete="email" className="h-10" required />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="senha">Senha</Label>
+            {!criando && (
+              <Link
+                href="/esqueci-senha"
+                className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                Esqueci a senha
+              </Link>
+            )}
+          </div>
+          <CampoSenha
+            id="senha"
+            name="senha"
+            autoComplete={criando ? "new-password" : "current-password"}
+            minLength={criando ? 8 : undefined}
+          />
+          {criando && (
+            <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
+          )}
+        </div>
+        {aviso && (
+          <p role="status" className="rounded-lg border bg-muted/50 p-3 text-sm">
+            {aviso}
+          </p>
+        )}
+        {erro && (
+          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {erro}
+          </p>
+        )}
+        <Button type="submit" disabled={carregando} className="h-10 w-full text-sm">
+          {carregando && <LoaderCircle className="animate-spin" aria-hidden />}
+          {carregando ? "Aguarde…" : criando ? "Criar conta" : "Entrar"}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        {criando ? "Já tem conta? " : "Ainda não tem conta? "}
+        <button
+          type="button"
+          onClick={() => trocarModo(!criando)}
+          className="font-medium text-foreground underline underline-offset-4"
         >
-          Esqueci a senha / entrei com Google e quero criar uma senha
-        </Link>
-      )}
-      <button
-        type="button"
-        className="text-sm text-muted-foreground underline underline-offset-4"
-        onClick={() => {
-          setCriando(!criando);
-          setErro(null);
-          setAviso(null);
-        }}
-      >
-        {criando ? "Já tenho conta" : "Criar conta com email e senha"}
-      </button>
-    </form>
+          {criando ? "Entrar" : "Criar conta"}
+        </button>
+      </p>
+    </div>
   );
 }
 
