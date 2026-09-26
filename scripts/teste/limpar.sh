@@ -9,5 +9,6 @@ fi
 psql "$DATABASE_URL" -q \
   -c "delete from turmas where codigo_convite like 'TESTE%'" \
   -c "delete from usuarios where email like 'teste-%@example.invalid'"
-rm -rf scripts/teste/.tmp
+# Mantém o dev.log (o servidor pode estar gravando nele); apaga só cookies e capturas.
+rm -f scripts/teste/.tmp/cookie*.txt scripts/teste/.tmp/turma-id.txt scripts/teste/.tmp/*.png
 echo "Dados de teste apagados."
