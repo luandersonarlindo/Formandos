@@ -133,8 +133,8 @@ As 8 categorias do catálogo padrão:
 
 1. **Clonar o repositório:**
    ```bash
-   git clone https://github.com/seu-usuario/formandos.git
-   cd formandos
+   git clone https://github.com/luandersonarlindo/Formandos.git
+   cd Formandos
    ```
 
 2. **Instalar as dependências:**
