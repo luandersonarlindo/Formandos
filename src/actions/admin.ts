@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirAdmin } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
+import type { EstadoForm } from "./tipos";
 import { gerarCodigoConvite } from "@/lib/convite";
 
 // Toda action daqui confere o papel de administrador e usa a turma da sessão.
@@ -68,4 +69,75 @@ export async function removerMembro(formData: FormData) {
     [admin.turmaId, dados.data.usuarioId],
   );
   revalidatePath("/admin/membros");
+}
+
+// Moderação de dúvidas ------------------------------------------------------
+// Todas filtram por turma_id da sessão: um admin só mexe nas dúvidas da sua turma.
+
+const esquemaDuvidaId = z.object({ duvidaId: z.uuid() });
+const esquemaResposta = esquemaDuvidaId.extend({
+  resposta: z
+    .string()
+    .trim()
+    .max(1000, "A resposta pode ter no máximo 1000 caracteres."),
+});
+
+function revalidarDuvidas() {
+  revalidatePath("/admin/duvidas");
+  revalidatePath("/duvidas");
+}
+
+// Salva a resposta oficial. Com texto, a dúvida vira "respondida";
+// com o campo vazio, a resposta é removida e a dúvida volta a "aberta".
+export async function responderDuvida(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdmin();
+  const dados = esquemaResposta.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+  const { duvidaId, resposta } = dados.data;
+
+  const { rowCount } = await pool.query(
+    `update duvidas
+        set resposta = $1, respondida = $2
+      where id = $3 and turma_id = $4`,
+    [resposta || null, resposta !== "", duvidaId, admin.turmaId],
+  );
+  if (!rowCount) return { erro: "Dúvida não encontrada." };
+  revalidarDuvidas();
+  return { ok: resposta ? "Resposta salva." : "Resposta removida." };
+}
+
+export async function alternarDestaque(formData: FormData) {
+  const admin = await exigirAdmin();
+  const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+  await pool.query(
+    "update duvidas set destaque = not destaque where id = $1 and turma_id = $2",
+    [dados.data.duvidaId, admin.turmaId],
+  );
+  revalidarDuvidas();
+}
+
+export async function alternarRespondida(formData: FormData) {
+  const admin = await exigirAdmin();
+  const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+  await pool.query(
+    "update duvidas set respondida = not respondida where id = $1 and turma_id = $2",
+    [dados.data.duvidaId, admin.turmaId],
+  );
+  revalidarDuvidas();
+}
+
+export async function apagarDuvida(formData: FormData) {
+  const admin = await exigirAdmin();
+  const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+  await pool.query("delete from duvidas where id = $1 and turma_id = $2", [
+    dados.data.duvidaId,
+    admin.turmaId,
+  ]);
+  revalidarDuvidas();
 }
