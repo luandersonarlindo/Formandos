@@ -34,7 +34,7 @@ export default async function MembrosPage() {
         {rows.length} {rows.length === 1 ? "membro" : "membros"} na turma.
       </p>
 
-      <ul className="mt-6 divide-y rounded-lg border">
+      <ul data-grupo className="mt-6 divide-y rounded-lg border">
         {rows.map((m) => {
           const ehVoce = m.id === admin.usuarioId;
           const ultimoAdmin = m.papel === "admin" && totalAdmins === 1;

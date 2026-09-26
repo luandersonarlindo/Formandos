@@ -179,3 +179,14 @@
     transform: none;
   }
 }
+
+/* Páginas internas (AnimarPagina): o conteúdo começa escondido só até o
+   componente assumir a animação (data-animar passa a "pronto"). Depois disso,
+   o que entrar na tela aparece normalmente. */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  html:not([data-sem-animacao]) [data-animar="pendente"] > *,
+  html:not([data-sem-animacao]) [data-animar="pendente"] > * > *,
+  html:not([data-sem-animacao]) [data-animar="pendente"] [data-grupo] > * {
+    opacity: 0;
+  }
+}

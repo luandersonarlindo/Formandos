@@ -42,7 +42,7 @@ export default async function TurmaMasterPage(
       <h2 className="mt-8 text-lg font-semibold">
         Membros ({turma.membros.length})
       </h2>
-      <ul className="mt-3 divide-y rounded-lg border">
+      <ul data-grupo className="mt-3 divide-y rounded-lg border">
         {turma.membros.map((m) => {
           const ultimoAdmin = m.papel === "admin" && totalAdmins === 1;
           return (

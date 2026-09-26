@@ -40,7 +40,7 @@ function Indicador({
         <CardHeader>
           <CardDescription>{titulo}</CardDescription>
           <CardTitle className="text-2xl">
-            {valor} <span className="text-base font-normal text-muted-foreground">de {total}</span>
+            <span data-contar={valor}>{valor}</span> <span className="text-base font-normal text-muted-foreground">de {total}</span>
           </CardTitle>
           <Progress
             className="mt-2"
@@ -89,7 +89,7 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div data-grupo className="mt-4 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardDescription>Data do evento</CardDescription>
@@ -108,7 +108,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      <div data-grupo className="mt-4 grid gap-4 md:grid-cols-3">
         <Indicador
           titulo="Tarefas concluídas"
           valor={resumo.tarefasConcluidas}
@@ -127,7 +127,9 @@ export default async function DashboardPage() {
           <Card className="h-full transition-colors hover:bg-muted/50">
             <CardHeader>
               <CardDescription>Dúvidas sem resposta</CardDescription>
-              <CardTitle className="text-2xl">{resumo.duvidasAbertas}</CardTitle>
+              <CardTitle className="text-2xl">
+                <span data-contar={resumo.duvidasAbertas}>{resumo.duvidasAbertas}</span>
+              </CardTitle>
             </CardHeader>
           </Card>
         </Link>

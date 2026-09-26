@@ -81,7 +81,7 @@ export default async function CatalogoAdminPage(
             )}
           </div>
 
-          <ul className="mt-3 grid gap-3">
+          <ul data-grupo className="mt-3 grid gap-3">
             {categoria.enquetes.map((e) => (
               <li key={e.id}>
                 <Card>

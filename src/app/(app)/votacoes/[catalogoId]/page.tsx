@@ -30,7 +30,7 @@ export default async function CatalogoPage(
       {catalogo.categorias.map((categoria) => (
         <section key={categoria.id} className="mt-8">
           <h2 className="text-lg font-semibold">{categoria.nome}</h2>
-          <div className="mt-3 grid gap-4">
+          <div data-grupo className="mt-3 grid gap-4">
             {categoria.enquetes.map((enquete) => (
               <EnqueteCard key={enquete.id} enquete={enquete} />
             ))}

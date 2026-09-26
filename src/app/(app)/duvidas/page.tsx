@@ -37,7 +37,7 @@ export default async function DuvidasPage() {
           : `${duvidas.length} ${duvidas.length === 1 ? "dúvida" : "dúvidas"}`}
       </h2>
 
-      <ul className="mt-3 grid gap-3">
+      <ul data-grupo className="mt-3 grid gap-3">
         {duvidas.map((d) => (
           <li key={d.id}>
             <Card>

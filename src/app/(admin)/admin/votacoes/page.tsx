@@ -32,7 +32,7 @@ export default async function VotacoesAdminPage() {
         qualquer um, dá para ver quem votou em cada opção.
       </p>
 
-      <div className="mt-6 grid gap-4">
+      <div data-grupo className="mt-6 grid gap-4">
         {catalogos.map((c) => (
           <Link key={c.id} href={`/admin/votacoes/${c.id}`} className="block">
             <Card className="transition-colors hover:bg-muted/50">

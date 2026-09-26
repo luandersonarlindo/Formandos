@@ -22,7 +22,7 @@ export default async function TurmasMasterPage() {
       {turmas.length === 0 ? (
         <p className="mt-6 text-sm text-muted-foreground">Nenhuma turma criada ainda.</p>
       ) : (
-        <ul className="mt-6 divide-y rounded-lg border">
+        <ul data-grupo className="mt-6 divide-y rounded-lg border">
           {turmas.map((t) => (
             <li key={t.id}>
               <Link

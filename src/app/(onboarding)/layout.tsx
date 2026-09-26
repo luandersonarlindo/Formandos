@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AnimarPagina } from "@/components/animacao/animar-pagina";
 import { exigirSessao, getVinculos } from "@/lib/dal";
 import { ehMaster } from "@/lib/master";
 import { podeEntrarEmOutraTurma } from "@/lib/vinculos";
@@ -31,7 +32,7 @@ export default async function OnboardingLayout({
           </Link>
         )}
       </div>
-      {children}
+      <AnimarPagina>{children}</AnimarPagina>
     </div>
   );
 }
