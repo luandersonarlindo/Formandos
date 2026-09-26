@@ -186,6 +186,7 @@ As 8 categorias do catálogo padrão:
 |---|---|
 | `npm run dev` | Servidor de desenvolvimento |
 | `npm run build` / `npm start` | Build e servidor de produção |
+| `npm run typecheck` | Gera os tipos das rotas do Next e confere o TypeScript. Numa cópia recém-clonada, rode este comando (ou `npm run dev`) antes de abrir o editor: os tipos `PageProps` e `LayoutProps` só existem depois disso |
 | `npm test` | Testes unitários (Vitest) |
 | `npm run db:auth` | Tabelas do Better Auth |
 | `npm run db:schema` | Tabelas do domínio (`db/schema.sql`) |
