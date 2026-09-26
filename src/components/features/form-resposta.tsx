@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { responderDuvida } from "@/actions/admin";
 import type { EstadoForm } from "@/actions/tipos";
+import { LoaderCircle, MessageSquareReply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +22,10 @@ export function FormResposta({
   return (
     <form action={acao} className="flex flex-col gap-2">
       <input type="hidden" name="duvidaId" value={duvidaId} />
-      <Label htmlFor={`resposta-${duvidaId}`}>Resposta oficial</Label>
+      <Label htmlFor={`resposta-${duvidaId}`} className="gap-1.5">
+        <MessageSquareReply className="size-4 text-[var(--vitrine-a)]" aria-hidden />
+        Resposta oficial
+      </Label>
       <Textarea
         id={`resposta-${duvidaId}`}
         name="resposta"
@@ -32,6 +36,7 @@ export function FormResposta({
       />
       <div className="flex items-center gap-3">
         <Button type="submit" size="sm" disabled={pendente}>
+          {pendente && <LoaderCircle className="animate-spin" aria-hidden />}
           {pendente ? "Salvando…" : "Salvar resposta"}
         </Button>
         <p

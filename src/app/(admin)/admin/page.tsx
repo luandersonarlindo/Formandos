@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CalendarDays,
+  CircleHelp,
+  ClipboardList,
+  LayoutList,
+  Users,
+  Vote,
+} from "lucide-react";
+import { CartaoResumo } from "@/components/features/cartao-resumo";
+import { Badge } from "@/components/ui/badge";
 import { getResumoAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 
@@ -16,44 +19,36 @@ export default async function AdminPage() {
   const r = await getResumoAdmin(admin.turmaId);
 
   const cartoes = [
-    { href: "/admin/membros", titulo: "Membros", valor: r.membros, texto: "gerenciar papéis e acessos" },
+    { href: "/admin/membros", titulo: "Membros", valor: r.membros, texto: "gerenciar papéis e acessos", icone: Users },
     {
       href: "/admin/votacoes",
       titulo: "Participação nas votações",
-      valor: `${r.votantes} de ${r.membros}`,
+      valor: r.votantes,
+      sufixo: `de ${r.membros}`,
       texto: "membros já votaram em alguma enquete",
+      icone: Vote,
     },
-    { href: "/admin/duvidas", titulo: "Dúvidas sem resposta", valor: r.duvidasAbertas, texto: "aguardando a comissão" },
-    { href: "/tarefas", titulo: "Tarefas em aberto", valor: r.tarefasAbertas, texto: "pendentes ou em andamento" },
-    { href: "/admin/votacoes", titulo: "Catálogos personalizados", valor: r.personalizados, texto: "criados pela turma" },
-    { href: "/admin/evento", titulo: "Evento e programação", valor: "Editar", texto: "data, local e horários da festa" },
+    { href: "/admin/duvidas", titulo: "Dúvidas sem resposta", valor: r.duvidasAbertas, texto: "aguardando a comissão", icone: CircleHelp },
+    { href: "/tarefas", titulo: "Tarefas em aberto", valor: r.tarefasAbertas, texto: "pendentes ou em andamento", icone: ClipboardList },
+    { href: "/admin/votacoes", titulo: "Catálogos personalizados", valor: r.personalizados, texto: "criados pela turma", icone: LayoutList },
+    { href: "/admin/evento", titulo: "Evento e programação", valor: "Editar", texto: "data, local e horários da festa", icone: CalendarDays },
   ];
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Painel do administrador
-      </h1>
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+          Painel do administrador
+        </h1>
+        <Badge>Administrador</Badge>
+      </div>
       <p className="mt-2 text-muted-foreground">
-        Resumo de {admin.turmaNome} e atalhos para a gestão da turma.
+        Resumo de <span className="font-medium text-foreground">{admin.turmaNome}</span> e
+        atalhos para a gestão da turma.
       </p>
-      <div data-grupo className="mt-6 grid gap-4 md:grid-cols-2">
+      <div data-grupo className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cartoes.map((c) => (
-          <Link key={c.titulo} href={c.href} className="block">
-            <Card className="h-full transition-colors hover:bg-muted/50">
-              <CardHeader>
-                <CardDescription>{c.titulo}</CardDescription>
-                <CardTitle className="text-2xl">
-                  {typeof c.valor === "number" ? (
-                    <span data-contar={c.valor}>{c.valor}</span>
-                  ) : (
-                    c.valor
-                  )}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">{c.texto}</p>
-              </CardHeader>
-            </Card>
-          </Link>
+          <CartaoResumo key={c.titulo} {...c} />
         ))}
       </div>
     </div>
