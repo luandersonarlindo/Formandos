@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   alternarDestaque,
   alternarRespondida,
@@ -9,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { exigirAdmin } from "@/lib/dal";
 import { listarDuvidas } from "@/lib/duvidas";
+
+export const metadata: Metadata = { title: "Moderação de dúvidas" };
 
 const formatarData = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",

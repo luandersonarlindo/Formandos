@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { excluirFornecedor } from "@/actions/terceiros";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
@@ -12,6 +13,8 @@ import {
 import { exigirMembro } from "@/lib/dal";
 import { cn } from "@/lib/utils";
 import { CATEGORIAS_FORNECEDOR, listarFornecedores } from "@/lib/terceiros";
+
+export const metadata: Metadata = { title: "Terceiros" };
 
 // Só vira link se for um endereço web; qualquer outro texto (telefone, e-mail)
 // aparece como texto puro.

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { GraficoEnquete } from "@/components/features/grafico-enquete";
 import {
@@ -11,6 +12,8 @@ import { exigirMembro } from "@/lib/dal";
 import { getRelatorio } from "@/lib/relatorio";
 import { listarCatalogos } from "@/lib/votacoes";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = { title: "Relatório das votações" };
 
 export default async function RelatorioPage(
   props: PageProps<"/votacoes/relatorio">,

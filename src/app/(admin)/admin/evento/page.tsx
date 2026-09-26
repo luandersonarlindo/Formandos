@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   adicionarItemProgramacao,
   removerItemProgramacao,
@@ -19,6 +20,8 @@ import { getEventoAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 import { listarProgramacao } from "@/lib/dashboard";
 import { formatarDiaCurto, formatarHora } from "@/lib/datas";
+
+export const metadata: Metadata = { title: "Evento" };
 
 export default async function EventoPage() {
   const admin = await exigirAdmin();

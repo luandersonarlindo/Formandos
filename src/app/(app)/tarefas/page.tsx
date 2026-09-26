@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   atualizarStatusTarefa,
   atualizarTarefa,
@@ -24,6 +25,8 @@ import {
   ROTULO_STATUS,
   STATUS_TAREFA,
 } from "@/lib/tarefas";
+
+export const metadata: Metadata = { title: "Tarefas" };
 
 function OpcoesStatus() {
   return STATUS_TAREFA.map((s) => (

@@ -160,15 +160,32 @@ As 8 categorias do catálogo padrão:
    ```
    Os três comandos podem ser repetidos sem problema: só criam o que falta. O `db:seed` não duplica o catálogo.
 
-6. **Executar o ambiente de desenvolvimento:**
+6. **Rodar os testes** (opcional):
+   ```bash
+   npm test
+   ```
+   Os testes unitários cobrem as funções puras de `src/lib` (código de convite e datas).
+
+7. **Executar o ambiente de desenvolvimento:**
    ```bash
    npm run dev
    ```
 
-7. **Aceder à aplicação:**
+8. **Aceder à aplicação:**
    Abra `http://localhost:3000` no seu navegador.
 
 > As pastas de `/src` descritas em "Arquitetura" (`components`, `actions`, `hooks`, `dal.ts`…) ainda serão criadas durante o desenvolvimento.
+
+---
+
+## 🛡️ Segurança e Acessibilidade
+
+* Toda página protegida e toda Server Action validam sessão, turma e papel em `src/lib/dal.ts`. O `proxy.ts` é só a primeira barreira.
+* Entradas validadas com Zod; consultas SQL sempre parametrizadas.
+* Tentativas de código de convite inválido são limitadas (10 a cada 15 minutos por utilizador).
+* Cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) configurados em `next.config.ts`.
+* Link "Pular para o conteúdo", títulos por página, tabela alternativa nos gráficos e mensagens de erro anunciadas para leitores de ecrã.
+* Telas de carregamento (`loading.tsx`), erro (`error.tsx`, `global-error.tsx`) e página não encontrada em português.
 
 ---
 
