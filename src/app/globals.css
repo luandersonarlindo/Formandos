@@ -128,3 +128,10 @@
     @apply font-sans;
   }
 }
+/* Cor da série nos gráficos (validada com o validador de paleta do dataviz). */
+:root {
+  --viz-serie-1: #2a78d6;
+}
+.dark {
+  --viz-serie-1: #3987e5;
+}
