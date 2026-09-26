@@ -190,3 +190,43 @@
     opacity: 0;
   }
 }
+
+/* Responsividade --------------------------------------------------------------
+   TV e telas grandes: como o Tailwind usa rem, aumentar a fonte da raiz amplia
+   o app inteiro (textos, espaços, barra lateral) sem mexer nos componentes. */
+@media (min-width: 1920px) {
+  html {
+    font-size: 112.5%;
+  }
+}
+@media (min-width: 2560px) {
+  html {
+    font-size: 150%;
+  }
+}
+@media (min-width: 3400px) {
+  html {
+    font-size: 200%;
+  }
+}
+
+/* Foco bem visível para teclado e controle remoto (D-pad) de TV. Com :where a
+   especificidade é zero, então classes como outline-none e ring ainda vencem. */
+:where(a, button, summary, select, input, textarea):focus-visible {
+  outline: 3px solid var(--vitrine-a);
+  outline-offset: 2px;
+}
+
+/* Telas de toque (celular e tablet): alvos de pelo menos 40px. */
+@media (pointer: coarse) {
+  a[class*="rounded-full"],
+  button[class*="rounded-full"],
+  summary {
+    min-height: 2.5rem;
+  }
+  a[class*="rounded-full"],
+  button[class*="rounded-full"] {
+    display: inline-flex;
+    align-items: center;
+  }
+}

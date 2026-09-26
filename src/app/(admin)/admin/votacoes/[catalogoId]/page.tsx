@@ -43,7 +43,7 @@ export default async function CatalogoAdminPage(
   const totalPerguntas = catalogo.categorias.reduce((n, c) => n + c.enquetes.length, 0);
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <Link
         href="/admin/votacoes"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"

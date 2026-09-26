@@ -20,7 +20,7 @@ export default async function VotacoesAdminPage() {
   const catalogos = await listarCatalogosAdmin(admin.turmaId);
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Catálogos de enquetes</h1>
         <Link href="/admin/votacoes/nova" className={cn(buttonVariants())}>

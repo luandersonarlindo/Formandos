@@ -90,7 +90,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
     c ? fornecedores.filter((f) => f.categoria === c).length : fornecedores.length;
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Terceiros</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
         Fornecedores e prestadores de serviço indicados pela comissão

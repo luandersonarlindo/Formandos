@@ -23,7 +23,7 @@ export default async function CatalogoPage(
   const respondidas = enquetes.filter((e) => e.selecionadas.length > 0).length;
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-3xl 2xl:max-w-5xl">
       <Link
         href="/votacoes"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"

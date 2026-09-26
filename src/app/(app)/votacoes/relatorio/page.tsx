@@ -33,7 +33,7 @@ export default async function RelatorioPage(
   const semRolagem = "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
         Relatório das votações
       </h1>
@@ -159,6 +159,7 @@ export default async function RelatorioPage(
                         <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden />
                         Ver como tabela
                       </summary>
+                      <div className="overflow-x-auto">
                       <table className="mt-2 w-full border-collapse text-left">
                         <thead>
                           <tr className="border-b text-muted-foreground">
@@ -185,6 +186,7 @@ export default async function RelatorioPage(
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </details>
                   </CardContent>
                 </Card>

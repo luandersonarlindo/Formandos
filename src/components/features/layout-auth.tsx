@@ -51,7 +51,7 @@ export function LayoutAuth({
         <div className="flex items-center justify-between">
           <Link
             href={voltar.href}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1.5 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground pointer-coarse:py-2.5"
           >
             <ArrowLeft className="size-4" aria-hidden /> {voltar.rotulo}
           </Link>
@@ -60,7 +60,7 @@ export function LayoutAuth({
           </span>
         </div>
         <div className="flex flex-1 items-center justify-center py-8">
-          <AnimarPagina className="w-full max-w-sm">{children}</AnimarPagina>
+          <AnimarPagina className="w-full max-w-sm 2xl:max-w-md">{children}</AnimarPagina>
         </div>
       </section>
     </main>

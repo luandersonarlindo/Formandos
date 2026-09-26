@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Novo catálogo" };
 
 export default function NovoCatalogoPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-3xl 2xl:max-w-5xl">
       <Link
         href="/admin/votacoes"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"

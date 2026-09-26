@@ -41,25 +41,25 @@ export function AppShell({
 }: AppShellProps) {
   const rodapes = rodape ? [rodape].flat() : [];
   return (
-    <div className="flex min-h-full flex-1 flex-col md:flex-row">
-      <aside className="flex flex-col border-b bg-muted/30 md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:border-r md:border-b-0">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 md:block md:px-5 md:pt-6 md:pb-4">
+    <div className="flex min-h-full flex-1 flex-col lg:flex-row">
+      <aside className="flex flex-col border-b bg-muted/30 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 lg:block lg:px-5 lg:pt-6 lg:pb-4">
           <Link href="/dashboard" className="shrink-0 text-lg font-semibold tracking-tight whitespace-nowrap">
             Formandos <span aria-hidden>🎓</span>
           </Link>
-          <span className="min-w-0 flex-1 truncate text-right text-xs font-medium text-muted-foreground md:mt-1 md:block md:text-left">
+          <span className="min-w-0 flex-1 truncate text-right text-xs font-medium text-muted-foreground lg:mt-1 lg:block lg:text-left">
             {titulo}
           </span>
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <BotaoSair />
           </div>
         </div>
         {turmas && (turmas.lista.length > 1 || turmas.podeAdicionar) && (
-          <div className="px-3 pb-3 md:pb-4">
+          <div className="px-3 pb-3 lg:pb-4">
             <p id="rotulo-turmas" className="px-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Minhas turmas
             </p>
-            <ul aria-labelledby="rotulo-turmas" className="mt-1.5 flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+            <ul aria-labelledby="rotulo-turmas" className="mt-1.5 flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {turmas.lista.map((t) => {
                 const ativa = t.id === turmas.ativaId;
                 return (
@@ -105,7 +105,7 @@ export function AppShell({
         )}
         <nav
           aria-label={titulo}
-          className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:overflow-visible md:pb-0"
+          className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {itens.map(({ href, rotulo, icone: Icone, exato }) => (
             <NavLink key={href} href={href} exato={exato}>
@@ -114,7 +114,7 @@ export function AppShell({
             </NavLink>
           ))}
           {rodapes.length > 0 && (
-            <div className="flex gap-1 md:mt-4 md:flex-col md:border-t md:pt-4">
+            <div className="flex gap-1 lg:mt-4 lg:flex-col lg:border-t lg:pt-4">
               {rodapes.map((r) => (
                 <NavLink key={r.href} href={r.href} exato>
                   {r.rotulo}
@@ -123,7 +123,7 @@ export function AppShell({
             </div>
           )}
         </nav>
-        <div className="mt-auto hidden items-center gap-3 border-t px-4 py-3 md:flex">
+        <div className="mt-auto hidden items-center gap-3 border-t px-4 py-3 lg:flex">
           <AvatarUsuario nome={usuario.nome} imagem={usuario.imagem} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{usuario.nome}</p>
@@ -134,7 +134,7 @@ export function AppShell({
           <BotaoSair />
         </div>
       </aside>
-      <main id="conteudo" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none md:p-8">
+      <main id="conteudo" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none sm:p-6 lg:p-8 2xl:p-12">
         <AnimarPagina>{children}</AnimarPagina>
       </main>
     </div>

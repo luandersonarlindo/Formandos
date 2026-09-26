@@ -82,7 +82,7 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <section className="vitrine-fundo-hero rounded-2xl border bg-card p-5 md:p-7">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
