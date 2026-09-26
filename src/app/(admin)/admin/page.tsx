@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Card,
@@ -7,6 +8,8 @@ import {
 } from "@/components/ui/card";
 import { getResumoAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
+
+export const metadata: Metadata = { title: "Painel do administrador" };
 
 export default async function AdminPage() {
   const admin = await exigirAdmin();

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { regenerarConvite } from "@/actions/admin";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +10,8 @@ import {
 } from "@/components/ui/card";
 import { exigirAdmin } from "@/lib/dal";
 import { pool } from "@/lib/db";
+
+export const metadata: Metadata = { title: "Código de convite" };
 
 export default async function ConviteAdminPage() {
   const admin = await exigirAdmin();

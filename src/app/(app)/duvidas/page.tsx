@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { BotaoUpvote } from "@/components/features/botao-upvote";
 import { FormNovaDuvida } from "@/components/features/form-nova-duvida";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { exigirMembro } from "@/lib/dal";
 import { listarDuvidas } from "@/lib/duvidas";
+
+export const metadata: Metadata = { title: "Dúvidas" };
 
 const formatarData = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",

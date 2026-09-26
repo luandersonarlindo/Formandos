@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -10,6 +11,8 @@ import {
 import { listarCatalogosAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = { title: "Catálogos de enquetes" };
 
 export default async function VotacoesAdminPage() {
   const admin = await exigirAdmin();

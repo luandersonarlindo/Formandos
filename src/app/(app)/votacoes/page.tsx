@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,6 +10,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
 import { listarCatalogos } from "@/lib/votacoes";
+
+export const metadata: Metadata = { title: "Votações" };
 
 export default async function VotacoesPage() {
   const membro = await exigirMembro();

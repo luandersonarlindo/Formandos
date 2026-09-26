@@ -1,11 +1,14 @@
+import type { Metadata } from "next";
 import {
   FormCriarTurma,
   FormEntrarConvite,
 } from "@/components/features/convite-forms";
 
+export const metadata: Metadata = { title: "Entrar em uma turma" };
+
 export default function ConvitePage() {
   return (
-    <main className="mx-auto w-full max-w-3xl">
+    <main id="conteudo" className="mx-auto w-full max-w-3xl">
       <h1 className="text-2xl font-semibold tracking-tight">
         Entre em uma turma
       </h1>

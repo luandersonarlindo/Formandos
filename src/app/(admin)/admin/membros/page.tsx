@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { alterarPapel, removerMembro } from "@/actions/admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { exigirAdmin } from "@/lib/dal";
 import { pool } from "@/lib/db";
+
+export const metadata: Metadata = { title: "Membros" };
 
 type Linha = {
   id: string;

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ContagemRegressiva } from "@/components/features/contagem-regressiva";
 import { FormSairTurma } from "@/components/features/form-sair-turma";
@@ -17,6 +18,8 @@ import {
   formatarDiaCurto,
   formatarHora,
 } from "@/lib/datas";
+
+export const metadata: Metadata = { title: "Dashboard" };
 
 function Indicador({
   titulo,

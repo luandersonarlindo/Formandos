@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { criarCatalogo } from "@/actions/catalogos";
 import { FormAcao } from "@/components/features/form-acao";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+export const metadata: Metadata = { title: "Novo catálogo" };
 
 export default function NovoCatalogoPage() {
   return (
