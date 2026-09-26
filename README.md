@@ -12,6 +12,8 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 
 * **Acesso Restrito por Turma:** Login com a conta Google ("Entrar com Google") ou com **email e senha** (com confirmação do email pelo link enviado). Cada utilizador pertence a **uma única turma por vez**. O acesso a uma turma é feito através de um **código de convite privado** gerado pelo administrador.
 
+* **Administrador master:** gestor de toda a plataforma. Vê todas as turmas e usuários, gere membros e papéis em qualquer turma, exclui turmas e usuários. Quem é master é definido pela variável `ADMIN_MASTER_EMAILS` (não há tela para isso).
+
 * **Gestão de Permissões (RBAC):** Somente os Administradores possuem privilégios para criar catálogos de enquetes personalizados, responder e destacar dúvidas, definir data/local do evento e gerir membros.
 
 * **Motor de Decisão (Enquetes por Categoria):**
@@ -65,6 +67,7 @@ Cada utilizador pertence a uma única turma, por isso as URLs **não** levam o i
 | `(publico)` | Qualquer pessoa | `/` (apresentação), `/entrar` (login com Google ou email e senha), `/esqueci-senha`, `/redefinir-senha` |
 | `(onboarding)` | Autenticado, sem turma | `/convite` (informar código de convite ou criar turma) |
 | `(app)` | Autenticado, com turma | `/dashboard`, `/tarefas`, `/votacoes`, `/votacoes/[catalogoId]`, `/votacoes/relatorio`, `/duvidas`, `/terceiros` |
+| `(master)` | Administrador master (`ADMIN_MASTER_EMAILS`); para os demais a página não existe (404) | `/master`, `/master/turmas`, `/master/turmas/[turmaId]`, `/master/usuarios` |
 | `(admin)` | Administrador da turma | `/admin`, `/admin/membros`, `/admin/convite`, `/admin/evento`, `/admin/duvidas`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
 | API | — | `/api/auth/[...all]` (único *Route Handler*, usado pelo Better Auth) |
 
@@ -91,7 +94,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
 * **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (Google e email e senha) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
 * **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
-* **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas: `exigirSessao()`, `getMembro()`, `exigirMembro()` e `exigirAdmin()`.
+* **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas: `exigirSessao()`, `getMembro()`, `exigirMembro()`, `exigirAdmin()` e `exigirMaster()`. `src/lib/master.ts` decide quem é master e `src/lib/plataforma.ts` traz as consultas de todas as turmas.
 * **`/src/lib` (consultas e utilitários):** consultas de leitura por área (`votacoes.ts`, `relatorio.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `dashboard.ts`, `admin.ts`) e funções puras (`convite.ts`, `datas.ts`), estas com testes em `*.test.ts`.
 * **`/db`:** `schema.sql` (tabelas do domínio), `apply-schema.mjs` e `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`).
 * **`/docs`:** catálogo de enquetes e guia de estudo.
@@ -157,6 +160,8 @@ As 8 categorias do catálogo padrão:
    BETTER_AUTH_URL="http://localhost:3000"
    GOOGLE_CLIENT_ID="seu_google_client_id"
    GOOGLE_CLIENT_SECRET="seu_google_client_secret"
+   # Administradores master (emails separados por vírgula, com email confirmado)
+   ADMIN_MASTER_EMAILS="voce@gmail.com"
    # Envio de email (veja o passo abaixo)
    SMTP_HOST="smtp.gmail.com"
    SMTP_PORT="587"

@@ -1,9 +1,10 @@
 import "server-only";
 import { cache } from "react";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "./auth";
 import { pool } from "./db";
+import { ehMaster } from "./master";
 
 // Data Access Layer: ponto único de checagem de sessão.
 // Chame `exigirSessao()` em toda página, layout protegido e Server Action.
@@ -68,4 +69,12 @@ export async function exigirAdmin() {
   const membro = await exigirMembro();
   if (membro.papel !== "admin") redirect("/dashboard");
   return membro;
+}
+
+// Exige login e ser administrador master (gestor de toda a plataforma).
+// Para quem não é master a página "não existe": não revela que há uma área master.
+export async function exigirMaster() {
+  const { user } = await exigirSessao();
+  if (!ehMaster(user)) notFound();
+  return user;
 }

@@ -9,6 +9,7 @@ type FormAcaoProps = {
   acao: (estado: EstadoForm, formData: FormData) => Promise<EstadoForm>;
   rotulo: string;
   rotuloPendente?: string;
+  variante?: "default" | "destructive";
   className?: string;
   children: React.ReactNode;
 };
@@ -21,6 +22,7 @@ export function FormAcao({
   acao,
   rotulo,
   rotuloPendente = "Salvando…",
+  variante = "default",
   className,
   children,
 }: FormAcaoProps) {
@@ -30,7 +32,7 @@ export function FormAcao({
     <form action={formAcao} className={cn("grid gap-3", className)}>
       {children}
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="sm" disabled={pendente}>
+        <Button type="submit" size="sm" variant={variante} disabled={pendente}>
           {pendente ? rotuloPendente : rotulo}
         </Button>
         <p

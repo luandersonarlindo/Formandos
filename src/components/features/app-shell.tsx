@@ -10,10 +10,12 @@ export type ItemMenu = {
   exato?: boolean;
 };
 
+type Rodape = { href: string; rotulo: string };
+
 type AppShellProps = {
   titulo: string;
   itens: ItemMenu[];
-  rodape?: { href: string; rotulo: string };
+  rodape?: Rodape | Rodape[];
   usuario: { nome: string; email: string; imagem?: string | null };
   children: React.ReactNode;
 };
@@ -26,6 +28,7 @@ export function AppShell({
   usuario,
   children,
 }: AppShellProps) {
+  const rodapes = rodape ? [rodape].flat() : [];
   return (
     <div className="flex min-h-full flex-1 flex-col md:flex-row">
       <aside className="flex flex-col border-b md:w-60 md:shrink-0 md:border-r md:border-b-0">
@@ -47,11 +50,13 @@ export function AppShell({
               {rotulo}
             </NavLink>
           ))}
-          {rodape && (
-            <div className="flex md:mt-4 md:border-t md:pt-4">
-              <NavLink href={rodape.href} exato>
-                {rodape.rotulo}
-              </NavLink>
+          {rodapes.length > 0 && (
+            <div className="flex md:mt-4 md:flex-col md:border-t md:pt-4">
+              {rodapes.map((r) => (
+                <NavLink key={r.href} href={r.href} exato>
+                  {r.rotulo}
+                </NavLink>
+              ))}
             </div>
           )}
         </nav>

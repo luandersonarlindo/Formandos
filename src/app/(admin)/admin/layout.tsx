@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { AppShell, type ItemMenu } from "@/components/features/app-shell";
 import { exigirAdmin, exigirSessao } from "@/lib/dal";
+import { ehMaster } from "@/lib/master";
 
 const itens: ItemMenu[] = [
   { href: "/admin", rotulo: "Resumo", icone: LayoutDashboard, exato: true },
@@ -30,7 +31,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       titulo={`Administração · ${membro.turmaNome}`}
       itens={itens}
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}
-      rodape={{ href: "/dashboard", rotulo: "Voltar para a turma" }}
+      rodape={[
+        { href: "/dashboard", rotulo: "Voltar para a turma" },
+        ...(ehMaster(user)
+          ? [{ href: "/master", rotulo: "Gestão da plataforma" }]
+          : []),
+      ]}
     >
       {children}
     </AppShell>

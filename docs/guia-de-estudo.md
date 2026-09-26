@@ -143,6 +143,7 @@ Parênteses como `(app)` são *route groups*: organizam pastas e layouts **sem**
 | `(onboarding)` | sim | **não** (se já tem turma, vai para `/dashboard`) | não |
 | `(app)` | sim | sim | não |
 | `(admin)` | sim | sim | **sim** |
+| `(master)` | sim | não | **master** (email em `ADMIN_MASTER_EMAILS`; para os demais, 404) |
 
 O `proxy.ts` só checa "tem sessão?". A checagem de turma e de admin fica nos `layout.tsx` **e** dentro de cada Server Action e cada leitura de dados, porque o layout sozinho não protege as ações.
 
@@ -251,10 +252,11 @@ Três conceitos separados (a doc `02-guides/authentication.md` explica):
 
 1. **Autenticação:** quem é o usuário (login Google ou e-mail e senha).
 2. **Sessão:** como lembrar dele entre requisições (cookie).
-3. **Autorização:** o que ele pode fazer (papel `admin` ou `participante` **naquela turma**).
+3. **Autorização:** o que ele pode fazer (papel `admin` ou `participante` **naquela turma**, ou **master** na plataforma inteira).
 
 Pontos-chave:
 - O papel vale **por turma**, não global. Por isso está na tabela `membros`.
+- **Administrador master:** gestor de todas as turmas e usuários (`/master`). Não é papel no banco: vem da variável `ADMIN_MASTER_EMAILS` e só vale com email confirmado (`src/lib/master.ts`, `exigirMaster()` no DAL). Diferente do admin de turma, as ações dele não filtram pela turma da sessão, por isso **toda** Server Action de `src/actions/master.ts` começa com `exigirMaster()`. Exclusões pedem digitar o nome da turma ou o email do usuário; a turma nunca fica sem administrador e o master não se exclui.
 - Como cada aluno tem uma turma só, as funções descobrem a turma pelo usuário logado, sem receber `turmaId` da tela. Isso evita que alguém troque o id no formulário para mexer em outra turma.
 - Centralize as checagens num *Data Access Layer* (funções como `getUsuarioAtual()`, `getMembro()`, `exigirAdmin()`), e chame-as em toda Server Action e toda leitura protegida. A doc do Next recomenda isso e o pacote `server-only` para impedir que esse código vá parar no navegador.
 - Esconder um botão no front **não** protege nada. A checagem tem de estar na Server Action.
