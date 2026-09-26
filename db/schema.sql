@@ -150,3 +150,12 @@ create table if not exists programacao (
   created_at timestamptz not null default now()
 );
 create index if not exists idx_programacao_turma on programacao (turma_id, horario);
+
+-- Códigos de convite errados por usuário, para limitar tentativas de adivinhar.
+create table if not exists tentativas_convite (
+  id         bigserial primary key,
+  usuario_id uuid not null references usuarios(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_tentativas_convite_usuario
+  on tentativas_convite (usuario_id, created_at);
