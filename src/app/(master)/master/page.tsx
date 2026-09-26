@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CircleHelp, School, ShieldCheck, UserRoundX, Users } from "lucide-react";
+import { CartaoResumo } from "@/components/features/cartao-resumo";
+import { Badge } from "@/components/ui/badge";
 import { exigirMaster } from "@/lib/dal";
 import { getResumoPlataforma } from "@/lib/plataforma";
 
@@ -16,37 +12,28 @@ export default async function MasterPage() {
   const r = await getResumoPlataforma();
 
   const cartoes = [
-    { href: "/master/turmas", titulo: "Turmas", valor: r.turmas, texto: "ver, gerir membros e excluir" },
-    { href: "/master/usuarios", titulo: "Usuários", valor: r.usuarios, texto: "contas cadastradas na plataforma" },
-    { href: "/master/usuarios", titulo: "Usuários sem turma", valor: r.semTurma, texto: "ainda não entraram em uma turma" },
-    { href: "/master/turmas", titulo: "Dúvidas sem resposta", valor: r.duvidasAbertas, texto: "somando todas as turmas" },
+    { href: "/master/turmas", titulo: "Turmas", valor: r.turmas, texto: "ver, gerir membros e excluir", icone: School },
+    { href: "/master/usuarios", titulo: "Usuários", valor: r.usuarios, texto: "contas cadastradas na plataforma", icone: Users },
+    { href: "/master/usuarios", titulo: "Usuários sem turma", valor: r.semTurma, texto: "ainda não entraram em uma turma", icone: UserRoundX },
+    { href: "/master/turmas", titulo: "Dúvidas sem resposta", valor: r.duvidasAbertas, texto: "somando todas as turmas", icone: CircleHelp },
   ];
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Gestão da plataforma
-      </h1>
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+          Gestão da plataforma
+        </h1>
+        <Badge>
+          <ShieldCheck aria-hidden /> Master
+        </Badge>
+      </div>
       <p className="mt-2 text-muted-foreground">
         Visão de todas as turmas e usuários do Formandos.
       </p>
-      <div data-grupo className="mt-6 grid gap-4 md:grid-cols-2">
+      <div data-grupo className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cartoes.map((c) => (
-          <Link key={c.titulo} href={c.href} className="block">
-            <Card className="h-full transition-colors hover:bg-muted/50">
-              <CardHeader>
-                <CardDescription>{c.titulo}</CardDescription>
-                <CardTitle className="text-2xl">
-                  {typeof c.valor === "number" ? (
-                    <span data-contar={c.valor}>{c.valor}</span>
-                  ) : (
-                    c.valor
-                  )}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">{c.texto}</p>
-              </CardHeader>
-            </Card>
-          </Link>
+          <CartaoResumo key={c.titulo} {...c} />
         ))}
       </div>
     </div>
