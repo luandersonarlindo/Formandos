@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { RotateCcw, TriangleAlert } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,9 @@ export function ErroPagina({
 
   return (
     <div role="alert" className="mx-auto flex w-full max-w-md flex-col items-center gap-4 py-16 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl border bg-destructive/10 text-destructive">
+        <TriangleAlert className="size-7" aria-hidden />
+      </span>
       <h1 className="text-2xl font-semibold tracking-tight">Algo deu errado</h1>
       <p className="text-muted-foreground">
         Não foi possível carregar esta página. Tente novamente. Se o problema
@@ -30,7 +34,9 @@ export function ErroPagina({
         <p className="text-xs text-muted-foreground">Código do erro: {error.digest}</p>
       )}
       <div className="flex flex-wrap justify-center gap-2">
-        <Button onClick={() => retry()}>Tentar de novo</Button>
+        <Button onClick={() => retry()}>
+          <RotateCcw aria-hidden /> Tentar de novo
+        </Button>
         <Link href={voltarPara} className={cn(buttonVariants({ variant: "outline" }))}>
           Voltar ao início
         </Link>
