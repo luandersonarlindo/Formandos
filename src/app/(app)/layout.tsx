@@ -3,6 +3,7 @@ import {
   CircleHelp,
   ClipboardList,
   LayoutDashboard,
+  Megaphone,
   Store,
   Vote,
 } from "lucide-react";
@@ -12,6 +13,7 @@ import { ehMaster } from "@/lib/master";
 
 const itens: ItemMenu[] = [
   { href: "/dashboard", rotulo: "Dashboard", icone: LayoutDashboard },
+  { href: "/avisos", rotulo: "Avisos", icone: Megaphone },
   { href: "/tarefas", rotulo: "Tarefas", icone: ClipboardList },
   { href: "/votacoes", rotulo: "Votações", icone: Vote, exato: true },
   { href: "/votacoes/relatorio", rotulo: "Relatório", icone: BarChart3 },

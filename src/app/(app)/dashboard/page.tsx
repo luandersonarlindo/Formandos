@@ -7,6 +7,7 @@ import {
   CalendarClock,
   MapPin,
   Gavel,
+  Megaphone,
   Navigation,
   Shirt,
   StickyNote,
@@ -29,6 +30,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
 import { getDetalhesEvento, getResumoTurma, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
+import { listarUltimosAvisos } from "@/lib/avisos";
 import { linkComoChegar } from "@/lib/evento";
 import { getMinhaPresenca } from "@/lib/presenca";
 import { ROTULO_PRESENCA } from "@/lib/presenca-regras";
@@ -86,12 +88,13 @@ function Indicador({
 
 export default async function DashboardPage() {
   const membro = await exigirMembro();
-  const [programacao, resumo, detalhes, decisoes, presenca] = await Promise.all([
+  const [programacao, resumo, detalhes, decisoes, presenca, avisos] = await Promise.all([
     listarProgramacao(membro),
     getResumoTurma(membro),
     getDetalhesEvento(membro),
     listarDecisoes(membro),
     getMinhaPresenca(membro),
+    listarUltimosAvisos(membro),
   ]);
   const comoChegar = linkComoChegar({
     linkMapa: detalhes.linkMapa,
@@ -239,6 +242,30 @@ export default async function DashboardPage() {
           icone={CircleHelp}
         />
       </div>
+
+      {avisos.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Megaphone className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Mural da turma
+              </CardTitle>
+              <Link href="/avisos" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                Ver todos
+              </Link>
+            </div>
+            <CardDescription>Recados da comissão sobre a organização do evento.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {avisos.map((a) => (
+              <div key={a.id} className="rounded-xl border bg-background/80 p-3">
+                <p className="font-medium wrap-break-word">{a.titulo}</p>
+                <p className="mt-0.5 wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">{a.conteudo}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {decisoes.length > 0 && (
         <Card className="mt-4">

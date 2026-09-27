@@ -131,6 +131,18 @@ create table if not exists presencas (
   primary key (turma_id, usuario_id)
 );
 
+-- Mural de avisos: recados fixados da comissão, mostrados no dashboard e em
+-- /avisos. Só o administrador publica e apaga; sem edição, como fornecedores.
+create table if not exists avisos (
+  id         uuid primary key default gen_random_uuid(),
+  turma_id   uuid not null references turmas(id) on delete cascade,
+  autor_id   uuid references usuarios(id) on delete set null,
+  titulo     varchar(200) not null,
+  conteudo   text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_avisos_turma on avisos (turma_id, created_at desc);
+
 -- Dúvidas (Q&A) ------------------------------------------------------------
 
 create table if not exists duvidas (
