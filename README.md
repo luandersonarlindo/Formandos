@@ -14,13 +14,14 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 
 * **Administrador master:** gestor de toda a plataforma. Vê todas as turmas e usuários, gere membros e papéis em qualquer turma, exclui turmas e usuários. Quem é master é definido pela variável `ADMIN_MASTER_EMAILS` (não há tela para isso).
 
-* **Gestão de Permissões (RBAC):** Somente os Administradores possuem privilégios para criar catálogos de enquetes personalizados, responder e destacar dúvidas, definir data/local do evento e gerir membros.
+* **Gestão de Permissões (RBAC):** Somente os Administradores possuem privilégios para criar catálogos de enquetes personalizados, responder e destacar dúvidas, definir os detalhes do evento, fixar decisões, gerir membros e arquivar ou excluir a turma.
 
 * **Motor de Decisão (Enquetes por Categoria):**
   * O **catálogo padrão** vem pré-configurado, dividido em 10 categorias (*Formato do Evento*, *Espaço do Evento*, *Comida & Gastronomia*, *Bebidas & Bar*, *Música & Atrações*, *Experiência Visual & Recordações*, *Estrutura, Segurança & Recepção*, *Traje & Identidade Visual*, *Rituais & Pré-Eventos*, *Orçamento & Arrecadação*).
   * O administrador pode criar **catálogos personalizados** para a sua turma, com categorias e perguntas próprias, ou partir de um **modelo** por perfil de turma (Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, Área da Saúde).
   * Opções de resposta descritivas e interativas (evitando o tradicional "sim/não"), com suporte a seleção única, múltipla escolha e opção neutra/negativa (*exclusiva*).
   * Os votos são **identificados**: o administrador vê quem votou em cada opção. Os participantes podem **alterar o voto**.
+  * O administrador pode **fixar a decisão** da turma em uma pergunta: a escolha aparece no dashboard de todos e a votação daquela pergunta é encerrada (dá para reabrir).
 * **Relatórios Automatizados:** Processamento dos votos para gerar um relatório consolidado sobre as preferências da turma.
 
 * **Módulo de Perguntas e Respostas (Q&A - estilo *Letmeask*):**
@@ -28,7 +29,11 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
   * **Sistema de Upvotes:** Os alunos votam nas perguntas mais relevantes de outros colegas para dar visibilidade às dúvidas comuns.
   * **Destaque e Resposta do ADM:** A comissão responde oficialmente e pode marcar a dúvida como *"Respondida"* ou *"Em Destaque"*.
 
-* **Tarefas e Dashboard:** contagem regressiva para a festa, data, local, programação e indicadores da turma; lista de tarefas com responsável, prazo e progresso.
+* **Tarefas e Dashboard:** contagem regressiva para a festa, descrição, data e horário de término, local com endereço, botão *Como chegar*, traje, observações do local, decisões da turma, programação e indicadores; lista de tarefas com responsável, prazo e progresso.
+
+* **Arquivar e excluir a turma:** o administrador pode **arquivar** a turma (todo o registro continua disponível, mas só para leitura e sem novos membros) e desarquivar depois, ou **excluí-la** de vez, digitando o nome para confirmar. Cada pessoa também pode **excluir a própria conta** (`/conta`).
+
+* **Listas grandes:** dúvidas (10 por página), membros (20, com busca por nome ou email sem diferenciar acentos) e, no master, usuários e turmas (20) são paginados pela URL (`?pagina=2`).
 
 * **Vitrine de Terceiros (Marketplace):** Catálogo para conectar a turma a prestadores de serviços (buffet, músicos, equipa de apoio/mordomos, fotógrafos), cadastrados pelo administrador de cada turma.
 
@@ -67,9 +72,10 @@ As URLs **não** levam o identificador da turma: o servidor descobre a turma em 
 |---|---|---|
 | `(publico)` | Qualquer pessoa | `/` (vitrine do projeto, com animações), `/entrar` (login com Google ou email e senha), `/esqueci-senha`, `/redefinir-senha` |
 | `(onboarding)` | Autenticado, sem turma | `/convite` (informar código de convite ou criar turma) |
+| `(conta)` | Autenticado (com ou sem turma) | `/conta` (ver e excluir a própria conta) |
 | `(app)` | Autenticado, com turma | `/dashboard`, `/tarefas`, `/votacoes`, `/votacoes/[catalogoId]`, `/votacoes/relatorio`, `/duvidas`, `/terceiros` |
 | `(master)` | Administrador master (`ADMIN_MASTER_EMAILS`); para os demais a página não existe (404) | `/master`, `/master/turmas`, `/master/turmas/[turmaId]`, `/master/usuarios` |
-| `(admin)` | Administrador da turma | `/admin`, `/admin/membros`, `/admin/convite`, `/admin/evento`, `/admin/duvidas`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
+| `(admin)` | Administrador da turma | `/admin`, `/admin/membros`, `/admin/convite`, `/admin/evento`, `/admin/turma` (arquivar, desarquivar e excluir), `/admin/duvidas`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
 | API | — | `/api/auth/[...all]` (único *Route Handler*, usado pelo Better Auth) |
 
 * `/dashboard` - Visão geral da turma, contagem decrescente e programação oficial da festa.
@@ -91,7 +97,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/app`:** Rotas, layouts, telas de erro (`error.tsx`, `global-error.tsx`), carregamento (`loading.tsx`) e `not-found.tsx`.
 * **`/src/components/ui`:** Componentes genéricos da biblioteca shadcn/ui.
 * **`/src/components/features`:** Componentes de domínio (menu lateral, cartão de votação, gráfico da enquete, botão de upvote, formulários de tarefa, fornecedor, evento e catálogo, contagem regressiva…).
-* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `votos.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `catalogos.ts` e `admin.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
+* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
 * **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
 * **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (Google e email e senha) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
 * **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
