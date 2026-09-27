@@ -272,6 +272,35 @@ await grupo("app", async () => {
     await nav.esperarTexto("Dúvida E2E");
     verdade(!(await nav.tem("O prazo é dia 20/10")), "resposta apareceu no filtro de abertas");
   });
+  await passo("dúvidas paginadas: páginas, filtro mantido e página fora do intervalo", async () => {
+    sql(`insert into duvidas (turma_id, autor_id, conteudo)
+      select '${turmaTeste()}', u.id, 'Paginação E2E ' || g
+        from usuarios u, generate_series(1, 12) g where u.email='teste-jl@example.invalid'`);
+    try {
+      const itens = () => nav.ev("document.querySelectorAll('ul[data-grupo] > li').length");
+      const proximo = () =>
+        nav.ev("document.querySelector('nav[aria-label=\"Paginação\"] a[rel=next]')?.getAttribute('href') ?? null");
+      await nav.abrir("/duvidas");
+      await nav.esperarTexto("Página 1 de 2");
+      igual(String(await itens()), "10", "dez dúvidas na página 1");
+      igual(await proximo(), "/duvidas?pagina=2", "link da próxima página");
+      await nav.abrir("/duvidas?pagina=2");
+      await nav.esperarTexto("Página 2 de 2");
+      verdade((await itens()) > 0 && (await itens()) < 10, "sobra na página 2");
+      verdade((await proximo()) === null, "sem próxima na última página");
+      await nav.abrir("/duvidas?filtro=abertas");
+      await nav.esperarTexto("Página 1 de 2");
+      igual(await proximo(), "/duvidas?filtro=abertas&pagina=2", "o filtro se mantém no link");
+      await nav.abrir("/duvidas?pagina=99");
+      await nav.esperarTexto("Página 2 de 2");
+      await nav.abrir("/duvidas?pagina=abc");
+      await nav.esperarTexto("Página 1 de 2");
+      await nav.abrir("/admin/duvidas?pagina=2");
+      await nav.esperarTexto("Página 2 de 2");
+    } finally {
+      sql("delete from duvidas where conteudo like 'Paginação E2E%'");
+    }
+  });
   await passo("adicionar e remover fornecedor", async () => {
     await nav.abrir("/terceiros");
     await nav.clicar("Adicionar fornecedor", { seletor: "summary" });
@@ -461,6 +490,29 @@ await grupo("master", async () => {
     });
     return;
   }
+  await passo("usuários do master paginados", async () => {
+    sql(`insert into usuarios (name,email,"emailVerified")
+      select 'Zz Paginação ' || g, 'teste-pg-' || g || '@example.invalid', true from generate_series(1, 21) g
+      on conflict do nothing`);
+    try {
+      const total = Number(sql("select count(*) from usuarios"));
+      const paginas = String(Math.ceil(total / 20));
+      await nav.abrir("/master/usuarios");
+      await nav.esperarTexto(`Página 1 de ${paginas}`);
+      await nav.esperarTexto(`${total} usuários cadastrados`);
+      igual(
+        await nav.ev("document.querySelector('nav[aria-label=\"Paginação\"] a[rel=next]')?.getAttribute('href') ?? null"),
+        "/master/usuarios?pagina=2",
+        "link da próxima página",
+      );
+      await nav.abrir("/master/usuarios?pagina=99");
+      await nav.esperarTexto(`Página ${paginas} de ${paginas}`);
+      await nav.abrir("/master/turmas");
+      verdade(!(await nav.tem("Página 2")), "poucas turmas não paginam");
+    } finally {
+      sql("delete from usuarios where email like 'teste-pg-%@example.invalid'");
+    }
+  });
   await passo("alterar papel de um membro pela turma", async () => {
     await nav.abrir(`/master/turmas/${turmaTeste()}`);
     await nav.clicar("Promover", { escopo: "João Lima", seletor: "button" });
