@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import type { EstadoForm } from "@/actions/tipos";
 import { Check, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,35 @@ export function FormAcao({
   children,
 }: FormAcaoProps) {
   const [estado, formAcao, pendente] = useActionState(acao, inicial);
+  const formulario = useRef<HTMLFormElement>(null);
+  const enviados = useRef<[string, string][]>([]);
+
+  // O React 19 limpa os campos depois de toda ação. Com erro de validação isso
+  // apagaria o que a pessoa digitou, então os textos enviados são devolvidos.
+  useEffect(() => {
+    if (!estado.erro || !formulario.current) return;
+    for (const [nome, valor] of enviados.current) {
+      const campo = formulario.current.elements.namedItem(nome);
+      if (
+        (campo instanceof HTMLInputElement || campo instanceof HTMLTextAreaElement) &&
+        !["password", "checkbox", "radio", "file", "hidden"].includes(campo.type)
+      ) {
+        campo.value = valor;
+      }
+    }
+  }, [estado]);
 
   return (
-    <form action={formAcao} className={cn("grid gap-3", className)}>
+    <form
+      ref={formulario}
+      action={formAcao}
+      onSubmit={(e) => {
+        enviados.current = [...new FormData(e.currentTarget)].filter(
+          (par): par is [string, string] => typeof par[1] === "string",
+        );
+      }}
+      className={cn("grid gap-3", className)}
+    >
       {children}
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="sm" variant={variante} disabled={pendente}>
