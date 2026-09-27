@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirMembro } from "@/lib/dal";
+import { exigirMembroEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import type { EstadoForm } from "./tipos";
 
@@ -18,7 +18,7 @@ export async function enviarDuvida(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const membro = await exigirMembro();
+  const membro = await exigirMembroEditavel();
   const texto = String(formData.get("conteudo") ?? "");
 
   const dados = esquemaDuvida.safeParse({ conteudo: texto });
@@ -36,7 +36,7 @@ export async function enviarDuvida(
 
 // Liga ou desliga o upvote do usuário. Só vale para dúvidas da própria turma.
 export async function alternarUpvote(duvidaId: string) {
-  const membro = await exigirMembro();
+  const membro = await exigirMembroEditavel();
   if (!z.uuid().safeParse(duvidaId).success) return;
 
   await transacao(async (db) => {

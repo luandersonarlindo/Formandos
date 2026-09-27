@@ -33,6 +33,8 @@ export type Membro = {
   papel: "admin" | "participante";
   dataEvento: Date | null;
   localEvento: string | null;
+  // Turma arquivada é só leitura: veja exigirMembroEditavel.
+  arquivadaEm: Date | null;
 };
 
 // Cookie que lembra qual turma o usuário está usando. É só uma preferência:
@@ -53,7 +55,7 @@ export async function definirTurmaAtiva(turmaId: string) {
 export const getVinculos = cache(async (): Promise<Membro[]> => {
   const sessao = await exigirSessao();
   const { rows } = await pool.query(
-    `select m.turma_id, m.papel, t.nome, t.data_evento, t.local_evento
+    `select m.turma_id, m.papel, t.nome, t.data_evento, t.local_evento, t.arquivada_em
        from membros m
        join turmas t on t.id = m.turma_id
       where m.usuario_id = $1
@@ -67,6 +69,7 @@ export const getVinculos = cache(async (): Promise<Membro[]> => {
     papel: r.papel,
     dataEvento: r.data_evento,
     localEvento: r.local_evento,
+    arquivadaEm: r.arquivada_em,
   }));
 });
 
@@ -91,7 +94,12 @@ export async function getSeletorTurmas(ativaId: string) {
   const vinculos = await getVinculos();
   return {
     ativaId,
-    lista: vinculos.map((v) => ({ id: v.turmaId, nome: v.turmaNome, papel: v.papel })),
+    lista: vinculos.map((v) => ({
+      id: v.turmaId,
+      nome: v.turmaNome,
+      papel: v.papel,
+      arquivada: v.arquivadaEm !== null,
+    })),
     podeAdicionar: podeEntrarEmOutraTurma(vinculos.map((v) => v.papel)),
   };
 }
@@ -101,6 +109,22 @@ export async function exigirAdmin() {
   const membro = await exigirMembro();
   if (membro.papel !== "admin") redirect("/dashboard");
   return membro;
+}
+
+// Versões para Server Actions que ALTERAM dados da turma. Turma arquivada é só
+// leitura, então quem tenta alterar volta ao dashboard, onde a faixa explica.
+// Ficam de fora (e usam exigirMembro/exigirAdmin): desarquivar, excluir a turma
+// e sair dela.
+export async function exigirMembroEditavel() {
+  const membro = await exigirMembro();
+  if (membro.arquivadaEm) redirect("/dashboard");
+  return membro;
+}
+
+export async function exigirAdminEditavel() {
+  const admin = await exigirAdmin();
+  if (admin.arquivadaEm) redirect("/dashboard");
+  return admin;
 }
 
 // Exige login e ser administrador master (gestor de toda a plataforma).

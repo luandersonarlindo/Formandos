@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   CircleHelp,
+  Settings,
   KeyRound,
   LayoutDashboard,
   Users,
@@ -17,6 +18,7 @@ const itens: ItemMenu[] = [
   { href: "/admin/evento", rotulo: "Evento", icone: CalendarDays },
   { href: "/admin/duvidas", rotulo: "Dúvidas", icone: CircleHelp },
   { href: "/admin/votacoes", rotulo: "Votações", icone: Vote },
+  { href: "/admin/turma", rotulo: "Turma", icone: Settings },
 ];
 
 // Exige login, turma e papel de administrador.
@@ -31,6 +33,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       titulo={`Administração · ${membro.turmaNome}`}
       turmas={await getSeletorTurmas(membro.turmaId)}
       itens={itens}
+      arquivadaEm={membro.arquivadaEm?.toISOString() ?? null}
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}
       rodape={[
         { href: "/dashboard", rotulo: "Voltar para a turma" },

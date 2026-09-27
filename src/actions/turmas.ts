@@ -117,7 +117,7 @@ export async function entrarPorConvite(
       if (recentes.rows[0].n >= MAX_TENTATIVAS) return "bloqueado" as const;
 
       const { rows } = await db.query(
-        "select id from turmas where codigo_convite = $1",
+        "select id, arquivada_em from turmas where codigo_convite = $1",
         [dados.data.codigo],
       );
       if (rows.length === 0) {
@@ -138,6 +138,7 @@ export async function entrarPorConvite(
         [rows[0].id, usuario.id],
       );
       if (jaMembro.rows.length > 0) return { turmaId: rows[0].id as string };
+      if (rows[0].arquivada_em) return "arquivada" as const;
       if (!(await podeEntrar(db, usuario.id))) return "so-admin" as const;
       await db.query(
         `insert into membros (turma_id, usuario_id, papel)
@@ -153,6 +154,9 @@ export async function entrarPorConvite(
       };
     }
     if (resultado === "invalido") return { erro: "Código de convite inválido." };
+    if (resultado === "arquivada") {
+      return { erro: "Esta turma foi arquivada e não aceita novos membros." };
+    }
     turmaId = resultado.turmaId;
   } catch (erro) {
     if ((erro as ErroPg).code !== "23505") throw erro;

@@ -263,3 +263,22 @@ export async function listarMembrosAdmin(
   );
   return { itens: rows, pagina: paginaAtual, totalPaginas, totais, encontrados };
 }
+
+// O que a exclusão da turma apaga, para mostrar antes de o admin confirmar.
+export async function getResumoExclusao(turmaId: string) {
+  const { rows } = await pool.query(
+    `select (select count(*) from membros where turma_id = $1)::int as membros,
+            (select count(*) from votos where turma_id = $1)::int as votos,
+            (select count(*) from duvidas where turma_id = $1)::int as duvidas,
+            (select count(*) from tarefas where turma_id = $1)::int as tarefas,
+            (select count(*) from catalogos where turma_id = $1)::int as catalogos`,
+    [turmaId],
+  );
+  return rows[0] as {
+    membros: number;
+    votos: number;
+    duvidas: number;
+    tarefas: number;
+    catalogos: number;
+  };
+}
