@@ -24,6 +24,14 @@ create table if not exists turmas (
 -- Turma arquivada: fica só para leitura (nada muda) até ser desarquivada.
 alter table turmas add column if not exists arquivada_em timestamptz;
 
+-- Detalhes do evento, editados pelo administrador e mostrados no dashboard.
+alter table turmas add column if not exists descricao         text;
+alter table turmas add column if not exists endereco          varchar(255);
+alter table turmas add column if not exists link_mapa         varchar(500);
+alter table turmas add column if not exists traje             varchar(100);
+alter table turmas add column if not exists observacoes_local text;
+alter table turmas add column if not exists data_fim_evento   timestamptz;
+
 -- Quem é administrador em alguma turma pode participar de várias. Essa regra
 -- ("só admin entra em outra turma") é conferida na aplicação, em
 -- src/lib/vinculos.ts, e não no banco.

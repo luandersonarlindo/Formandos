@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarDays, MapPin, Plus, Trash2, Users } from "lucide-react";
+import { CalendarDays, CalendarClock, Link2, MapPin, Plus, Shirt, Trash2, Users } from "lucide-react";
 import {
   adicionarItemProgramacao,
   removerItemProgramacao,
@@ -48,7 +48,7 @@ export default async function EventoPage() {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle className="text-lg">Dados do evento</CardTitle>
-          <CardDescription>Nome da turma, data da festa e local.</CardDescription>
+          <CardDescription>Nome da turma, descrição, data, local e o que os convidados precisam saber.</CardDescription>
         </CardHeader>
         <CardContent>
           <FormAcao acao={salvarEvento} rotulo="Salvar">
@@ -58,18 +58,72 @@ export default async function EventoPage() {
               </Label>
               <Input id="nome" name="nome" defaultValue={evento.nome} maxLength={100} className="h-10" required />
             </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="descricao">Descrição (opcional)</Label>
+              <Textarea
+                id="descricao"
+                name="descricao"
+                defaultValue={evento.descricao}
+                maxLength={1000}
+                rows={3}
+                placeholder="Ex.: A formatura da turma de Sistemas de Informação. Venha comemorar com a gente!"
+              />
+              <p className="text-xs text-muted-foreground">Aparece no topo do dashboard, para todos os membros.</p>
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="dataEvento" className={rotulo}>
-                  <CalendarDays className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Data e hora da festa
+                  <CalendarDays className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Início da festa
                 </Label>
                 <Input id="dataEvento" name="dataEvento" type="datetime-local" defaultValue={evento.dataLocal} className="h-10" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="localEvento" className={rotulo}>
-                  <MapPin className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Local
+                <Label htmlFor="dataFimEvento" className={rotulo}>
+                  <CalendarClock className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Término (opcional)
                 </Label>
-                <Input id="localEvento" name="localEvento" defaultValue={evento.local} maxLength={255} className="h-10" />
+                <Input id="dataFimEvento" name="dataFimEvento" type="datetime-local" defaultValue={evento.dataFimLocal} className="h-10" />
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="localEvento" className={rotulo}>
+                  <MapPin className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome do local
+                </Label>
+                <Input id="localEvento" name="localEvento" defaultValue={evento.local} maxLength={255} placeholder="Ex.: Salão Cristal" className="h-10" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="endereco" className={rotulo}>
+                  <MapPin className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Endereço (opcional)
+                </Label>
+                <Input id="endereco" name="endereco" defaultValue={evento.endereco} maxLength={255} placeholder="Rua, número, bairro e cidade" className="h-10" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="linkMapa" className={rotulo}>
+                <Link2 className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Link do mapa (opcional)
+              </Label>
+              <Input id="linkMapa" name="linkMapa" type="url" defaultValue={evento.linkMapa} maxLength={500} placeholder="https://maps.app.goo.gl/…" className="h-10" />
+              <p className="text-xs text-muted-foreground">
+                Vira o botão “Como chegar”. Sem link, o botão usa o endereço (ou o nome do local) numa busca do Google Maps.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="traje" className={rotulo}>
+                  <Shirt className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Traje (opcional)
+                </Label>
+                <Input id="traje" name="traje" defaultValue={evento.traje} maxLength={100} placeholder="Ex.: Gala / Black tie" className="h-10" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="observacoesLocal">Observações do local (opcional)</Label>
+                <Textarea
+                  id="observacoesLocal"
+                  name="observacoesLocal"
+                  defaultValue={evento.observacoesLocal}
+                  maxLength={500}
+                  rows={2}
+                  placeholder="Estacionamento, portaria, acessibilidade…"
+                />
               </div>
             </div>
           </FormAcao>

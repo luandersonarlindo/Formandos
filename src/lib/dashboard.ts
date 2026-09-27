@@ -9,6 +9,15 @@ export type ItemProgramacao = {
   descricao: string | null;
 };
 
+export type DetalhesEvento = {
+  descricao: string | null;
+  endereco: string | null;
+  linkMapa: string | null;
+  traje: string | null;
+  observacoesLocal: string | null;
+  dataFim: Date | null;
+};
+
 export type ResumoTurma = {
   membros: number;
   tarefasTotal: number;
@@ -50,6 +59,16 @@ export async function getResumoTurma(membro: Membro): Promise<ResumoTurma> {
        (select count(*) from duvidas
          where turma_id = $1 and not respondida)::int as "duvidasAbertas"`,
     [membro.turmaId, membro.usuarioId],
+  );
+  return rows[0];
+}
+
+export async function getDetalhesEvento(membro: Membro): Promise<DetalhesEvento> {
+  const { rows } = await pool.query(
+    `select descricao, endereco, link_mapa as "linkMapa", traje,
+            observacoes_local as "observacoesLocal", data_fim_evento as "dataFim"
+       from turmas where id = $1`,
+    [membro.turmaId],
   );
   return rows[0];
 }
