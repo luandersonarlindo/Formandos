@@ -950,6 +950,20 @@ await grupo("extras", async () => {
     }
     await nav.tamanho(1280, 900, false);
   });
+  await passo("Minhas turmas recolhe e expande dentro da sidebar", async () => {
+    await nav.abrir("/dashboard");
+    const aberta = () => nav.ev("document.querySelector('[data-slot=collapsible]')?.dataset.state");
+    igual(await aberta(), "open", "começa aberta");
+    await nav.tem("Outra turma");
+    await nav.clicar("Minhas turmas", { seletor: "button" });
+    await dormir(300);
+    igual(await aberta(), "closed", "recolhe ao clicar");
+    verdade(!(await nav.tem("Outra turma")), "as turmas somem");
+    await nav.clicar("Minhas turmas", { seletor: "button" });
+    await dormir(300);
+    igual(await aberta(), "open", "expande de novo");
+    await nav.tem("Outra turma");
+  });
   await passo("celular: menu, cabeçalho e formulário cabem na tela com toque", async () => {
     await nav.tamanho(390, 800, true);
     await nav.abrir("/tarefas");
