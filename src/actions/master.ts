@@ -6,6 +6,7 @@ import { z } from "zod";
 import { exigirMaster } from "@/lib/dal";
 import { transacao } from "@/lib/db";
 import { emailsMaster } from "@/lib/master";
+import { apagarUsuario } from "@/lib/usuarios";
 import type { EstadoForm } from "./tipos";
 
 // Toda action daqui exige o administrador master (exigirMaster) ANTES de
@@ -141,36 +142,8 @@ export async function excluirUsuario(
       return { erro: "O email digitado não confere com o do usuário." };
     }
 
-    // Trava os membros das turmas dele para conferir os administradores.
-    const { rows: membros } = await db.query(
-      `select m.turma_id, m.usuario_id, m.papel, t.nome
-         from membros m
-         join turmas t on t.id = m.turma_id
-        where m.turma_id in (select turma_id from membros where usuario_id = $1)
-        for update of m`,
-      [usuarioId],
-    );
-    const porTurma = new Map<string, typeof membros>();
-    for (const m of membros) {
-      porTurma.set(m.turma_id, [...(porTurma.get(m.turma_id) ?? []), m]);
-    }
-    const vazias: string[] = [];
-    for (const [turmaId, lista] of porTurma) {
-      const ele = lista.find((m) => m.usuario_id === usuarioId);
-      const admins = lista.filter((m) => m.papel === "admin").length;
-      if (lista.length === 1) vazias.push(turmaId);
-      else if (ele?.papel === "admin" && admins === 1) {
-        return {
-          erro: `É o único administrador de "${lista[0].nome}". Promova outro membro antes.`,
-        };
-      }
-    }
-    // Turma que ficaria sem ninguém é removida junto.
-    for (const turmaId of vazias) {
-      await db.query("delete from turmas where id = $1", [turmaId]);
-    }
-    // Apaga em cascata sessões, contas, participação, votos e dúvidas dele.
-    await db.query("delete from usuarios where id = $1", [usuarioId]);
+    const erro = await apagarUsuario(db, usuarioId);
+    if (erro) return { erro };
     return { ok: "Usuário excluído." };
   });
 

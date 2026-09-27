@@ -27,6 +27,9 @@ export default async function OnboardingLayout({
             Formandos <span aria-hidden>🎓</span>
           </Link>
           <div className="flex items-center gap-1">
+            <Link href="/conta" className="px-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              Minha conta
+            </Link>
             <p className="hidden max-w-48 truncate text-sm text-muted-foreground sm:block">{user.email}</p>
             <BotaoSair />
           </div>

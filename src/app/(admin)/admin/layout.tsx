@@ -40,6 +40,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         ...(ehMaster(user)
           ? [{ href: "/master", rotulo: "Gestão da plataforma" }]
           : []),
+        { href: "/conta", rotulo: "Minha conta" },
       ]}
     >
       {children}
