@@ -5,7 +5,7 @@ import { AnimarPagina } from "@/components/animacao/animar-pagina";
 import { AvatarUsuario } from "./avatar-usuario";
 import { BotaoSair } from "./botao-sair";
 import { ConteudoTurma } from "./conteudo-turma";
-import { MenuMobile } from "./menu-mobile";
+import { MenuGaveta } from "./menu-gaveta";
 import { NavLink } from "./nav-link";
 
 export type ItemMenu = {
@@ -34,8 +34,9 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-// Barra lateral fixa no desktop (a partir de `lg`); abaixo disso, um cabeçalho
-// com botão de menu abre a mesma lista numa gaveta deslizante (MenuMobile).
+// Um cabeçalho com botão de menu abre a lista (turmas, navegação, usuário)
+// numa gaveta deslizante — igual em computador, tablet, celular e TV, sem uma
+// barra sempre visível reservando espaço da tela.
 export function AppShell({
   titulo,
   turmas,
@@ -48,12 +49,10 @@ export function AppShell({
   const rodapes = rodape ? [rodape].flat() : [];
   const mostrarTurmas = !!turmas && (turmas.lista.length > 1 || turmas.podeAdicionar);
 
-  // Turmas, navegação, rodapé e o usuário: o mesmo conteúdo aparece na barra
-  // fixa do desktop e dentro da gaveta do celular.
   const conteudoMenu = (
     <>
       {mostrarTurmas && turmas && (
-        <div className="px-3 pb-3 lg:pb-4">
+        <div className="px-3 pb-3">
           <p aria-hidden className="px-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Minhas turmas
           </p>
@@ -106,7 +105,7 @@ export function AppShell({
           </ul>
         </div>
       )}
-      <nav aria-label={titulo} className="flex flex-col gap-1 px-3 pb-3 lg:pb-0">
+      <nav aria-label={titulo} className="flex flex-col gap-1 px-3 pb-3">
         {itens.map(({ href, rotulo, icone: Icone, exato }) => (
           <NavLink key={href} href={href} exato={exato}>
             <Icone className="size-4" aria-hidden />
@@ -114,7 +113,7 @@ export function AppShell({
           </NavLink>
         ))}
         {rodapes.length > 0 && (
-          <div className="flex flex-col gap-1 border-t pt-4 lg:mt-4">
+          <div className="flex flex-col gap-1 border-t pt-4">
             {rodapes.map((r) => (
               <NavLink key={r.href} href={r.href} exato>
                 {r.rotulo}
@@ -135,19 +134,8 @@ export function AppShell({
   );
 
   return (
-    <div className="flex min-h-full flex-1 flex-col lg:flex-row">
-      <MenuMobile titulo={titulo}>{conteudoMenu}</MenuMobile>
-
-      <aside className="hidden bg-muted/30 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col lg:border-r">
-        <div className="px-5 pt-6 pb-4">
-          <Link href="/dashboard" className="text-lg font-semibold tracking-tight whitespace-nowrap">
-            Formandos <span aria-hidden>🎓</span>
-          </Link>
-          <span className="mt-1 block truncate text-xs font-medium text-muted-foreground">{titulo}</span>
-        </div>
-        {conteudoMenu}
-      </aside>
-
+    <div className="flex min-h-full flex-1 flex-col">
+      <MenuGaveta titulo={titulo}>{conteudoMenu}</MenuGaveta>
       <main id="conteudo" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none sm:p-6 lg:p-8 2xl:p-12">
         <ConteudoTurma arquivadaEm={arquivadaEm}>
           <AnimarPagina>{children}</AnimarPagina>
