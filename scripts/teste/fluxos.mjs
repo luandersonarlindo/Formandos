@@ -425,7 +425,7 @@ await grupo("app", async () => {
     await nav.esperarTexto("Recepção dos convidados");
     await nav.esperarTexto("Chácara Bela Vista, Recife");
     const partes = await nav.ev("[...document.querySelectorAll('main p.vitrine-texto-gradiente')].map(p => p.textContent)");
-    igual(partes.length, 4, "quatro blocos de contagem");
+    igual(partes.length, 3, "três blocos de contagem (sem segundos)");
   });
 });
 

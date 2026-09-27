@@ -9,7 +9,8 @@ export function ContagemRegressiva({ dataIso }: { dataIso: string }) {
 
   useEffect(() => {
     setAgora(Date.now());
-    const intervalo = setInterval(() => setAgora(Date.now()), 1000);
+    // Sem segundos no visor, atualizar a cada minuto já é suficiente.
+    const intervalo = setInterval(() => setAgora(Date.now()), 30_000);
     return () => clearInterval(intervalo);
   }, []);
 
@@ -31,11 +32,10 @@ export function ContagemRegressiva({ dataIso }: { dataIso: string }) {
     { valor: Math.floor(segundos / 86400), rotulo: "dias" },
     { valor: Math.floor((segundos % 86400) / 3600), rotulo: "horas" },
     { valor: Math.floor((segundos % 3600) / 60), rotulo: "min" },
-    { valor: segundos % 60, rotulo: "seg" },
   ];
 
   return (
-    <div className="grid max-w-md grid-cols-4 gap-2 sm:gap-3">
+    <div className="grid max-w-xs grid-cols-3 gap-2 sm:gap-3">
       {partes.map(({ valor, rotulo }) => (
         <div key={rotulo} className="rounded-xl border bg-background/80 px-2 py-2.5 text-center">
           <p className="vitrine-texto-gradiente text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
