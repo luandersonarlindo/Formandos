@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { ArrowLeft, CircleCheck, Trophy } from "lucide-react";
+import { ArrowLeft, CircleCheck, Gavel, Trophy } from "lucide-react";
+import { fixarDecisao, reabrirVotacao } from "@/actions/decisoes";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { FormAcao } from "@/components/features/form-acao";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getVotosEnquete, type Votante } from "@/lib/admin";
@@ -30,6 +33,11 @@ export default async function VotosEnquetePage(
   const votantes = new Set(dados.opcoes.flatMap((o) => o.votantes.map((v) => v.id)));
   const totalMembros = votantes.size + dados.naoVotaram.length;
   const maisVotos = Math.max(0, ...dados.opcoes.map((o) => o.votantes.length));
+  const decidida = dados.decisao.length > 0;
+  // Sem decisão, já marca a mais votada (ou as empatadas) como sugestão.
+  const sugeridas = decidida
+    ? dados.decisao
+    : dados.opcoes.filter((o) => maisVotos > 0 && o.votantes.length === maisVotos).map((o) => o.id);
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -60,6 +68,57 @@ export default async function VotosEnquetePage(
             aria-label="Participação nesta pergunta"
           />
         </CardHeader>
+      </Card>
+
+      <Card className="mt-4 border border-[var(--vitrine-a)]/30">
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Gavel className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Decisão da turma
+            </CardTitle>
+            {decidida && <Badge>Votação encerrada</Badge>}
+          </div>
+          <CardDescription className="text-pretty">
+            {decidida
+              ? "Esta escolha aparece no dashboard de todos e ninguém mais consegue votar. Para votar de novo, reabra a votação."
+              : "Fixe a opção escolhida pela comissão. Ela vai para o dashboard de todos e a votação desta pergunta é encerrada."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <FormAcao acao={fixarDecisao} rotulo={decidida ? "Trocar decisão" : "Fixar decisão"} rotuloPendente="Salvando…">
+            <input type="hidden" name="enqueteId" value={enqueteId} />
+            <fieldset className="grid gap-2">
+              <legend className="sr-only">Opção escolhida</legend>
+              {dados.opcoes.map((o) => (
+                <label
+                  key={o.id}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-[var(--vitrine-a)] has-checked:bg-[color-mix(in_oklch,var(--vitrine-a)_8%,transparent)] has-checked:font-medium"
+                >
+                  <input
+                    type={dados.tipo === "unica" ? "radio" : "checkbox"}
+                    name="opcaoId"
+                    value={o.id}
+                    defaultChecked={sugeridas.includes(o.id)}
+                    required={dados.tipo === "unica"}
+                    className="size-4 accent-[var(--vitrine-a)]"
+                  />
+                  {o.texto}
+                  {!decidida && sugeridas.includes(o.id) && (
+                    <span className="ml-auto text-xs text-muted-foreground">Mais votada</span>
+                  )}
+                </label>
+              ))}
+            </fieldset>
+          </FormAcao>
+          {decidida && (
+            <form action={reabrirVotacao}>
+              <input type="hidden" name="enqueteId" value={enqueteId} />
+              <Button type="submit" variant="outline" size="sm">
+                Reabrir votação
+              </Button>
+            </form>
+          )}
+        </CardContent>
       </Card>
 
       <div data-grupo className="mt-6 grid gap-4">

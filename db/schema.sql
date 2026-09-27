@@ -106,6 +106,19 @@ create table if not exists votos (
 create index if not exists idx_votos_turma on votos (turma_id);
 create index if not exists idx_votos_usuario on votos (usuario_id);
 
+-- Decisão da turma sobre uma enquete: a opção (ou opções, se a pergunta for de
+-- múltipla escolha) que a comissão fixou. É por turma, porque o catálogo padrão
+-- é compartilhado. Enquanto houver decisão, a enquete não aceita mais votos.
+create table if not exists decisoes (
+  turma_id    uuid not null references turmas(id) on delete cascade,
+  enquete_id  uuid not null references enquetes(id) on delete cascade,
+  opcao_id    uuid not null references opcoes(id) on delete cascade,
+  decidido_por uuid references usuarios(id) on delete set null,
+  created_at  timestamptz not null default now(),
+  primary key (turma_id, opcao_id)
+);
+create index if not exists idx_decisoes_enquete on decisoes (turma_id, enquete_id);
+
 -- Dúvidas (Q&A) ------------------------------------------------------------
 
 create table if not exists duvidas (

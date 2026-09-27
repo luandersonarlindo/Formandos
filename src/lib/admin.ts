@@ -46,6 +46,8 @@ export type VotosEnquete = {
   catalogoId: string;
   opcoes: { id: string; texto: string; votantes: Votante[] }[];
   naoVotaram: Votante[];
+  // Opções fixadas como decisão da turma (vazio se ainda não decidiu).
+  decisao: string[];
 };
 
 export async function getEventoAdmin(turmaId: string): Promise<EventoAdmin> {
@@ -157,7 +159,7 @@ export async function getVotosEnquete(
   );
   if (enq.length === 0) return null;
 
-  const [linhas, ausentes] = await Promise.all([
+  const [linhas, ausentes, decisoes] = await Promise.all([
     pool.query(
       `select o.id as opcao_id, o.texto, u.id as uid, u.name, u.image
          from opcoes o
@@ -179,6 +181,10 @@ export async function getVotosEnquete(
         order by u.name`,
       [turmaId, enqueteId],
     ),
+    pool.query(
+      "select opcao_id from decisoes where turma_id = $1 and enquete_id = $2",
+      [turmaId, enqueteId],
+    ),
   ]);
 
   const opcoes: VotosEnquete["opcoes"] = [];
@@ -190,7 +196,12 @@ export async function getVotosEnquete(
     }
     if (l.uid) o.votantes.push({ id: l.uid, nome: l.name, imagem: l.image });
   }
-  return { ...enq[0], opcoes, naoVotaram: ausentes.rows };
+  return {
+    ...enq[0],
+    opcoes,
+    naoVotaram: ausentes.rows,
+    decisao: decisoes.rows.map((d) => d.opcao_id),
+  };
 }
 
 export async function getResumoAdmin(turmaId: string) {

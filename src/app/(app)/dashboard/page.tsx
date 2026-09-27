@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   CalendarClock,
   MapPin,
+  Gavel,
   Navigation,
   Shirt,
   StickyNote,
@@ -25,7 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
-import { getDetalhesEvento, getResumoTurma, listarProgramacao } from "@/lib/dashboard";
+import { getDetalhesEvento, getResumoTurma, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
 import { linkComoChegar } from "@/lib/evento";
 import {
   formatarDataHora,
@@ -81,10 +82,11 @@ function Indicador({
 
 export default async function DashboardPage() {
   const membro = await exigirMembro();
-  const [programacao, resumo, detalhes] = await Promise.all([
+  const [programacao, resumo, detalhes, decisoes] = await Promise.all([
     listarProgramacao(membro),
     getResumoTurma(membro),
     getDetalhesEvento(membro),
+    listarDecisoes(membro),
   ]);
   const comoChegar = linkComoChegar({
     linkMapa: detalhes.linkMapa,
@@ -212,6 +214,28 @@ export default async function DashboardPage() {
           icone={CircleHelp}
         />
       </div>
+
+      {decisoes.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Gavel className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Decisões da turma
+            </CardTitle>
+            <CardDescription>O que a comissão já fixou depois das votações.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid gap-3 sm:grid-cols-2">
+              {decisoes.map((d) => (
+                <div key={d.enqueteId} className="rounded-xl border bg-background/80 p-3">
+                  <dt className="text-xs text-muted-foreground">{d.categoria}</dt>
+                  <dd className="mt-0.5 text-sm text-pretty text-muted-foreground">{d.pergunta}</dd>
+                  <dd className="mt-1 text-sm font-medium wrap-break-word">{d.escolhas.join(" · ")}</dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-4">
         <CardHeader>

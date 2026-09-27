@@ -18,6 +18,8 @@ export type DetalhesEvento = {
   dataFim: Date | null;
 };
 
+export type Decisao = { enqueteId: string; pergunta: string; categoria: string; escolhas: string[] };
+
 export type ResumoTurma = {
   membros: number;
   tarefasTotal: number;
@@ -71,4 +73,21 @@ export async function getDetalhesEvento(membro: Membro): Promise<DetalhesEvento>
     [membro.turmaId],
   );
   return rows[0];
+}
+
+// Decisões que a comissão fixou, na ordem das categorias e perguntas do catálogo.
+export async function listarDecisoes(membro: Membro): Promise<Decisao[]> {
+  const { rows } = await pool.query(
+    `select e.id as "enqueteId", e.titulo as pergunta, ca.nome as categoria,
+            array_agg(o.texto order by o.ordem) as escolhas
+       from decisoes d
+       join enquetes e on e.id = d.enquete_id
+       join categorias ca on ca.id = e.categoria_id
+       join opcoes o on o.id = d.opcao_id
+      where d.turma_id = $1
+      group by e.id, e.titulo, e.ordem, ca.nome, ca.ordem, ca.catalogo_id
+      order by ca.catalogo_id, ca.ordem, e.ordem`,
+    [membro.turmaId],
+  );
+  return rows;
 }

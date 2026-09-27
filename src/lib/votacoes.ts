@@ -17,6 +17,8 @@ export type EnqueteVotacao = {
   tipo: "unica" | "multipla";
   opcoes: OpcaoEnquete[];
   selecionadas: string[];
+  // Opções que a comissão fixou como decisão da turma (vazio se ainda não decidiu).
+  decisao: string[];
 };
 export type CategoriaVotacao = {
   id: string;
@@ -68,7 +70,7 @@ export async function getCatalogoParaVotar(
   );
   if (catalogos.length === 0) return null;
 
-  const [categorias, enquetes, opcoes, votos] = await Promise.all([
+  const [categorias, enquetes, opcoes, votos, decisoes] = await Promise.all([
     pool.query(
       "select id, nome from categorias where catalogo_id = $1 order by ordem",
       [catalogoId],
@@ -99,9 +101,18 @@ export async function getCatalogoParaVotar(
         where ca.catalogo_id = $1 and v.usuario_id = $2`,
       [catalogoId, membro.usuarioId],
     ),
+    pool.query(
+      `select d.opcao_id
+         from decisoes d
+         join enquetes e on e.id = d.enquete_id
+         join categorias ca on ca.id = e.categoria_id
+        where ca.catalogo_id = $1 and d.turma_id = $2`,
+      [catalogoId, membro.turmaId],
+    ),
   ]);
 
   const votados = new Set<string>(votos.rows.map((v) => v.opcao_id));
+  const decididas = new Set<string>(decisoes.rows.map((d) => d.opcao_id));
 
   return {
     id: catalogos[0].id,
@@ -122,6 +133,7 @@ export async function getCatalogoParaVotar(
             tipo: e.tipo,
             opcoes: ops,
             selecionadas: ops.filter((o) => votados.has(o.id)).map((o) => o.id),
+            decisao: ops.filter((o) => decididas.has(o.id)).map((o) => o.id),
           };
         }),
     })),
