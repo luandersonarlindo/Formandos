@@ -31,6 +31,8 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 
 * **Tarefas e Dashboard:** contagem regressiva para a festa, descrição, data e horário de término, local com endereço, botão *Como chegar*, traje, observações do local, decisões da turma, programação e indicadores; lista de tarefas com responsável, prazo e progresso.
 
+* **Confirmação de presença:** cada membro diz se vai ao evento (vou, talvez, não vou) e quantos acompanhantes leva; o painel `/admin/presenca` mostra o total de pessoas esperadas, com filtro e paginação.
+
 * **Arquivar e excluir a turma:** o administrador pode **arquivar** a turma (todo o registro continua disponível, mas só para leitura e sem novos membros) e desarquivar depois, ou **excluí-la** de vez, digitando o nome para confirmar. Cada pessoa também pode **excluir a própria conta** (`/conta`).
 
 * **Listas grandes:** dúvidas (10 por página), membros (20, com busca por nome ou email sem diferenciar acentos) e, no master, usuários e turmas (20) são paginados pela URL (`?pagina=2`).
@@ -75,7 +77,7 @@ As URLs **não** levam o identificador da turma: o servidor descobre a turma em 
 | `(conta)` | Autenticado (com ou sem turma) | `/conta` (ver e excluir a própria conta) |
 | `(app)` | Autenticado, com turma | `/dashboard`, `/tarefas`, `/votacoes`, `/votacoes/[catalogoId]`, `/votacoes/relatorio`, `/duvidas`, `/terceiros` |
 | `(master)` | Administrador master (`ADMIN_MASTER_EMAILS`); para os demais a página não existe (404) | `/master`, `/master/turmas`, `/master/turmas/[turmaId]`, `/master/usuarios` |
-| `(admin)` | Administrador da turma | `/admin`, `/admin/membros`, `/admin/convite`, `/admin/evento`, `/admin/turma` (arquivar, desarquivar e excluir), `/admin/duvidas`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
+| `(admin)` | Administrador da turma | `/admin`, `/admin/membros`, `/admin/convite`, `/admin/evento`, `/admin/turma` (arquivar, desarquivar e excluir), `/admin/presenca`, `/admin/duvidas`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
 | API | — | `/api/auth/[...all]` (único *Route Handler*, usado pelo Better Auth) |
 
 * `/dashboard` - Visão geral da turma, contagem decrescente e programação oficial da festa.
@@ -97,7 +99,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/app`:** Rotas, layouts, telas de erro (`error.tsx`, `global-error.tsx`), carregamento (`loading.tsx`) e `not-found.tsx`.
 * **`/src/components/ui`:** Componentes genéricos da biblioteca shadcn/ui.
 * **`/src/components/features`:** Componentes de domínio (menu lateral, cartão de votação, gráfico da enquete, botão de upvote, formulários de tarefa, fornecedor, evento e catálogo, contagem regressiva…).
-* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
+* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `presenca.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
 * **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
 * **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (Google e email e senha) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
 * **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
