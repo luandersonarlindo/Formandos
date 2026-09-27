@@ -136,7 +136,6 @@ await grupo("auth", async () => {
   }
   await passo("sair da conta volta para a página inicial", async () => {
     await nav.abrir("/dashboard");
-    await nav.clicar("Abrir menu", { seletor: "button" });
     await nav.clicar("Sair", { seletor: "button" });
     await nav.esperar("location.pathname === '/'", 10000, "voltar para /");
     await nav.abrir("/dashboard");
@@ -743,7 +742,6 @@ await grupo("admin", async () => {
       select t.id,u.id,'admin' from turmas t, usuarios u
        where t.codigo_convite='TESTEDEL001' and u.email='teste-sh@example.invalid' on conflict do nothing`);
     await nav.abrir("/dashboard");
-    await nav.clicar("Abrir menu", { seletor: "button" });
     await nav.clicar("Excluir E2E", { seletor: "button" });
     await nav.assentar();
     await nav.abrir("/admin/turma");
@@ -915,30 +913,41 @@ await grupo("extras", async () => {
     const f = await nav.ev("(() => { const e = document.activeElement; const s = getComputedStyle(e); return { tag: e.tagName, largura: s.outlineWidth, estilo: s.outlineStyle, sombra: s.boxShadow !== 'none' }; })()");
     verdade((f.estilo !== "none" && f.largura !== "0px") || f.sombra, `sem indicação de foco: ${JSON.stringify(f)}`);
   });
-  await passo("gaveta do menu abre, fecha e navega (computador, tablet, celular e TV)", async () => {
-    const gavetaAberta = () => nav.ev("!document.querySelector('[role=dialog][aria-label=Menu]').inert");
-    for (const [largura, altura, toque] of [[390, 800, true], [768, 1024, true], [1280, 900, false], [1920, 1080, false]]) {
-      await nav.tamanho(largura, altura, toque);
-      await nav.abrir("/dashboard");
-      igual(await gavetaAberta(), false, `menu começa fechado (${largura}px)`);
-      await nav.clicar("Abrir menu", { seletor: "button" });
-      igual(await gavetaAberta(), true, `abre ao clicar no botão de menu (${largura}px)`);
-      await nav.tem("Tarefas"); // garante que o link da navegação está visível na gaveta
-      await nav.clicar("Fechar menu", { seletor: "button" });
-      await dormir(300);
-      igual(await gavetaAberta(), false, `fecha ao clicar em Fechar menu (${largura}px)`);
-    }
-    await nav.clicar("Abrir menu", { seletor: "button" });
-    igual(await gavetaAberta(), true, "reabre");
-    await nav.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
-    await nav.cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
-    await dormir(300);
-    igual(await gavetaAberta(), false, "Esc fecha a gaveta");
-    await nav.clicar("Abrir menu", { seletor: "button" });
+  await passo("celular: a sidebar vira gaveta; computador, tablet e TV já vêm com ela aberta", async () => {
+    // Celular (<768px): a sidebar do shadcn vira uma gaveta (Sheet), fechada por padrão.
+    const dialogAberto = () => nav.ev("!!document.querySelector('[role=dialog]')");
+    await nav.tamanho(390, 800, true);
+    await nav.abrir("/dashboard");
+    igual(await dialogAberto(), false, "gaveta começa fechada no celular");
+    await nav.clicar("Toggle Sidebar", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog]')", 5000, "gaveta abriu");
+    await nav.tem("Tarefas"); // link da navegação visível dentro da gaveta
     await nav.clicar("Tarefas", { seletor: "a" });
     await nav.esperarUrl("/tarefas");
-    await dormir(300);
-    igual(await gavetaAberta(), false, "navegar pelo link fecha a gaveta");
+    await dormir(400);
+    igual(await dialogAberto(), false, "navegar pelo link fecha a gaveta sozinha");
+    await nav.clicar("Toggle Sidebar", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog]')", 5000, "reabre");
+    await nav.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await nav.cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await dormir(400);
+    igual(await dialogAberto(), false, "Esc fecha a gaveta");
+
+    // Computador, tablet e TV (768px+): a sidebar já vem aberta, sem precisar
+    // clicar em nada; o mesmo botão só recolhe para só ícones (não esconde).
+    const estado = () => nav.ev("document.querySelector('[data-slot=sidebar]:not([data-mobile])')?.dataset.state");
+    for (const [largura, altura] of [[768, 1024], [1280, 900], [1920, 1080]]) {
+      await nav.tamanho(largura, altura, false);
+      await nav.abrir("/dashboard");
+      igual(await estado(), "expanded", `sidebar já aberta, sem precisar abrir (${largura}px)`);
+      await nav.tem("Tarefas");
+      await nav.clicar("Toggle Sidebar", { seletor: "button" });
+      await dormir(300);
+      igual(await estado(), "collapsed", `recolhe para só ícones (${largura}px)`);
+      await nav.clicar("Toggle Sidebar", { seletor: "button" });
+      await dormir(300);
+      igual(await estado(), "expanded", `abre de novo (${largura}px)`);
+    }
     await nav.tamanho(1280, 900, false);
   });
   await passo("celular: menu, cabeçalho e formulário cabem na tela com toque", async () => {
