@@ -128,6 +128,7 @@ src/
    │  ├─ convite/page.tsx            /admin/convite                  Ver e regenerar o código de convite
    │  ├─ evento/page.tsx             /admin/evento                   Editar descrição, data, local, endereço, mapa, traje e programação
    │  ├─ turma/page.tsx              /admin/turma                    Arquivar, desarquivar e excluir a turma
+   │  ├─ presenca/page.tsx           /admin/presenca                 Quem confirmou presença e quantos acompanhantes
    │  ├─ duvidas/page.tsx            /admin/duvidas                  Responder, destacar, marcar como respondida
    │  └─ votacoes/
    │     ├─ page.tsx                 /admin/votacoes                 Catálogos personalizados da turma
@@ -235,6 +236,8 @@ decisoes        (turma_id, enquete_id, opcao_id, decidido_por, created_at)   PK 
 votos           (turma_id, opcao_id, usuario_id)       PK (opcao_id, usuario_id)
                 -- votos identificados; mudar voto = apagar os antigos do usuário nessa enquete e inserir os novos, em uma transação
 
+presencas       (turma_id, usuario_id, status CHECK ('vou','talvez','nao'), acompanhantes, observacao, updated_at)   PK (turma_id, usuario_id)
+                -- só 'vou' tem acompanhantes contados (normalizado em src/lib/presenca-regras.ts)
 duvidas         (id, turma_id, autor_id, conteudo, resposta, respondida BOOL, destaque BOOL, created_at)
 duvida_upvotes  (duvida_id, usuario_id)                PK (duvida_id, usuario_id)
                 -- respondida e destaque são independentes: uma dúvida respondida também pode estar em destaque
