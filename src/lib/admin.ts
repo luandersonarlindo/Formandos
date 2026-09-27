@@ -211,7 +211,10 @@ export async function getResumoAdmin(turmaId: string) {
        (select count(distinct usuario_id) from votos where turma_id = $1)::int as votantes,
        (select count(*) from tarefas where turma_id = $1 and status <> 'concluida')::int as "tarefasAbertas",
        (select count(*) from duvidas where turma_id = $1 and not respondida)::int as "duvidasAbertas",
-       (select count(*) from catalogos where turma_id = $1)::int as personalizados`,
+       (select count(*) from catalogos where turma_id = $1)::int as personalizados,
+       (select count(*) from presencas p join membros m
+          on m.turma_id = p.turma_id and m.usuario_id = p.usuario_id
+        where p.turma_id = $1 and p.status = 'vou')::int as "confirmados"`,
     [turmaId],
   );
   return rows[0] as {
@@ -220,6 +223,7 @@ export async function getResumoAdmin(turmaId: string) {
     tarefasAbertas: number;
     duvidasAbertas: number;
     personalizados: number;
+    confirmados: number;
   };
 }
 

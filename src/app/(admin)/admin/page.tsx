@@ -4,6 +4,7 @@ import {
   CircleHelp,
   ClipboardList,
   LayoutList,
+  UserCheck,
   Users,
   Vote,
 } from "lucide-react";
@@ -30,6 +31,14 @@ export default async function AdminPage() {
     },
     { href: "/admin/duvidas", titulo: "Dúvidas sem resposta", valor: r.duvidasAbertas, texto: "aguardando a comissão", icone: CircleHelp },
     { href: "/tarefas", titulo: "Tarefas em aberto", valor: r.tarefasAbertas, texto: "pendentes ou em andamento", icone: ClipboardList },
+    {
+      href: "/admin/presenca",
+      titulo: "Presença confirmada",
+      valor: r.confirmados,
+      sufixo: `de ${r.membros}`,
+      texto: "membros disseram que vão",
+      icone: UserCheck,
+    },
     { href: "/admin/votacoes", titulo: "Catálogos personalizados", valor: r.personalizados, texto: "criados pela turma", icone: LayoutList },
     { href: "/admin/evento", titulo: "Evento e programação", valor: "Editar", texto: "data, local e horários da festa", icone: CalendarDays },
   ];
