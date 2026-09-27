@@ -136,6 +136,7 @@ await grupo("auth", async () => {
   }
   await passo("sair da conta volta para a página inicial", async () => {
     await nav.abrir("/dashboard");
+    await nav.clicar("Abrir menu", { seletor: "button" });
     await nav.clicar("Sair", { seletor: "button" });
     await nav.esperar("location.pathname === '/'", 10000, "voltar para /");
     await nav.abrir("/dashboard");
@@ -742,6 +743,7 @@ await grupo("admin", async () => {
       select t.id,u.id,'admin' from turmas t, usuarios u
        where t.codigo_convite='TESTEDEL001' and u.email='teste-sh@example.invalid' on conflict do nothing`);
     await nav.abrir("/dashboard");
+    await nav.clicar("Abrir menu", { seletor: "button" });
     await nav.clicar("Excluir E2E", { seletor: "button" });
     await nav.assentar();
     await nav.abrir("/admin/turma");
@@ -913,17 +915,19 @@ await grupo("extras", async () => {
     const f = await nav.ev("(() => { const e = document.activeElement; const s = getComputedStyle(e); return { tag: e.tagName, largura: s.outlineWidth, estilo: s.outlineStyle, sombra: s.boxShadow !== 'none' }; })()");
     verdade((f.estilo !== "none" && f.largura !== "0px") || f.sombra, `sem indicação de foco: ${JSON.stringify(f)}`);
   });
-  await passo("celular: gaveta do menu abre, fecha e navega", async () => {
-    const gavetaAberta = () => nav.ev("!!document.querySelector('[role=dialog][aria-label=Menu]')");
-    await nav.tamanho(390, 800, true);
-    await nav.abrir("/dashboard");
-    igual(await gavetaAberta(), false, "menu começa fechado");
-    await nav.clicar("Abrir menu", { seletor: "button" });
-    igual(await gavetaAberta(), true, "abre ao clicar no botão de menu");
-    await nav.tem("Tarefas"); // garante que o link da navegação está visível na gaveta
-    await nav.clicar("Fechar menu", { seletor: "button" });
-    await dormir(300);
-    igual(await gavetaAberta(), false, "fecha ao clicar em Fechar menu");
+  await passo("gaveta do menu abre, fecha e navega (computador, tablet, celular e TV)", async () => {
+    const gavetaAberta = () => nav.ev("!document.querySelector('[role=dialog][aria-label=Menu]').inert");
+    for (const [largura, altura, toque] of [[390, 800, true], [768, 1024, true], [1280, 900, false], [1920, 1080, false]]) {
+      await nav.tamanho(largura, altura, toque);
+      await nav.abrir("/dashboard");
+      igual(await gavetaAberta(), false, `menu começa fechado (${largura}px)`);
+      await nav.clicar("Abrir menu", { seletor: "button" });
+      igual(await gavetaAberta(), true, `abre ao clicar no botão de menu (${largura}px)`);
+      await nav.tem("Tarefas"); // garante que o link da navegação está visível na gaveta
+      await nav.clicar("Fechar menu", { seletor: "button" });
+      await dormir(300);
+      igual(await gavetaAberta(), false, `fecha ao clicar em Fechar menu (${largura}px)`);
+    }
     await nav.clicar("Abrir menu", { seletor: "button" });
     igual(await gavetaAberta(), true, "reabre");
     await nav.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
