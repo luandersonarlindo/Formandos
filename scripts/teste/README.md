@@ -20,7 +20,7 @@ scripts/teste/limpar.sh        # apaga tudo
 ## Testes de fluxo (preencher e clicar de verdade)
 
 `fluxos.mjs` abre o Chrome, preenche formulários, clica e confere a tela e o
-banco. São 59 passos em 6 grupos: `auth` (criar conta, confirmar email, entrar,
+banco. São 60 passos em 6 grupos: `auth` (criar conta, confirmar email, entrar,
 sair, esqueci a senha, estados vazios), `participante`, `app` (tarefas, votos,
 dúvidas, terceiros), `admin` (membros, convite, evento, moderação, catálogos),
 `master` e `extras` (tela de erro, animação em movimento, foco por teclado,
