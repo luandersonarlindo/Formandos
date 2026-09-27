@@ -399,6 +399,27 @@ await grupo("app", async () => {
     const hrefs = await nav.ev("[...document.querySelectorAll('main a[href^=\"mailto:\"],main a[href^=\"tel:\"],main a[target=_blank]')].map(a => a.getAttribute('href'))");
     verdade(hrefs.some((h) => h.startsWith("mailto:")) && hrefs.some((h) => h.startsWith("tel:")) && hrefs.some((h) => h.startsWith("https://")), `links: ${hrefs}`);
   });
+  await passo("mural de avisos: publicar, aparecer no dashboard e ser removido", async () => {
+    await nav.abrir("/avisos");
+    await nav.preencher("#titulo-aviso", "Aviso E2E");
+    await nav.preencher("#conteudo-aviso", "Prazo do pagamento do buffet até dia 20.");
+    await nav.clicar("Publicar aviso", { seletor: "button" });
+    await nav.esperarTexto("Aviso publicado");
+    igual(sql("select count(*) from avisos where titulo='Aviso E2E'"), "1", "no banco");
+    await nav.abrir("/dashboard");
+    await nav.esperarTexto("Mural da turma");
+    await nav.esperarTexto("Aviso E2E");
+    await nav.cookie(lerCookie("cookie-participante.txt"));
+    await nav.abrir("/avisos");
+    await nav.esperarTexto("Aviso E2E");
+    verdade(!(await nav.tem("Publicar aviso")), "participante não vê o formulário de publicar");
+    verdade(!(await nav.tem("Remover")), "participante não vê o botão de remover");
+    await nav.cookie(lerCookie("cookie-admin.txt"));
+    await nav.abrir("/avisos");
+    await nav.clicar("Remover", { escopo: "Aviso E2E", seletor: "button" });
+    await dormir(1500);
+    igual(sql("select count(*) from avisos where titulo='Aviso E2E'"), "0", "removido");
+  });
   await passo("dashboard mostra a contagem regressiva e a programação", async () => {
     await nav.abrir("/dashboard");
     await nav.esperarTexto("Recepção dos convidados");
