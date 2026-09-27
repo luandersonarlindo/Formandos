@@ -21,5 +21,6 @@ export const config = {
     "/admin/:path*",
     "/master/:path*",
     "/convite/:path*",
+    "/conta/:path*",
   ],
 };
