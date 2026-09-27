@@ -61,7 +61,7 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 * **Anime.js:** Animações da página inicial (entrada do topo, revelação ao rolar, contadores e barras). O conteúdo é renderizado no servidor e a animação é só um acréscimo; quem pede "menos movimento" no sistema vê a página parada.
 * **Nodemailer:** Envio de emails por SMTP (confirmação de conta, definir senha e boas-vindas).
 * **Tailwind CSS v4:** Estilização utilitária moderna e responsiva.
-* **shadcn/ui + Radix UI:** Componentes de interface acessíveis e reutilizáveis, copiados para `src/components/ui` conforme o uso (`Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`).
+* **shadcn/ui + Radix UI:** Componentes de interface acessíveis e reutilizáveis, copiados para `src/components/ui` conforme o uso (`Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`, `Sidebar`, `Sheet`, `Collapsible`, `Separator`, `Tooltip`, `NativeSelect`).
 * **Recharts:** Visualização de dados e gráficos para os relatórios automatizados das enquetes.
 * **Zod:** Validação dos dados recebidos pelas Server Actions.
 * **Vitest:** Testes unitários das funções puras.
@@ -203,7 +203,7 @@ As 10 categorias do catálogo padrão:
    ```bash
    npm test
    ```
-   Os testes unitários cobrem as funções puras de `src/lib` (código de convite e datas).
+   Os testes unitários cobrem as funções puras de `src/lib`: convite, datas, busca (sem acento), evento, master, modelos de catálogo, orçamento, paginação, presença e vínculos (uma turma por aluno).
 
 7. **Executar o ambiente de desenvolvimento:**
    ```bash
