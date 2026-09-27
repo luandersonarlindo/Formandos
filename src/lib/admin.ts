@@ -7,7 +7,13 @@ export type EventoAdmin = {
   nome: string;
   // "AAAA-MM-DDTHH:mm" no horário de Brasília, pronto para <input type="datetime-local">.
   dataLocal: string;
+  dataFimLocal: string;
   local: string;
+  descricao: string;
+  endereco: string;
+  linkMapa: string;
+  traje: string;
+  observacoesLocal: string;
 };
 
 export type CatalogoAdmin = {
@@ -47,7 +53,14 @@ export async function getEventoAdmin(turmaId: string): Promise<EventoAdmin> {
     `select nome,
             coalesce(to_char(data_evento at time zone 'America/Sao_Paulo',
                              'YYYY-MM-DD"T"HH24:MI'), '') as "dataLocal",
-            coalesce(local_evento, '') as local
+            coalesce(to_char(data_fim_evento at time zone 'America/Sao_Paulo',
+                             'YYYY-MM-DD"T"HH24:MI'), '') as "dataFimLocal",
+            coalesce(local_evento, '') as local,
+            coalesce(descricao, '') as descricao,
+            coalesce(endereco, '') as endereco,
+            coalesce(link_mapa, '') as "linkMapa",
+            coalesce(traje, '') as traje,
+            coalesce(observacoes_local, '') as "observacoesLocal"
        from turmas where id = $1`,
     [turmaId],
   );

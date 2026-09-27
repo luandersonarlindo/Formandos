@@ -4,7 +4,11 @@ import {
   CalendarDays,
   CircleHelp,
   ClipboardCheck,
+  CalendarClock,
   MapPin,
+  Navigation,
+  Shirt,
+  StickyNote,
   Users,
   Vote,
   type LucideIcon,
@@ -21,7 +25,8 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
-import { getResumoTurma, listarProgramacao } from "@/lib/dashboard";
+import { getDetalhesEvento, getResumoTurma, listarProgramacao } from "@/lib/dashboard";
+import { linkComoChegar } from "@/lib/evento";
 import {
   formatarDataHora,
   formatarDiaCurto,
@@ -76,10 +81,16 @@ function Indicador({
 
 export default async function DashboardPage() {
   const membro = await exigirMembro();
-  const [programacao, resumo] = await Promise.all([
+  const [programacao, resumo, detalhes] = await Promise.all([
     listarProgramacao(membro),
     getResumoTurma(membro),
+    getDetalhesEvento(membro),
   ]);
+  const comoChegar = linkComoChegar({
+    linkMapa: detalhes.linkMapa,
+    endereco: detalhes.endereco,
+    local: membro.localEvento,
+  });
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -92,6 +103,11 @@ export default async function DashboardPage() {
             {membro.papel === "admin" ? "Administrador" : "Participante"}
           </Badge>
         </div>
+        {detalhes.descricao && (
+          <p className="mt-3 max-w-2xl whitespace-pre-wrap wrap-break-word text-pretty text-muted-foreground">
+            {detalhes.descricao}
+          </p>
+        )}
         <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
           <Users className="size-4" aria-hidden />
           <span data-contar={resumo.membros}>{resumo.membros}</span>{" "}
@@ -119,6 +135,11 @@ export default async function DashboardPage() {
                   ? formatarDataHora.format(membro.dataEvento)
                   : "Não definida"}
               </dd>
+              {membro.dataEvento && detalhes.dataFim && (
+                <dd className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                  <CalendarClock className="size-3.5" aria-hidden /> Até {formatarDataHora.format(detalhes.dataFim)}
+                </dd>
+              )}
             </div>
           </div>
           <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
@@ -128,8 +149,42 @@ export default async function DashboardPage() {
               <dd className="text-sm font-medium wrap-break-word">
                 {membro.localEvento ?? "Não definido"}
               </dd>
+              {detalhes.endereco && (
+                <dd className="mt-0.5 text-xs text-muted-foreground wrap-break-word">{detalhes.endereco}</dd>
+              )}
+              {comoChegar && (
+                <dd className="mt-2">
+                  <a
+                    href={comoChegar}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted pointer-coarse:py-2.5"
+                  >
+                    <Navigation className="size-3.5" aria-hidden /> Como chegar
+                    <span className="sr-only"> (abre em nova aba)</span>
+                  </a>
+                </dd>
+              )}
             </div>
           </div>
+          {detalhes.traje && (
+            <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
+              <Shirt className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
+              <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">Traje</dt>
+                <dd className="text-sm font-medium wrap-break-word">{detalhes.traje}</dd>
+              </div>
+            </div>
+          )}
+          {detalhes.observacoesLocal && (
+            <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
+              <StickyNote className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
+              <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">Sobre o local</dt>
+                <dd className="text-sm whitespace-pre-wrap wrap-break-word">{detalhes.observacoesLocal}</dd>
+              </div>
+            </div>
+          )}
         </dl>
       </section>
 
