@@ -182,6 +182,12 @@ alter table fornecedores
   add column if not exists turma_id uuid references turmas(id) on delete cascade;
 create index if not exists idx_fornecedores_turma on fornecedores (turma_id);
 
+-- Orçamento: valor combinado com o fornecedor e status da negociação. Visível
+-- só para administradores (a página de terceiros filtra isso na consulta).
+alter table fornecedores add column if not exists valor_orcado numeric(10, 2);
+alter table fornecedores add column if not exists status varchar(20)
+  not null default 'cotando' check (status in ('cotando', 'contratado', 'descartado'));
+
 -- Programação oficial da festa, exibida no dashboard.
 create table if not exists programacao (
   id         uuid primary key default gen_random_uuid(),

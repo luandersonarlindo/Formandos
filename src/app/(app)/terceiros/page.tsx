@@ -8,6 +8,7 @@ import {
   Globe,
   Handshake,
   Mail,
+  Wallet,
   Music,
   Phone,
   Plus,
@@ -19,13 +20,21 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { excluirFornecedor } from "@/actions/terceiros";
+import { FormOrcamento } from "@/components/features/form-orcamento";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { exigirMembro } from "@/lib/dal";
 import { cn } from "@/lib/utils";
-import { CATEGORIAS_FORNECEDOR, listarFornecedores } from "@/lib/terceiros";
+import { formatarReal, ROTULO_ORCAMENTO } from "@/lib/orcamento";
+import {
+  CATEGORIAS_FORNECEDOR,
+  getResumoOrcamento,
+  listarFornecedores,
+  listarFornecedoresAdmin,
+  type Fornecedor,
+} from "@/lib/terceiros";
 
 export const metadata: Metadata = { title: "Terceiros" };
 
@@ -79,13 +88,16 @@ function Contato({ valor }: { valor: string }) {
 export default async function TerceirosPage(props: PageProps<"/terceiros">) {
   const membro = await exigirMembro();
   const { categoria: parametro } = await props.searchParams;
-  const fornecedores = await listarFornecedores(membro);
+  const ehAdmin = membro.papel === "admin";
+  const [fornecedores, resumo] = await Promise.all([
+    ehAdmin ? listarFornecedoresAdmin(membro.turmaId) : listarFornecedores(membro),
+    ehAdmin ? getResumoOrcamento(membro.turmaId) : Promise.resolve(null),
+  ]);
 
   const categoriaAtiva = CATEGORIAS_FORNECEDOR.find((c) => c === parametro);
   const visiveis = categoriaAtiva
     ? fornecedores.filter((f) => f.categoria === categoriaAtiva)
     : fornecedores;
-  const ehAdmin = membro.papel === "admin";
   const contagem = (c?: string) =>
     c ? fornecedores.filter((f) => f.categoria === c).length : fornecedores.length;
 
@@ -97,8 +109,23 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
         organizadora.
       </p>
 
+      {ehAdmin && resumo && (
+        <Card className="vitrine-fundo-hero mt-6">
+          <CardHeader>
+            <CardDescription className="flex items-center gap-1.5">
+              <Wallet className="size-4" aria-hidden /> Orçamento com fornecedores
+            </CardDescription>
+            <CardTitle className="text-3xl tabular-nums">{formatarReal.format(resumo.orcado)}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {formatarReal.format(resumo.contratado)} contratado · {formatarReal.format(resumo.cotando)} em
+              cotação. Só administradores veem valores.
+            </p>
+          </CardHeader>
+        </Card>
+      )}
+
       {ehAdmin && (
-        <Card className="mt-6">
+        <Card className="mt-4">
           <CardContent>
             <details open={fornecedores.length === 0} className="group">
               <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
@@ -166,9 +193,12 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                       </span>
                       <div className="min-w-0">
                         <p className="font-medium wrap-break-word">{f.nome}</p>
-                        <Badge variant="secondary" className="mt-1">
-                          {f.categoria}
-                        </Badge>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <Badge variant="secondary">{f.categoria}</Badge>
+                          {ehAdmin && (
+                            <Badge variant="outline">{ROTULO_ORCAMENTO[(f as Fornecedor).status]}</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     {f.descricao && (
@@ -182,12 +212,19 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                       </p>
                     )}
                     {ehAdmin && (
-                      <form action={excluirFornecedor} className="mt-auto border-t pt-3">
-                        <input type="hidden" name="id" value={f.id} />
-                        <Button type="submit" variant="destructive" size="sm">
-                          <Trash2 aria-hidden /> Remover
-                        </Button>
-                      </form>
+                      <div className="mt-auto flex flex-col gap-3 border-t pt-3">
+                        <FormOrcamento
+                          fornecedorId={f.id}
+                          status={(f as Fornecedor).status}
+                          valorOrcado={(f as Fornecedor).valorOrcado}
+                        />
+                        <form action={excluirFornecedor}>
+                          <input type="hidden" name="id" value={f.id} />
+                          <Button type="submit" variant="destructive" size="sm">
+                            <Trash2 aria-hidden /> Remover
+                          </Button>
+                        </form>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
