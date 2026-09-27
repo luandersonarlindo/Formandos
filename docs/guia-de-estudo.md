@@ -22,7 +22,7 @@ Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação e
 | Dúvidas com upvote e moderação | Pronto (`/duvidas`, `/admin/duvidas`) |
 | Dashboard, tarefas e terceiros | Pronto |
 | Painel do administrador | Pronto: membros, convite, evento, programação, catálogos personalizados e quem votou |
-| Acabamento | Telas de erro, carregamento e 404; cabeçalhos de segurança; limite de tentativas de convite; testes unitários (`npm test`) |
+| Acabamento | Telas de erro, carregamento e 404; cabeçalhos de segurança; limite de tentativas de convite; testes unitários (`npm test`, 10 arquivos: convite, datas, busca, evento, master, modelos, orçamento, paginação, presença, vínculos) |
 | ESLint, testes de ponta a ponta, alternância de tema escuro | **Não existem** |
 | `.mcp.json` do `next-devtools-mcp` | **Não criado** |
 
@@ -202,7 +202,7 @@ Conceitos que mais confundem iniciantes:
 ### 3.4 Estilo: Tailwind CSS v4 e shadcn/ui
 - Tailwind v4 configura o tema em CSS (`@theme` no `globals.css`), não mais em `tailwind.config.js`. O projeto já segue isso.
 - shadcn/ui **não é uma biblioteca instalada**: um comando copia o código dos componentes para `src/components/ui`, e o código passa a ser seu. Depende de Radix UI, `class-variance-authority`, `clsx` e `tailwind-merge`.
-- Componentes previstos: `Card`, `Dialog`, `ToggleGroup`, `Select`, `DropdownMenu`, `Progress`, `Badge`. Instale cada um só quando for usar.
+- Componentes em uso: `Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`, `Sidebar`, `Sheet`, `Collapsible`, `Separator`, `Tooltip`, `NativeSelect`.
 - Design responsivo: o público usa celular. Comece pelo layout mobile.
 - Acessibilidade: o Radix já cuida de foco e teclado, mas use `label` nos campos e contraste adequado.
 
@@ -313,7 +313,7 @@ Pontos-chave:
 - Git com branches por funcionalidade e Pull Requests, já que são 4 pessoas.
 - Commits pequenos e com mensagem clara (padrão *Conventional Commits*: `feat:`, `fix:`).
 - ESLint e Prettier. **O projeto ainda não tem ESLint** (o `package.json` não tem script `lint`). Considere adicionar.
-- Testes: existe `npm test` (Vitest) para as funções puras de `src/lib` (`convite.test.ts`, `datas.test.ts`). O restante foi verificado à mão contra o servidor; testes de ponta a ponta (Playwright) ficam para depois.
+- Testes: existe `npm test` (Vitest) para as funções puras de `src/lib` (`busca.test.ts`, `convite.test.ts`, `datas.test.ts`, `evento.test.ts`, `master.test.ts`, `modelos.test.ts`, `orcamento.test.ts`, `paginacao.test.ts`, `presenca-regras.test.ts`, `vinculos.test.ts`). O restante foi verificado à mão contra o servidor; testes de ponta a ponta (Playwright) ficam para depois.
 - Variáveis de ambiente: nunca comite `.env.local`. Crie um `.env.example` sem segredos para o grupo.
 
 
