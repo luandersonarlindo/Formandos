@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { Plus, type LucideIcon } from "lucide-react";
+import { ChevronDown, Plus, type LucideIcon } from "lucide-react";
 import { AnimarPagina } from "@/components/animacao/animar-pagina";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -94,51 +95,60 @@ export async function AppShell({
           <SidebarContent>
             {mostrarTurmas && turmas && (
               <SidebarGroup>
-                <SidebarGroupLabel>Minhas turmas</SidebarGroupLabel>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuSub>
-                      {turmas.lista.map((t) => {
-                        const ativa = t.id === turmas.ativaId;
-                        return (
-                          <SidebarMenuSubItem key={t.id}>
-                            <form action={trocarTurma}>
-                              <input type="hidden" name="turmaId" value={t.id} />
-                              <SidebarMenuSubButton asChild isActive={ativa}>
-                                <button type="submit" className="w-full">
-                                  <span
-                                    aria-hidden
-                                    className={
-                                      ativa
-                                        ? "size-2 shrink-0 rounded-full bg-[var(--vitrine-a)]"
-                                        : "size-2 shrink-0 rounded-full bg-border"
-                                    }
-                                  />
-                                  <span className="min-w-0 flex-1 truncate">{t.nome}</span>
-                                  {t.arquivada && (
-                                    <span className="shrink-0 rounded-full border px-1.5 text-[10px] font-normal text-muted-foreground">
-                                      arquivada
-                                    </span>
-                                  )}
-                                </button>
-                              </SidebarMenuSubButton>
-                            </form>
+                <Collapsible defaultOpen className="group/turmas">
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between">
+                      Minhas turmas
+                      <ChevronDown className="size-4 shrink-0 transition-transform group-data-[state=closed]/turmas:-rotate-90" aria-hidden />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuSub>
+                        {turmas.lista.map((t) => {
+                          const ativa = t.id === turmas.ativaId;
+                          return (
+                            <SidebarMenuSubItem key={t.id}>
+                              <form action={trocarTurma}>
+                                <input type="hidden" name="turmaId" value={t.id} />
+                                <SidebarMenuSubButton asChild isActive={ativa}>
+                                  <button type="submit" className="w-full">
+                                    <span
+                                      aria-hidden
+                                      className={
+                                        ativa
+                                          ? "size-2 shrink-0 rounded-full bg-[var(--vitrine-a)]"
+                                          : "size-2 shrink-0 rounded-full bg-border"
+                                      }
+                                    />
+                                    <span className="min-w-0 flex-1 truncate">{t.nome}</span>
+                                    {t.arquivada && (
+                                      <span className="shrink-0 rounded-full border px-1.5 text-[10px] font-normal text-muted-foreground">
+                                        arquivada
+                                      </span>
+                                    )}
+                                  </button>
+                                </SidebarMenuSubButton>
+                              </form>
+                            </SidebarMenuSubItem>
+                          );
+                        })}
+                        {turmas.podeAdicionar && (
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild>
+                              <Link href="/convite">
+                                <Plus aria-hidden />
+                                <span>Outra turma</span>
+                              </Link>
+                            </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
-                        );
-                      })}
-                      {turmas.podeAdicionar && (
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <Link href="/convite">
-                              <Plus aria-hidden />
-                              <span>Outra turma</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      )}
-                    </SidebarMenuSub>
-                  </SidebarMenuItem>
-                </SidebarMenu>
+                        )}
+                      </SidebarMenuSub>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </CollapsibleContent>
+                </Collapsible>
               </SidebarGroup>
             )}
 
