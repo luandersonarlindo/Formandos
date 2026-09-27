@@ -243,7 +243,8 @@ duvida_upvotes  (duvida_id, usuario_id)                PK (duvida_id, usuario_id
                 -- respondida e destaque são independentes: uma dúvida respondida também pode estar em destaque
 
 tarefas         (id, turma_id, titulo, descricao, status CHECK ('pendente','em_andamento','concluida'), responsavel_id, prazo)
-fornecedores    (id, turma_id, nome, categoria, descricao, contato, imagem_url)   -- por turma; imagem_url existe mas não é usada
+fornecedores    (id, turma_id, nome, categoria, descricao, contato, imagem_url, valor_orcado, status)   -- por turma; imagem_url existe mas não é usada
+                -- status CHECK ('cotando','contratado','descartado'); valor_orcado e status só aparecem para admin (lib/terceiros.ts)
 programacao     (id, turma_id, horario, titulo, descricao)                        -- programação da festa, mostrada no dashboard
 ```
 
@@ -299,6 +300,7 @@ Pontos-chave:
 - **Seed do catálogo padrão:** script que lê `catalogo-enquetes.md` (10 categorias, 23 perguntas) e insere no banco, com `turma_id` nulo. Rodar de novo só acrescenta o que faltar, sem apagar votos. Todas as turmas enxergam esse catálogo.
 - **Turma arquivada:** `exigirMembroEditavel` e `exigirAdminEditavel` (em `dal.ts`) trocam as versões antigas em toda ação que altera dados; ficam de fora desarquivar, excluir e sair da turma. Na tela, uma faixa avisa e um `<fieldset disabled>` desativa os campos, por fora do `AnimarPagina`. Só a trava do servidor é segurança.
 - **Decisão da turma:** o admin fixa a opção vencedora em `/admin/votacoes/votos/[enqueteId]`; `votar` recusa voto em pergunta decidida. Reabrir apaga a decisão.
+- **Orçamento de fornecedores:** `listarFornecedores` (participante) nem seleciona valor_orcado/status do banco; `listarFornecedoresAdmin` traz os dois. A página só passa esses campos ao JSX quando `ehAdmin`, então nunca chegam ao RSC payload de quem não é admin.
 - **Catálogos personalizados:** só o admin da turma cria e edita (categorias e perguntas; não dá para editar o texto de uma pergunta depois de criada). Aparecem só para aquela turma. Podem nascer de um **catálogo-modelo**: quatro arquivos em `docs/catalogos-modelo/` (Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, Área da Saúde) que a Server Action `criarCatalogoDeModelo` copia para a turma. Os modelos não passam pelo seed e só aparecem para votar depois de copiados.
 - **Tarefas:** o admin cria, edita e exclui; o responsável muda só o andamento da própria tarefa.
 - **Terceiros:** o admin cadastra fornecedores da turma; o contato só vira link se começar com `http://` ou `https://`.

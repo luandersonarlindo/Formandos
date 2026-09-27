@@ -37,7 +37,7 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 
 * **Listas grandes:** dúvidas (10 por página), membros (20, com busca por nome ou email sem diferenciar acentos) e, no master, usuários e turmas (20) são paginados pela URL (`?pagina=2`).
 
-* **Vitrine de Terceiros (Marketplace):** Catálogo para conectar a turma a prestadores de serviços (buffet, músicos, equipa de apoio/mordomos, fotógrafos), cadastrados pelo administrador de cada turma.
+* **Vitrine de Terceiros (Marketplace):** Catálogo para conectar a turma a prestadores de serviços (buffet, músicos, equipa de apoio/mordomos, fotógrafos), cadastrados pelo administrador de cada turma. O administrador também registra valor orçado e status (cotando, contratado, descartado) de cada fornecedor, com o total orçado e comprometido no topo da página; participantes não veem esses valores.
 
 ---
 
@@ -99,7 +99,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/app`:** Rotas, layouts, telas de erro (`error.tsx`, `global-error.tsx`), carregamento (`loading.tsx`) e `not-found.tsx`.
 * **`/src/components/ui`:** Componentes genéricos da biblioteca shadcn/ui.
 * **`/src/components/features`:** Componentes de domínio (menu lateral, cartão de votação, gráfico da enquete, botão de upvote, formulários de tarefa, fornecedor, evento e catálogo, contagem regressiva…).
-* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `presenca.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
+* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `presenca.ts`, `terceiros.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
 * **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
 * **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (Google e email e senha) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
 * **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
