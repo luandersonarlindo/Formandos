@@ -168,6 +168,22 @@ await grupo("auth", async () => {
     await nav.clicar("Entrar", { seletor: "form button[type=submit]" });
     await nav.esperarUrl("/dashboard");
   });
+  await passo("excluir minha conta exige o email e apaga a turma em que a pessoa está sozinha", async () => {
+    await nav.abrir("/conta");
+    await nav.esperarTexto("Excluir minha conta");
+    await nav.esperarTexto("Turma Nova Teste");
+    await nav.preencher("#confirmacao", "errado@example.invalid");
+    await nav.clicar("Excluir minha conta", { seletor: "form button[type=submit]" });
+    await nav.esperarTexto("não confere");
+    igual(sql(`select count(*) from usuarios where email='${NOVO}'`), "1", "email errado não apaga");
+    await nav.preencher("#confirmacao", NOVO);
+    await nav.clicar("Excluir minha conta", { seletor: "form button[type=submit]" });
+    await nav.esperar("location.pathname === '/'", 10000, "voltar para a página inicial");
+    igual(sql(`select count(*) from usuarios where email='${NOVO}'`), "0", "conta apagada");
+    igual(sql("select count(*) from turmas where nome='Turma Nova Teste'"), "0", "turma dele apagada junto");
+    await nav.abrir("/dashboard");
+    await nav.esperarUrl("/entrar");
+  });
   await passo("link de redefinição inválido mostra a tela de erro", async () => {
     await nav.cookie(null);
     await nav.abrir("/redefinir-senha");
@@ -350,6 +366,31 @@ await grupo("admin", async () => {
     const depois = sql(`select codigo_convite from turmas where id='${turmaTeste()}'`);
     verdade(depois !== antes, "o código não mudou");
     sql("update turmas set codigo_convite='TESTESH0001' where id='" + turmaTeste() + "'");
+  });
+  await passo("minha conta: o único administrador de uma turma com membros não pode excluir", async () => {
+    // Maria é master nesta execução (e master não exclui a conta), então a checagem usa o João.
+    sql(`insert into turmas (nome,codigo_convite,criado_por)
+      select 'Bloqueio E2E','TESTEBLQ001',u.id from usuarios u where u.email='teste-jl@example.invalid'
+      on conflict do nothing`);
+    sql(`insert into membros (turma_id,usuario_id,papel)
+      select t.id,u.id,case when u.email='teste-jl@example.invalid' then 'admin' else 'participante' end
+        from turmas t, usuarios u
+       where t.codigo_convite='TESTEBLQ001' and u.email in ('teste-jl@example.invalid','teste-sh@example.invalid')
+      on conflict do nothing`);
+    try {
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/conta");
+      await nav.esperarTexto("único administrador de “Bloqueio E2E”");
+      verdade(!(await nav.ev("!!document.querySelector('#confirmacao')")), "campo de confirmação não deveria existir");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql("delete from turmas where codigo_convite='TESTEBLQ001'");
+    }
+  });
+  await passo("minha conta: o master não exclui a própria conta", async () => {
+    await nav.abrir("/conta");
+    await nav.esperarTexto("Contas de administrador master não podem ser excluídas por aqui");
+    verdade(!(await nav.ev("!!document.querySelector('#confirmacao')")), "campo de confirmação não deveria existir");
   });
   await passo("promover e rebaixar um membro", async () => {
     await nav.abrir("/admin/membros");
