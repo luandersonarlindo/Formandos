@@ -7,10 +7,12 @@ import {
   Crown,
   GraduationCap,
   KeyRound,
+  Megaphone,
   PartyPopper,
   ShieldCheck,
   Sparkles,
   Store,
+  UserCheck,
   UserRound,
   Vote,
 } from "lucide-react";
@@ -193,6 +195,16 @@ const RECURSOS = [
     icone: Store,
     titulo: "Vitrine de terceiros",
     texto: "Buffet, músicos, fotógrafos e equipe de apoio cadastrados pelo administrador, para a turma conhecer as opções.",
+  },
+  {
+    icone: Megaphone,
+    titulo: "Mural de avisos",
+    texto: "A comissão publica recados para a turma, com os mais recentes também no dashboard de todos.",
+  },
+  {
+    icone: UserCheck,
+    titulo: "Confirmação de presença",
+    texto: "Cada membro diz se vai à festa e quantos acompanhantes leva; a comissão vê o total de pessoas esperadas.",
   },
   {
     icone: ShieldCheck,
