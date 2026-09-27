@@ -1,27 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, School, TriangleAlert, Users } from "lucide-react";
+import { Paginacao } from "@/components/features/paginacao";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { exigirMaster } from "@/lib/dal";
+import { lerPagina } from "@/lib/paginacao";
 import { listarTurmas } from "@/lib/plataforma";
 
 export const metadata: Metadata = { title: "Turmas" };
 
 const data = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
 
-export default async function TurmasMasterPage() {
+export default async function TurmasMasterPage({ searchParams }: PageProps<"/master/turmas">) {
   await exigirMaster();
-  const turmas = await listarTurmas();
+  const { pagina: paginaParametro } = await searchParams;
+  const { itens: turmas, total, pagina, totalPaginas } = await listarTurmas(lerPagina(paginaParametro));
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Turmas</h1>
       <p className="mt-2 text-muted-foreground">
-        {turmas.length} {turmas.length === 1 ? "turma" : "turmas"} na plataforma.
+        {total} {total === 1 ? "turma" : "turmas"} na plataforma.
       </p>
 
-      {turmas.length === 0 ? (
+      {total === 0 ? (
         <div className="mt-6 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
           <School className="size-8 text-muted-foreground" aria-hidden />
           <p className="font-medium">Nenhuma turma criada ainda</p>
@@ -62,6 +65,7 @@ export default async function TurmasMasterPage() {
           ))}
         </ul>
       )}
+      <Paginacao pagina={pagina} totalPaginas={totalPaginas} caminho="/master/turmas" />
     </div>
   );
 }

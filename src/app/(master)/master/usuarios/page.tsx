@@ -4,26 +4,29 @@ import { MailWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { excluirUsuario } from "@/actions/master";
 import { FormAcao } from "@/components/features/form-acao";
+import { Paginacao } from "@/components/features/paginacao";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exigirMaster } from "@/lib/dal";
 import { emailsMaster } from "@/lib/master";
+import { lerPagina } from "@/lib/paginacao";
 import { listarUsuarios } from "@/lib/plataforma";
 
 export const metadata: Metadata = { title: "Usuários" };
 
-export default async function UsuariosMasterPage() {
+export default async function UsuariosMasterPage({ searchParams }: PageProps<"/master/usuarios">) {
   const master = await exigirMaster();
-  const usuarios = await listarUsuarios();
+  const { pagina: paginaParametro } = await searchParams;
+  const { itens: usuarios, total, pagina, totalPaginas } = await listarUsuarios(lerPagina(paginaParametro));
   const masters = emailsMaster();
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Usuários</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
-        {usuarios.length} {usuarios.length === 1 ? "usuário" : "usuários"} cadastrados. Para mudar o papel de alguém em uma turma, abra a turma.
+        {total} {total === 1 ? "usuário cadastrado" : "usuários cadastrados"}. Para mudar o papel de alguém em uma turma, abra a turma.
       </p>
 
       <ul data-grupo className="mt-6 grid gap-3">
@@ -103,6 +106,7 @@ export default async function UsuariosMasterPage() {
           );
         })}
       </ul>
+      <Paginacao pagina={pagina} totalPaginas={totalPaginas} caminho="/master/usuarios" />
     </div>
   );
 }

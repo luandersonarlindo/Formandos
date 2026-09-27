@@ -1,5 +1,6 @@
 import "server-only";
 import { pool } from "./db";
+import { calcularPaginas, deslocamento, limitarPagina } from "./paginacao";
 
 // Consultas da área master: enxergam TODAS as turmas (sem filtro de turma).
 // Só chame depois de exigirMaster().
@@ -32,7 +33,21 @@ export type TurmaResumo = {
   admins: number;
 };
 
-export async function listarTurmas(): Promise<TurmaResumo[]> {
+export const POR_PAGINA_MASTER = 20;
+
+export type PaginaLista<T> = {
+  itens: T[];
+  total: number;
+  pagina: number;
+  totalPaginas: number;
+};
+
+export async function listarTurmas(pagina = 1): Promise<PaginaLista<TurmaResumo>> {
+  const {
+    rows: [{ total }],
+  } = await pool.query("select count(*)::int as total from turmas");
+  const totalPaginas = calcularPaginas(total, POR_PAGINA_MASTER);
+  const paginaAtual = limitarPagina(pagina, totalPaginas);
   const { rows } = await pool.query(
     `select t.id, t.nome, t.codigo_convite as codigo, t.created_at as "criadaEm",
             u.name as criador,
@@ -42,9 +57,11 @@ export async function listarTurmas(): Promise<TurmaResumo[]> {
        left join usuarios u on u.id = t.criado_por
        left join membros m on m.turma_id = t.id
       group by t.id, u.name
-      order by t.created_at desc`,
+      order by t.created_at desc, t.id
+      limit ${POR_PAGINA_MASTER} offset $1`,
+    [deslocamento(paginaAtual, POR_PAGINA_MASTER)],
   );
-  return rows;
+  return { itens: rows, total, pagina: paginaAtual, totalPaginas };
 }
 
 export type MembroTurma = {
@@ -98,7 +115,12 @@ export type UsuarioPlataforma = {
   turmas: { id: string; nome: string; papel: "admin" | "participante" }[];
 };
 
-export async function listarUsuarios(): Promise<UsuarioPlataforma[]> {
+export async function listarUsuarios(pagina = 1): Promise<PaginaLista<UsuarioPlataforma>> {
+  const {
+    rows: [{ total }],
+  } = await pool.query("select count(*)::int as total from usuarios");
+  const totalPaginas = calcularPaginas(total, POR_PAGINA_MASTER);
+  const paginaAtual = limitarPagina(pagina, totalPaginas);
   const { rows } = await pool.query(
     `select u.id, u.name, u.email, u.image, u."emailVerified" as "emailVerificado",
             u."createdAt" as "criadoEm",
@@ -110,8 +132,9 @@ export async function listarUsuarios(): Promise<UsuarioPlataforma[]> {
        left join membros m on m.usuario_id = u.id
        left join turmas t on t.id = m.turma_id
       group by u.id
-      order by u.name
-      limit 500`,
+      order by u.name, u.id
+      limit ${POR_PAGINA_MASTER} offset $1`,
+    [deslocamento(paginaAtual, POR_PAGINA_MASTER)],
   );
-  return rows;
+  return { itens: rows, total, pagina: paginaAtual, totalPaginas };
 }
