@@ -1,5 +1,7 @@
 import "server-only";
 import { pool } from "./db";
+import { padraoBusca, sqlNormalizado } from "./busca";
+import { calcularPaginas, deslocamento, limitarPagina } from "./paginacao";
 
 export type EventoAdmin = {
   nome: string;
@@ -195,4 +197,69 @@ export async function getResumoAdmin(turmaId: string) {
     duvidasAbertas: number;
     personalizados: number;
   };
+}
+
+export type LinhaMembro = {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+  papel: "admin" | "participante";
+};
+
+export const POR_PAGINA_MEMBROS = 20;
+
+export type PaginaMembros = {
+  itens: LinhaMembro[];
+  pagina: number;
+  totalPaginas: number;
+  // Turma inteira, sem a busca: "último administrador" depende disso.
+  totais: { membros: number; admins: number };
+  // Quantos membros batem com a busca (igual a `totais.membros` sem busca).
+  encontrados: number;
+};
+
+// Membros da turma, uma página por vez. Administradores primeiro, depois por
+// nome (com o id como desempate, para a paginação ser estável). A busca vale
+// para nome e email, sem diferenciar maiúsculas nem acentos.
+export async function listarMembrosAdmin(
+  turmaId: string,
+  { busca = "", pagina = 1 }: { busca?: string; pagina?: number } = {},
+): Promise<PaginaMembros> {
+  const {
+    rows: [totais],
+  } = await pool.query(
+    `select count(*)::int as membros,
+            (count(*) filter (where papel = 'admin'))::int as admins
+       from membros where turma_id = $1`,
+    [turmaId],
+  );
+
+  const filtro = busca
+    ? `and (${sqlNormalizado("u.name")} like $2 escape '\\'
+         or ${sqlNormalizado("u.email")} like $2 escape '\\')`
+    : "";
+  const parametros: unknown[] = busca ? [turmaId, padraoBusca(busca)] : [turmaId];
+
+  const {
+    rows: [{ n: encontrados }],
+  } = await pool.query(
+    `select count(*)::int as n
+       from membros m join usuarios u on u.id = m.usuario_id
+      where m.turma_id = $1 ${filtro}`,
+    parametros,
+  );
+  const totalPaginas = calcularPaginas(encontrados, POR_PAGINA_MEMBROS);
+  const paginaAtual = limitarPagina(pagina, totalPaginas);
+
+  const { rows } = await pool.query<LinhaMembro>(
+    `select u.id, u.name, u.email, u.image, m.papel
+       from membros m
+       join usuarios u on u.id = m.usuario_id
+      where m.turma_id = $1 ${filtro}
+      order by (m.papel = 'admin') desc, u.name, u.id
+      limit ${POR_PAGINA_MEMBROS} offset $${parametros.length + 1}`,
+    [...parametros, deslocamento(paginaAtual, POR_PAGINA_MEMBROS)],
+  );
+  return { itens: rows, pagina: paginaAtual, totalPaginas, totais, encontrados };
 }
