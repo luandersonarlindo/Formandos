@@ -8,6 +8,10 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1, revisando a definição do dia do kick-off. O primeiro código do projeto (commits `e9cf8c9` a `7b9ba5a`) previa um MVP mais enxuto: login só com Google, uma turma fixa por formando, sem administrador master e sem hospedagem definida. Os itens abaixo marcados com **†** só entraram no MVP depois do primeiro commit — a tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
+
 ## 1. O que é o MVP
 
 MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o problema de verdade** e permite aprender com o uso. Para o Formandos, o MVP é: *uma turma consegue decidir, perguntar e se organizar para a formatura dentro do aplicativo, sem depender de grupos de mensagens e planilhas.*
@@ -20,7 +24,7 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 
 | # | Capacidade | Critério de aceite (resumido) |
 |---|---|---|
-| 1 | **Acesso** com Google ou email e senha | Login funciona; email de senha só entra após confirmar o link; quem não está logado vai para o login |
+| 1 | **Acesso** com Google ou email e senha **†** | Login funciona; email de senha só entra após confirmar o link; quem não está logado vai para o login |
 | 2 | **Turmas e convite** | Administrador cria a turma e recebe um código; formando entra com o código; código errado mostra erro |
 | 3 | **Papéis** | Administrador e participante veem coisas diferentes; o participante não acessa o painel do administrador |
 | 4 | **Votações** | Formando vota (escolha única ou múltipla), muda o voto e vê o que já respondeu |
@@ -37,7 +41,7 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 
 | Item | Motivo |
 |---|---|
-| Hospedagem em produção | O foco é o código; o projeto roda localmente e vive no GitHub |
+| Hospedagem em produção **†** | O foco é o código; o projeto roda localmente e vive no GitHub |
 | Aplicativo móvel nativo | O site já é responsivo (celular, tablet, notebook e TV) |
 | Tema escuro | Melhoria estética, fica para a Sprint 2 |
 | Editar pergunta já criada | Dá para apagar e recriar; fica para a Sprint 2 |
@@ -52,7 +56,7 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 |---|---|---|
 | **Participante** | Formando da turma | Votar, mandar e votar dúvidas, ver tarefas, programação e terceiros |
 | **Administrador da turma** | Comissão organizadora | Tudo do participante, mais gerir membros, convite, evento, tarefas, dúvidas, catálogos e fornecedores |
-| **Administrador master** | Gestor da plataforma | Ver e gerir todas as turmas e usuários; definido por configuração do servidor |
+| **Administrador master** **†** | Gestor da plataforma | Ver e gerir todas as turmas e usuários; definido por configuração do servidor |
 
 ## 5.1. Regras de negócio essenciais
 

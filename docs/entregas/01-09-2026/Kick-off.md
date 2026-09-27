@@ -8,6 +8,22 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1, revisando a decisão tomada no dia do kick-off à luz do que a equipe aprendeu construindo o produto. Ele não é um retrato exato do que foi decidido em 01/09: é o kick-off original com uma camada de revisão por cima, porque algumas ideias do primeiro commit não sobreviveram do jeito que foram pensadas.
+
+O primeiro código do projeto (commits `e9cf8c9` a `7b9ba5a`, do dia da criação do repositório) previa um produto mais enxuto do que o que existe hoje. A tabela mostra o que mudou, em que commit e por quê:
+
+| Pensamento original (primeiros commits) | Evoluiu para | Commit da mudança | Por quê |
+|---|---|---|---|
+| Login **só** com conta Google | Google **e** email e senha | `ecdf802` | O Google exige credenciais externas configuradas; sem elas, ninguém conseguiria entrar |
+| Um formando pertence a **uma única turma**, sem exceção | Quem é **administrador** pode participar de várias turmas | `6bde3fc` | Uma mesma pessoa pode ajudar a organizar mais de uma formatura ao mesmo tempo |
+| Sem nenhum papel de gestão da plataforma inteira | **Administrador master**, definido por variável de ambiente (`ADMIN_MASTER_EMAILS`) | `5288fe5` | Faltava alguém capaz de gerir turmas e usuários de fora de uma turma específica |
+| Hospedagem em produção fazia parte do plano; chegou a preparar o deploy | Projeto roda só localmente; o código fica no GitHub | `e23c714` → `9217239` | O plano gratuito de hospedagem cogitado dorme e expira sozinho; não valia o esforço para o escopo da disciplina |
+| Página inicial simples, só de apresentação | Vitrine animada, com números do catálogo, perfis de acesso e equipe | `ee93e30` | Decisão de UX/UI tomada mais adiante, já com o produto funcionando |
+
+As seções 2 a 11 abaixo mantêm o texto do kick-off original; os pontos marcados com **†** foram revistos depois e remetem a esta tabela. O histórico completo, commit a commit, está em **Sprint 1 - Incremento funcional + Documentação**.
+
 ## 1. Objetivo do kick-off
 
 Alinhar a equipe sobre **o que será construído, por quê, por quem e até quando**, antes de escrever a primeira linha de código. Este documento registra o ponto de partida do projeto: problema, objetivo, escopo inicial, equipe, cronograma, forma de trabalho e riscos.
@@ -35,7 +51,7 @@ A organização de uma formatura reúne muita gente e muita decisão: local, com
 
 | Área | O que entra |
 |---|---|
-| Acesso | Login por conta Google e por email e senha; entrada em uma turma por código de convite |
+| Acesso **†** | Login por conta Google e por email e senha; entrada em uma turma por código de convite |
 | Decisão | Enquetes por categoria, catálogo padrão pronto e catálogos personalizados, relatório com gráficos |
 | Comunicação | Perguntas e respostas com votos dos colegas e moderação da comissão |
 | Organização | Dashboard com contagem regressiva, programação, tarefas com responsável e prazo |
@@ -88,12 +104,12 @@ Datas do *Cronograma de Entregas – 2026* da disciplina.
 | # | Tema | Decisão |
 |---|---|---|
 | 1 | Autenticação | **Better Auth** (estável), no lugar do Auth.js, que segue em beta |
-| 2 | Formas de login | Google (gratuito) e email e senha com confirmação por link |
+| 2 | Formas de login **†** | Google (gratuito) e email e senha com confirmação por link |
 | 3 | Banco de dados | PostgreSQL com SQL puro (driver `pg`), sem ORM, para aprender o SQL de verdade |
 | 4 | Votos | **Identificados**: a comissão vê quem votou; o formando pode mudar o voto |
-| 5 | Turmas | Um formando pertence a uma turma; quem é administrador pode participar de várias |
+| 5 | Turmas **†** | Um formando pertence a uma turma; quem é administrador pode participar de várias |
 | 6 | Catálogos de enquetes | Um catálogo **padrão** de 8 categorias e catálogos **personalizados** por turma |
-| 7 | Hospedagem | O projeto roda localmente e o código fica no GitHub |
+| 7 | Hospedagem **†** | O projeto roda localmente e o código fica no GitHub |
 
 ## 10. Riscos iniciais
 
