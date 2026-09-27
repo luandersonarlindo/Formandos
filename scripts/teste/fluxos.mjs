@@ -469,6 +469,44 @@ await grupo("admin", async () => {
     await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
     igual(sql("select count(*) from catalogos where nome='Educação Infantil e ABC'"), "0", "catálogo");
   });
+  await passo("membros: busca sem acento, total da turma fixo e páginas", async () => {
+    const proximo = () =>
+      nav.ev("document.querySelector('nav[aria-label=\"Paginação\"] a[rel=next]')?.getAttribute('href') ?? null");
+    const nomes = () => nav.ev("[...document.querySelectorAll('ul[data-grupo] > li')].map((li) => li.innerText).join('|')");
+    sql(`insert into usuarios (name,email,"emailVerified")
+      select 'Membro Paginação ' || g, 'teste-pm-' || g || '@example.invalid', true from generate_series(1, 25) g
+      on conflict do nothing`);
+    sql(`insert into membros (turma_id,usuario_id,papel)
+      select '${turmaTeste()}', u.id, 'participante' from usuarios u where u.email like 'teste-pm-%@example.invalid'
+      on conflict do nothing`);
+    try {
+      const total = sql(`select count(*) from membros where turma_id='${turmaTeste()}'`);
+      await nav.abrir("/admin/membros");
+      await nav.esperarTexto(`${total} membros na turma`);
+      await nav.esperarTexto("Página 1 de 2");
+      igual(await proximo(), "/admin/membros?pagina=2", "link da próxima página");
+      await nav.abrir("/admin/membros?busca=joao");
+      await nav.esperarTexto("1 membro encontrado");
+      verdade((await nomes()).includes("João Lima"), "busca sem acento acha João");
+      verdade(!(await nomes()).includes("Maria Souza"), "busca não traz outros");
+      await nav.esperarTexto(`${total} membros na turma`);
+      verdade(!(await nav.tem("Página 1 de")), "uma página só não mostra paginação");
+      await nav.abrir("/admin/membros?busca=" + encodeURIComponent("PAGINAÇÃO"));
+      await nav.esperarTexto("25 membros encontrados");
+      await nav.esperarTexto("Página 1 de 2");
+      igual(await proximo(), "/admin/membros?busca=PAGINA%C3%87%C3%83O&pagina=2", "a busca se mantém no link");
+      await nav.abrir("/admin/membros?busca=teste-pm-7%40");
+      await nav.esperarTexto("1 membro encontrado");
+      await nav.abrir("/admin/membros?busca=%25");
+      await nav.esperarTexto("Nenhum membro encontrado");
+      await nav.abrir("/admin/membros?busca=zzzz");
+      await nav.esperarTexto("Nenhum membro encontrado");
+      await nav.abrir("/admin/membros?pagina=99");
+      await nav.esperarTexto("Página 2 de 2");
+    } finally {
+      sql("delete from usuarios where email like 'teste-pm-%@example.invalid'");
+    }
+  });
   await passo("remover um membro", async () => {
     await nav.abrir("/admin/membros");
     await nav.clicar("Remover", { escopo: "João Lima", seletor: "button" });
