@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { exigirAdmin } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
+import { getModelo } from "@/lib/modelos";
 import type { EstadoForm } from "./tipos";
 
 // Só o catálogo PERSONALIZADO da própria turma pode ser alterado. Toda consulta
@@ -69,6 +70,63 @@ export async function criarCatalogo(
   );
   revalidarCatalogo();
   redirect(`/admin/votacoes/${rows[0].id}`);
+}
+
+// Copia um catálogo-modelo (docs/catalogos-modelo) para a turma. A cópia é um
+// catálogo personalizado comum: o administrador pode editar como quiser.
+export async function criarCatalogoDeModelo(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdmin();
+  const dados = z.object({ modelo: z.string().min(1) }).safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: "Escolha um modelo." };
+  const modelo = await getModelo(dados.data.modelo);
+  if (!modelo) return { erro: "Modelo não encontrado." };
+
+  const catalogoId = await transacao(async (db) => {
+    // Bloqueia a turma para dois cliques seguidos não passarem do limite.
+    await db.query("select 1 from turmas where id = $1 for update", [admin.turmaId]);
+    const { rows: total } = await db.query(
+      "select count(*)::int as n from catalogos where turma_id = $1",
+      [admin.turmaId],
+    );
+    if (total[0].n >= MAX_CATALOGOS) return null;
+    const {
+      rows: [{ id }],
+    } = await db.query(
+      "insert into catalogos (turma_id, nome) values ($1, $2) returning id",
+      [admin.turmaId, modelo.nome],
+    );
+    for (const [i, c] of modelo.categorias.entries()) {
+      const {
+        rows: [{ id: categoriaId }],
+      } = await db.query(
+        "insert into categorias (catalogo_id, nome, ordem) values ($1, $2, $3) returning id",
+        [id, c.nome, i],
+      );
+      for (const [j, e] of c.enquetes.entries()) {
+        const {
+          rows: [{ id: enqueteId }],
+        } = await db.query(
+          "insert into enquetes (categoria_id, titulo, tipo, ordem) values ($1, $2, $3, $4) returning id",
+          [categoriaId, e.titulo, e.tipo, j],
+        );
+        for (const [k, o] of e.opcoes.entries()) {
+          await db.query(
+            "insert into opcoes (enquete_id, texto, exclusiva, ordem) values ($1, $2, $3, $4)",
+            [enqueteId, o.texto, o.exclusiva, k],
+          );
+        }
+      }
+    }
+    return id as string;
+  });
+  if (!catalogoId) {
+    return { erro: `A turma pode ter no máximo ${MAX_CATALOGOS} catálogos personalizados.` };
+  }
+  revalidarCatalogo();
+  redirect(`/admin/votacoes/${catalogoId}`);
 }
 
 export async function renomearCatalogo(
