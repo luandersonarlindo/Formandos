@@ -220,6 +220,37 @@ await grupo("participante", async () => {
     await nav.abrir("/tarefas");
     verdade(!(await nav.tem("Nova tarefa")) && !(await nav.tem("Gerenciar tarefa")), "botões de admin visíveis");
   });
+  await passo("presença: vou com acompanhantes, e talvez zera os acompanhantes", async () => {
+    const resposta = () => sql("select status || ':' || acompanhantes || ':' || coalesce(observacao,'') from presencas p join usuarios u on u.id=p.usuario_id where u.email='teste-jl@example.invalid'");
+    await nav.abrir("/dashboard");
+    await nav.esperarTexto("Você vai ao evento?");
+    await nav.clicar("Vou", { escopo: "Você vai ao evento?", seletor: "label", contem: false });
+    await nav.preencher("#acompanhantes", "2");
+    await nav.preencher("#observacao", "Minha mãe e meu irmão");
+    await nav.clicar("Salvar resposta", { seletor: "button" });
+    await nav.esperarTexto("Resposta salva");
+    igual(resposta(), "vou:2:Minha mãe e meu irmão", "vou com acompanhantes");
+    await nav.clicar("Talvez", { escopo: "Você vai ao evento?", seletor: "label", contem: false });
+    verdade(!(await nav.tem("Quantos acompanhantes")), "campo de acompanhantes some com Talvez");
+    await nav.clicar("Salvar resposta", { seletor: "button" });
+    await dormir(1800);
+    igual(resposta(), "talvez:0:Minha mãe e meu irmão", "talvez zera os acompanhantes");
+    // Deixa como "vou" com 2 acompanhantes para o painel do administrador conferir.
+    await nav.clicar("Vou", { escopo: "Você vai ao evento?", seletor: "label", contem: false });
+    // O navegador já barra valores acima do máximo; tira o limite da tela para provar o do servidor.
+    await nav.ev("document.querySelector('#acompanhantes').removeAttribute('max')");
+    await nav.preencher("#acompanhantes", "99");
+    await nav.clicar("Salvar resposta", { seletor: "button" });
+    await dormir(1800);
+    igual(sql("select acompanhantes from presencas p join usuarios u on u.id=p.usuario_id where u.email='teste-jl@example.invalid'"), "5", "limite de acompanhantes");
+    // Recarrega para partir de um estado conhecido, sem depender do que sobrou na tela.
+    await nav.abrir("/dashboard");
+    await nav.esperarTexto("Você vai ao evento?");
+    await nav.preencher("#acompanhantes", "2");
+    await nav.clicar("Salvar resposta", { seletor: "button" });
+    await dormir(1800);
+    igual(resposta().split(":").slice(0, 2).join(":"), "vou:2", "vou de novo com 2");
+  });
   await passo("participante responsável atualiza o andamento da própria tarefa", async () => {
     await nav.abrir("/tarefas");
     await preencherEm("Fechar o buffet", "select[name=status]", "em_andamento");
@@ -387,7 +418,9 @@ await grupo("admin", async () => {
       sql("delete from turmas where codigo_convite='TESTEBLQ001'");
     }
   });
-  await passo("minha conta: o master não exclui a própria conta", async () => {
+  await passo("minha conta: o master não exclui a própria conta (só roda com ADMIN_MASTER_EMAILS incluindo a conta de teste)", async () => {
+    await nav.abrir("/master");
+    if (!(await nav.tem("Gestão da plataforma"))) return; // conta de teste não é master nesta subida do servidor
     await nav.abrir("/conta");
     await nav.esperarTexto("Contas de administrador master não podem ser excluídas por aqui");
     verdade(!(await nav.ev("!!document.querySelector('#confirmacao')")), "campo de confirmação não deveria existir");
@@ -675,6 +708,17 @@ await grupo("admin", async () => {
     igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "0", "apagada");
     await nav.abrir("/dashboard");
     await nav.esperarTexto("Sistemas de Informação 2026");
+  });
+  await passo("presença no painel do administrador: total, filtros e resumo", async () => {
+    await nav.abrir("/admin/presenca");
+    await nav.esperarTexto("Pessoas esperadas");
+    await nav.esperarTexto("1 membro confirmado + 2 acompanhantes");
+    await nav.esperarTexto("Minha mãe e meu irmão");
+    await nav.abrir("/admin/presenca?filtro=pendente");
+    await nav.esperarTexto("Maria Souza");
+    verdade(!(await nav.tem("João Lima")), "quem respondeu não aparece em Sem resposta");
+    await nav.abrir("/admin");
+    await nav.esperarTexto("Presença confirmada");
   });
   await passo("remover um membro", async () => {
     await nav.abrir("/admin/membros");
