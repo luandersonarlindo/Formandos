@@ -43,7 +43,7 @@ Respostas às dúvidas levantadas na primeira versão deste guia.
 | 7 | Votos | **Identificados**: o ADM vê quem votou. O formando **pode mudar** o voto. |
 | 8 | Turmas por aluno | Uma por vez. Ver recomendação abaixo. |
 | 9 | Rotas | Reorganizadas: ver "Mapa de rotas" ao fim desta seção. |
-| 10 | Catálogos | Existe o catálogo **padrão** (8 categorias) e o ADM pode criar catálogos **personalizados**. |
+| 10 | Catálogos | Existe o catálogo **padrão** (10 categorias) e o ADM pode criar catálogos **personalizados**, do zero ou a partir de um **modelo**. |
 
 ### Autenticação: Better Auth + Google + e-mail e senha (decisões 1 e 2)
 
@@ -90,7 +90,7 @@ A tabela `membros` (usuário, turma, papel) foi mantida. Na versão inicial a re
 
 Como ficou implementado:
 
-- **Catálogo padrão:** global, igual para todas as turmas, somente leitura. Contém as 8 categorias e 16 perguntas de `catalogo-enquetes.md`. Vem do *seed* do banco. Toda turma nova já o enxerga.
+- **Catálogo padrão:** global, igual para todas as turmas, somente leitura. Contém as 10 categorias e 23 perguntas de `catalogo-enquetes.md`. Vem do *seed* do banco. Toda turma nova já o enxerga.
 - **Catálogo personalizado:** pertence a **uma turma**. Só o ADM cria e edita. Tem nome, categorias próprias e perguntas próprias (única ou múltipla).
 - **Votos** ficam sempre ligados à turma, pois o catálogo padrão é compartilhado e cada turma tem votos e relatório próprios.
 
@@ -244,7 +244,7 @@ programacao     (id, turma_id, horario, titulo, descricao)                      
 |---|---|
 | `npm run db:auth` | Cria as tabelas do Better Auth (`usuarios`, `session`, `account`, `verification`). **Rodar primeiro.** |
 | `npm run db:schema` | Aplica `db/schema.sql` (13 tabelas do domínio). |
-| `npm run db:seed` | Insere o catálogo padrão (8 categorias, 16 enquetes, 84 opções) lendo `docs/catalogo-enquetes.md`. `-- --dry` só mostra o que leria. |
+| `npm run db:seed` | Insere o catálogo padrão (10 categorias, 23 enquetes, 129 opções) lendo `docs/catalogo-enquetes.md`; se já existir, acrescenta só o que falta. `-- --dry` só mostra o que leria. |
 
 Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`. Isso permite testar em um banco descartável.
 
@@ -287,8 +287,8 @@ Pontos-chave:
 - **Voto identificado:** o ADM vê quem votou em cada opção. O formando vê só os totais (defina se ele também vê a porcentagem antes de votar).
 - **Upvote:** um por usuário por dúvida, alternável. A lista ordena por votos, com dúvidas em destaque fixadas no topo.
 - **Dúvida:** `respondida` e `destaque` são indicadores independentes; só o admin muda. Responder com texto marca como respondida; salvar em branco remove a resposta.
-- **Seed do catálogo padrão:** script que lê `catalogo-enquetes.md` (8 categorias, 16 perguntas) e insere **uma vez** no banco, com `turma_id` nulo. Todas as turmas enxergam esse catálogo.
-- **Catálogos personalizados:** só o admin da turma cria e edita (categorias e perguntas; não dá para editar o texto de uma pergunta depois de criada). Aparecem só para aquela turma.
+- **Seed do catálogo padrão:** script que lê `catalogo-enquetes.md` (10 categorias, 23 perguntas) e insere no banco, com `turma_id` nulo. Rodar de novo só acrescenta o que faltar, sem apagar votos. Todas as turmas enxergam esse catálogo.
+- **Catálogos personalizados:** só o admin da turma cria e edita (categorias e perguntas; não dá para editar o texto de uma pergunta depois de criada). Aparecem só para aquela turma. Podem nascer de um **catálogo-modelo**: quatro arquivos em `docs/catalogos-modelo/` (Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, Área da Saúde) que a Server Action `criarCatalogoDeModelo` copia para a turma. Os modelos não passam pelo seed e só aparecem para votar depois de copiados.
 - **Tarefas:** o admin cria, edita e exclui; o responsável muda só o andamento da própria tarefa.
 - **Terceiros:** o admin cadastra fornecedores da turma; o contato só vira link se começar com `http://` ou `https://`.
 - **Convite:** 8 caracteres aleatórios; no máximo 10 códigos inválidos a cada 15 minutos por usuário.

@@ -17,8 +17,8 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 * **Gestão de Permissões (RBAC):** Somente os Administradores possuem privilégios para criar catálogos de enquetes personalizados, responder e destacar dúvidas, definir data/local do evento e gerir membros.
 
 * **Motor de Decisão (Enquetes por Categoria):**
-  * O **catálogo padrão** vem pré-configurado, dividido em 8 categorias (*Espaço do Evento*, *Comida & Gastronomia*, *Bebidas & Bar*, *Música & Atrações*, *Experiência Visual & Recordações*, *Estrutura, Segurança & Recepção*, *Traje & Identidade Visual*, *Rituais & Pré-Eventos*).
-  * O administrador pode criar **catálogos personalizados** para a sua turma, com categorias e perguntas próprias.
+  * O **catálogo padrão** vem pré-configurado, dividido em 10 categorias (*Formato do Evento*, *Espaço do Evento*, *Comida & Gastronomia*, *Bebidas & Bar*, *Música & Atrações*, *Experiência Visual & Recordações*, *Estrutura, Segurança & Recepção*, *Traje & Identidade Visual*, *Rituais & Pré-Eventos*, *Orçamento & Arrecadação*).
+  * O administrador pode criar **catálogos personalizados** para a sua turma, com categorias e perguntas próprias, ou partir de um **modelo** por perfil de turma (Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, Área da Saúde).
   * Opções de resposta descritivas e interativas (evitando o tradicional "sim/não"), com suporte a seleção única, múltipla escolha e opção neutra/negativa (*exclusiva*).
   * Os votos são **identificados**: o administrador vê quem votou em cada opção. Os participantes podem **alterar o voto**.
 * **Relatórios Automatizados:** Processamento dos votos para gerar um relatório consolidado sobre as preferências da turma.
@@ -97,8 +97,8 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
 * **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas: `exigirSessao()`, `getMembro()`, `exigirMembro()`, `exigirAdmin()` e `exigirMaster()`. `src/lib/master.ts` decide quem é master e `src/lib/plataforma.ts` traz as consultas de todas as turmas.
 * **`/src/lib` (consultas e utilitários):** consultas de leitura por área (`votacoes.ts`, `relatorio.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `dashboard.ts`, `admin.ts`) e funções puras (`convite.ts`, `datas.ts`), estas com testes em `*.test.ts`.
-* **`/db`:** `schema.sql` (tabelas do domínio), `apply-schema.mjs` e `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`).
-* **`/docs`:** catálogo de enquetes e guia de estudo.
+* **`/db`:** `schema.sql` (tabelas do domínio), `apply-schema.mjs` e `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`) e `catalogo-md.mjs` (leitor dos catálogos em Markdown).
+* **`/docs`:** catálogo de enquetes, catálogos-modelo (`catalogos-modelo/`) e guia de estudo.
 
 ---
 
@@ -119,19 +119,21 @@ Inspirado no projeto **Letmeask (NLW-06)**, a área `/duvidas` possui as seguint
 
 O sistema trabalha com dois tipos de catálogo:
 
-* **Catálogo padrão:** pré-configurado, igual para todas as turmas e somente leitura. Está descrito em [`docs/catalogo-enquetes.md`](docs/catalogo-enquetes.md) (8 categorias e 16 perguntas).
-* **Catálogos personalizados:** criados pelo administrador de uma turma, visíveis apenas para essa turma, com categorias e perguntas próprias.
+* **Catálogo padrão:** pré-configurado, igual para todas as turmas e somente leitura. Está descrito em [`docs/catalogo-enquetes.md`](docs/catalogo-enquetes.md) (10 categorias e 23 perguntas).
+* **Catálogos personalizados:** criados pelo administrador de uma turma, visíveis apenas para essa turma, com categorias e perguntas próprias. Podem começar do zero ou de um **modelo** pronto, em [`docs/catalogos-modelo/`](docs/catalogos-modelo): Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, e Cursos da Área da Saúde. O modelo é copiado para a turma e pode ser editado.
 
-As 8 categorias do catálogo padrão:
+As 10 categorias do catálogo padrão:
 
-1. **Espaço do Evento:** Estilo do local e prioridade geográfica.
-2. **Comida & Gastronomia:** Formato do serviço, restrições/alergias alimentares e menu de fim de noite.
-3. **Bebidas & Bar:** Modalidade do bar e preferências da pista.
-4. **Música & Atrações:** Atração principal e ritmos musicais.
-5. **Experiência Visual & Recordações:** Formato de registo fotográfico/vídeo e itens de animação.
-6. **Estrutura, Segurança & Recepção:** Equipa de apoio prioritária (segurança, mestre de cerimónias, manobristas).
-7. **Traje & Identidade Visual:** Estilo de traje recomendado e linha decorativa.
-8. **Rituais & Pré-Eventos:** Eventos prévios e rituais tradicionais da cerimónia.
+1. **Formato do Evento:** Formato da comemoração, horário e duração, e cerimônia de colação.
+2. **Espaço do Evento:** Estilo do local e prioridade geográfica.
+3. **Comida & Gastronomia:** Formato do serviço, restrições/alergias alimentares e menu de fim de noite.
+4. **Bebidas & Bar:** Modalidade do bar e preferências da pista.
+5. **Música & Atrações:** Atração principal e ritmos musicais.
+6. **Experiência Visual & Recordações:** Formato de registo fotográfico/vídeo e itens de animação.
+7. **Estrutura, Segurança & Recepção:** Equipa de apoio prioritária (segurança, mestre de cerimónias, manobristas) e cuidados com os convidados (acessibilidade, crianças, sustentabilidade).
+8. **Traje & Identidade Visual:** Estilo de traje recomendado, linha decorativa e tema da festa.
+9. **Rituais & Pré-Eventos:** Eventos prévios e rituais tradicionais da cerimónia.
+10. **Orçamento & Arrecadação:** Formas de arrecadar e onde priorizar o orçamento.
 
 ---
 
@@ -185,7 +187,7 @@ As 8 categorias do catálogo padrão:
    npm run db:schema         # tabelas do domínio (db/schema.sql): turmas, membros, catálogos, enquetes, votos, dúvidas…
    npm run db:seed           # catálogo padrão, lido de docs/catalogo-enquetes.md
    ```
-   Os três comandos podem ser repetidos sem problema: só criam o que falta. O `db:seed` não duplica o catálogo.
+   Os três comandos podem ser repetidos sem problema: só criam o que falta. O `db:seed` não duplica o catálogo e, se o Markdown ganhar perguntas ou opções, acrescenta as novas sem apagar nada (os votos já dados continuam valendo).
 
 6. **Rodar os testes** (opcional):
    ```bash
