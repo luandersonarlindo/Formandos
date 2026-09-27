@@ -172,7 +172,7 @@ const RECURSOS = [
   {
     icone: Vote,
     titulo: "Enquetes por categoria",
-    texto: "Catálogo padrão com 8 categorias e perguntas de escolha única ou múltipla. Os votos são identificados e cada pessoa pode mudar o seu.",
+    texto: "Catálogo padrão com 10 categorias e perguntas de escolha única ou múltipla. Os votos são identificados e cada pessoa pode mudar o seu.",
   },
   {
     icone: BarChart3,
@@ -263,13 +263,14 @@ export function ComoFunciona() {
 }
 
 const NUMEROS = [
-  { valor: 8, rotulo: "categorias no catálogo padrão" },
-  { valor: 16, rotulo: "perguntas prontas para votar" },
-  { valor: 84, rotulo: "opções de resposta descritivas" },
+  { valor: 10, rotulo: "categorias no catálogo padrão" },
+  { valor: 23, rotulo: "perguntas prontas para votar" },
+  { valor: 129, rotulo: "opções de resposta descritivas" },
   { valor: 3, rotulo: "níveis de acesso" },
 ];
 
 const CATEGORIAS = [
+  "Formato do Evento",
   "Espaço do Evento",
   "Comida & Gastronomia",
   "Bebidas & Bar",
@@ -278,6 +279,7 @@ const CATEGORIAS = [
   "Estrutura, Segurança & Recepção",
   "Traje & Identidade Visual",
   "Rituais & Pré-Eventos",
+  "Orçamento & Arrecadação",
 ];
 
 export function Catalogo() {
