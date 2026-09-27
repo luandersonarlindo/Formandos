@@ -253,7 +253,7 @@ await grupo("app", async () => {
   });
   await passo("catálogo padrão lista o progresso na página de votações", async () => {
     await nav.abrir("/votacoes");
-    await nav.esperarTexto("1 de 16 enquetes respondidas");
+    await nav.esperarTexto("1 de 23 enquetes respondidas");
   });
   await passo("enviar dúvida e votar nela", async () => {
     await nav.abrir("/duvidas");
@@ -427,6 +427,18 @@ await grupo("admin", async () => {
     await nav.clicar("Excluir catálogo", { seletor: "button" });
     await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
     igual(sql("select count(*) from catalogos where nome='Catálogo E2E Renomeado'"), "0", "catálogo");
+  });
+  await passo("catálogo a partir de modelo: copia categorias e perguntas, e some ao excluir", async () => {
+    await nav.abrir("/admin/votacoes/nova");
+    await nav.clicar("Usar este modelo", { escopo: "Educação Infantil e ABC", seletor: "button" });
+    await nav.esperarUrl("/admin/votacoes/");
+    await nav.assentar();
+    await nav.esperarTexto("Educação Infantil e ABC");
+    igual(sql("select count(*) from categorias ca join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id is not null"), "5", "categorias copiadas");
+    igual(sql("select count(*) from enquetes e join categorias ca on ca.id=e.categoria_id join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id is not null"), "10", "perguntas copiadas");
+    await nav.clicar("Excluir catálogo", { seletor: "button" });
+    await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
+    igual(sql("select count(*) from catalogos where nome='Educação Infantil e ABC'"), "0", "catálogo");
   });
   await passo("remover um membro", async () => {
     await nav.abrir("/admin/membros");
