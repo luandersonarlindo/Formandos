@@ -8,6 +8,10 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Três decisões de arquitetura marcadas com **†** (D3, D4 e D9) não estavam no pensamento do primeiro commit: o Better Auth começou só com Google, `membros` começou com uma turma fixa por usuário, e a hospedagem chegou a ser **implementada** no Render (não só cogitada) antes de ser revertida. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
+
 ## 1. Visão geral
 
 O Formandos é um **monólito web** em **Next.js 16 (App Router)** com **React 19** e **PostgreSQL**. Um único projeto contém as telas, a lógica do servidor e o acesso ao banco. A escolha privilegia **simplicidade**: uma equipe pequena, um só repositório, uma só linguagem (TypeScript) e nenhum serviço extra para manter.
@@ -40,13 +44,13 @@ O Formandos é um **monólito web** em **Next.js 16 (App Router)** com **React 1
 |---|---|---|---|
 | D1 | **Next.js App Router** com Server Components e Server Actions | React puro + API separada; Pages Router | Menos código: a mesma aplicação renderiza, valida e grava, sem uma API REST paralela |
 | D2 | **PostgreSQL com SQL puro** (`pg`) | ORM (Prisma, Drizzle) | Aprender SQL de verdade; consultas simples e sob controle; sempre parametrizadas |
-| D3 | **Better Auth** | Auth.js (NextAuth v5, ainda beta), autenticação própria | Estável, guarda tudo no PostgreSQL, suporta Google e email e senha |
-| D4 | **Uma tabela `membros`** (usuário, turma, papel) | `turma_id` dentro de `usuarios` | O papel vale **por turma**; permitir várias turmas para administradores foi só remover uma restrição |
+| D3 **†** | **Better Auth** | Auth.js (NextAuth v5, ainda beta), autenticação própria | Estável, guarda tudo no PostgreSQL, suporta Google e email e senha |
+| D4 **†** | **Uma tabela `membros`** (usuário, turma, papel) | `turma_id` dentro de `usuarios` | O papel vale **por turma**; permitir várias turmas para administradores foi só remover uma restrição |
 | D5 | **URLs sem o id da turma** | `/turmas/[id]/...` | O servidor descobre a turma pelo usuário logado e por um cookie de turma ativa, sempre conferido no banco |
 | D6 | **Tailwind CSS 4 + shadcn/ui** | CSS Modules, biblioteca de componentes fechada | Componentes acessíveis e copiados para o projeto; estilo rápido e consistente |
 | D7 | **Zod** para validar entradas | Validação manual | Uma fonte da verdade para formato e mensagens de erro |
 | D8 | **Recharts** para gráficos | Chart.js, SVG manual | Integra bem com React; gráficos de barras do relatório |
-| D9 | **Sem hospedagem**: roda localmente; código no GitHub | Vercel ou Render | Decisão do grupo; reduz custo e complexidade |
+| D9 **†** | **Sem hospedagem**: roda localmente; código no GitHub | Vercel ou Render (chegou a ser implementado no Render e depois revertido) | Decisão do grupo; reduz custo e complexidade |
 | D10 | **Anime.js** para animações | CSS puro, Framer Motion | API simples; a animação é só um acréscimo, e o conteúdo aparece sem JavaScript |
 
 ## 3. Camadas e organização do código

@@ -5,9 +5,9 @@ Documentos pedidos no *Cronograma de Entregas – 2026*, até 29/09/2026. Cada u
 | Data | Entrega do cronograma | Documentos |
 |---|---|---|
 | 01/09/2026 | Kick-off + Sprint Backlog + definição do MVP | [Kick-off](01-09-2026/Kick-off.md) · [Sprint Backlog](01-09-2026/Sprint%20Backlog.md) · [Definição do MVP](01-09-2026/Defini%C3%A7%C3%A3o%20do%20MVP.md) — cada um traz uma nota (seção 0) sobre como o pensamento evoluiu do primeiro commit até a Sprint 1 |
-| 08/09/2026 | Termo de Abertura + visão do produto + papéis | [Termo de Abertura](08-09-2026/Termo%20de%20Abertura.md) · [Visão do Produto](08-09-2026/Vis%C3%A3o%20do%20Produto.md) · [Papéis](08-09-2026/Pap%C3%A9is.md) |
-| 15/09/2026 | Stakeholders + requisitos prioritários | [Stakeholders](15-09-2026/Stakeholders.md) · [Requisitos Prioritários](15-09-2026/Requisitos%20Priorit%C3%A1rios.md) |
-| 22/09/2026 | Arquitetura inicial + organização do repositório Git | [Arquitetura Inicial](22-09-2026/Arquitetura%20Inicial.md) · [Organização do Repositório Git](22-09-2026/Organiza%C3%A7%C3%A3o%20do%20Reposit%C3%B3rio%20Git.md) |
+| 08/09/2026 | Termo de Abertura + visão do produto + papéis | [Termo de Abertura](08-09-2026/Termo%20de%20Abertura.md) · [Visão do Produto](08-09-2026/Vis%C3%A3o%20do%20Produto.md) · [Papéis](08-09-2026/Pap%C3%A9is.md) — também com a nota de evolução |
+| 15/09/2026 | Stakeholders + requisitos prioritários | [Stakeholders](15-09-2026/Stakeholders.md) · [Requisitos Prioritários](15-09-2026/Requisitos%20Priorit%C3%A1rios.md) — também com a nota de evolução |
+| 22/09/2026 | Arquitetura inicial + organização do repositório Git | [Arquitetura Inicial](22-09-2026/Arquitetura%20Inicial.md) · [Organização do Repositório Git](22-09-2026/Organiza%C3%A7%C3%A3o%20do%20Reposit%C3%B3rio%20Git.md) — também com a nota de evolução |
 | 29/09/2026 | Sprint 1: incremento funcional + documentação | [Sprint 1 - Incremento funcional + Documentação](29-09-2026/Sprint%201%20-%20Incremento%20funcional%20%2B%20Documenta%C3%A7%C3%A3o.md) |
 
 ## Pendências para o grupo preencher

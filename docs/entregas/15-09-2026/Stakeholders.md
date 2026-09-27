@@ -8,6 +8,10 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O stakeholder **S7 (administrador master)**, marcado com **†**, só passou a existir depois do primeiro commit do projeto — não havia, na ideia original, um papel de gestão de toda a plataforma. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
+
 *Stakeholders* são as pessoas e os grupos que **afetam** o projeto ou **são afetados** por ele. Conhecê-los ajuda a decidir quem ouvir, quando e como.
 
 ## 1. Registro de stakeholders
@@ -20,7 +24,7 @@
 | S4 | **Professor(a) da Fábrica** | Patrocinador e avaliador | Ver a aplicação dos conteúdos e a evolução da equipe | Entregas nas datas, documentação e produto funcionando na AV I e na entrega final |
 | S5 | **Instituição de ensino** | Contexto | Formaturas bem organizadas e imagem positiva | Uso responsável dos dados dos alunos |
 | S6 | **Fornecedores e prestadores** (buffet, música, fotografia, decoração, equipe de apoio) | Indireto | Ser conhecido pela turma e receber contatos | Vitrine com informações corretas e contato atualizado |
-| S7 | **Administrador master** (gestor da plataforma) | Operacional | Manter turmas e usuários em ordem | Visão de toda a plataforma e ferramentas seguras de exclusão |
+| S7 **†** | **Administrador master** (gestor da plataforma) | Operacional | Manter turmas e usuários em ordem | Visão de toda a plataforma e ferramentas seguras de exclusão |
 | S8 | **Provedores de serviço** (Google para o login, Gmail para o email) | Externo | Cumprir seus termos de uso | Uso dentro dos limites gratuitos e das regras de cada serviço |
 | S9 | **Familiares e convidados** | Indireto | Participar da festa | Informações de data, local e programação (não usam o sistema hoje) |
 
@@ -29,7 +33,7 @@
 | | **Interesse baixo** | **Interesse alto** |
 |---|---|---|
 | **Poder alto** | *Manter satisfeitos:* S5 Instituição, S8 Provedores | *Gerenciar de perto:* S1 Comissão, S3 Equipe, S4 Professor(a) |
-| **Poder baixo** | *Monitorar:* S9 Familiares e convidados | *Manter informados:* S2 Formandos, S6 Fornecedores, S7 Master |
+| **Poder baixo** | *Monitorar:* S9 Familiares e convidados | *Manter informados:* S2 Formandos, S6 Fornecedores, S7 Master **†** |
 
 ## 3. Análise e estratégia de engajamento
 
@@ -41,7 +45,7 @@
 | S4 Professor(a) | Alta: aprova e avalia | Entregar os marcos do cronograma; apresentar o produto rodando | Em cada marco |
 | S5 Instituição | Média | Respeitar privacidade e boas práticas de dados | Não há reunião prevista |
 | S6 Fornecedores | Baixa | Cadastro feito pela comissão; sem acesso ao sistema | Sob demanda |
-| S7 Master | Média | Painel próprio com confirmação em exclusões | A cada sprint |
+| S7 Master **†** | Média | Painel próprio com confirmação em exclusões | A cada sprint |
 | S8 Provedores | Média | Respeitar limites e termos; configurar chaves em variáveis de ambiente | Na configuração |
 
 ## 4. Necessidades por stakeholder e como o produto responde
@@ -51,7 +55,7 @@
 | A comissão precisa decidir com dados | RF-06 a RF-08 (votações, relatório e catálogo padrão) |
 | Os formandos querem ser ouvidos | RF-06 (votar e mudar o voto), RF-11 e RF-12 (dúvidas com votos) |
 | A comissão precisa saber quem participou | RF-09 (quem votou), RN-01 |
-| O gestor precisa de visão geral | RF-20, RF-21 (painel master) |
+| O gestor precisa de visão geral **†** | RF-20, RF-21 (painel master) |
 | A instituição espera cuidado com dados pessoais | RNF-05 a RNF-07 (segurança e privacidade) |
 | Os fornecedores querem visibilidade | RF-17 (vitrine de terceiros) |
 

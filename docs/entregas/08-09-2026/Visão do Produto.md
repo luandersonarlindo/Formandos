@@ -8,6 +8,10 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os pontos marcados com **†** (a persona do master, o login por email e senha e as várias turmas por administrador) só entraram no pensamento do produto depois do primeiro commit. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
+
 ## 1. Declaração de visão
 
 > **Para** comissões organizadoras e formandos de uma turma  
@@ -27,7 +31,7 @@ Organizar uma formatura exige decisões coletivas (local, comida, música, traje
 |---|---|---|---|
 | **Comissão organizadora** (administrador) | Representantes da turma e professores que organizam a festa | Decidir sem dados, responder a mesma pergunta várias vezes, acompanhar tarefas | Relatório de preferências, moderação de dúvidas, tarefas com responsável e prazo |
 | **Formando** (participante) | Aluno que vai se formar | Não sabe o que foi decidido, acha que sua opinião não conta | Vota, pergunta, vê a programação e a contagem regressiva |
-| **Gestor da plataforma** (master) | Quem mantém o sistema | Precisa apoiar várias turmas | Visão de todas as turmas e usuários |
+| **Gestor da plataforma** (master) **†** | Quem mantém o sistema | Precisa apoiar várias turmas | Visão de todas as turmas e usuários |
 
 ## 3.1. Cenários de uso
 
@@ -40,17 +44,17 @@ Organizar uma formatura exige decisões coletivas (local, comida, música, traje
 - **Participação de todos:** votos por categoria com opções descritivas (nada de "sim ou não").
 - **Decisão baseada em dados:** relatório automático com gráficos e a opção mais votada em destaque.
 - **Transparência e organização:** dúvidas respondidas em um lugar; tarefas com responsável; programação e contagem regressiva à vista.
-- **Simplicidade:** entra-se por convite, com a conta Google ou por email e senha; funciona no celular, no notebook e até na TV.
+- **Simplicidade:** entra-se por convite, com a conta Google ou por email e senha **†**; funciona no celular, no notebook e até na TV.
 
 ## 5. Principais funcionalidades
 
 | Grupo | Funcionalidades |
 |---|---|
-| Acesso | Login Google ou email e senha; confirmação de email; código de convite; várias turmas para administradores |
+| Acesso **†** | Login Google ou email e senha; confirmação de email; código de convite; várias turmas para administradores |
 | Decisão | Catálogo padrão (8 categorias) e catálogos personalizados; escolha única, múltipla e opção neutra; alterar voto; relatório com gráficos |
 | Comunicação | Dúvidas com votos e moderação (responder, destacar, apagar) |
 | Organização | Dashboard, programação, tarefas, terceiros |
-| Administração | Membros e papéis, convite, dados do evento; painel master |
+| Administração **†** | Membros e papéis, convite, dados do evento; painel master |
 
 ## 6. Diferenciais
 
@@ -75,6 +79,6 @@ Organizar uma formatura exige decisões coletivas (local, comida, música, traje
 
 ## 9. Restrições e premissas da visão
 
-- Produto acadêmico, sem hospedagem em produção neste ciclo.
+- Produto acadêmico, sem hospedagem em produção neste ciclo **†**.
 - Foco em turmas de ensino superior, mas o modelo serve a qualquer evento coletivo.
 - A evolução prevista (tema escuro, edição de perguntas, integração contínua) está no *Sprint Backlog*.
