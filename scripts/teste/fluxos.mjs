@@ -374,6 +374,45 @@ await grupo("admin", async () => {
     await dormir(1500);
     igual(sql(`select local_evento from turmas where id='${turmaTeste()}'`), "Salão Novo E2E", "local no banco");
   });
+  await passo("detalhes do evento: descrição, endereço, mapa e traje aparecem no dashboard", async () => {
+    await nav.abrir("/admin/evento");
+    await nav.preencher("#descricao", "Descrição E2E da festa");
+    await nav.preencher("#endereco", "Rua E2E, 100 - Recife");
+    await nav.preencher("#traje", "Gala E2E");
+    await nav.preencher("#observacoesLocal", "Estacionamento E2E na portaria");
+    await nav.preencher("#linkMapa", "http://inseguro.example.com/mapa");
+    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await nav.esperarTexto("precisa começar com https://");
+    igual(sql(`select coalesce(descricao,'') from turmas where id='${turmaTeste()}'`), "", "nada salvo com link inseguro");
+    await nav.preencher("#linkMapa", "https://maps.example.com/mapa-e2e");
+    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await nav.esperarTexto("Dados do evento salvos");
+    await nav.abrir("/dashboard");
+    await nav.esperarTexto("Descrição E2E da festa");
+    await nav.esperarTexto("Rua E2E, 100 - Recife");
+    await nav.esperarTexto("Gala E2E");
+    await nav.esperarTexto("Estacionamento E2E na portaria");
+    igual(
+      await nav.ev("[...document.querySelectorAll('a')].find((a) => a.textContent.includes('Como chegar'))?.getAttribute('href')"),
+      "https://maps.example.com/mapa-e2e",
+      "botão Como chegar",
+    );
+    // Término antes do início é recusado.
+    await nav.abrir("/admin/evento");
+    await nav.preencher("#dataEvento", "2030-05-10T20:00");
+    await nav.preencher("#dataFimEvento", "2030-05-10T19:00");
+    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await nav.esperarTexto("O término precisa ser depois do início");
+    // Limpa os campos de teste para os passos seguintes.
+    await nav.abrir("/admin/evento");
+    for (const id of ["#descricao", "#endereco", "#traje", "#observacoesLocal", "#linkMapa", "#dataFimEvento"]) {
+      await nav.preencher(id, "");
+    }
+    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await nav.esperarTexto("Dados do evento salvos");
+    await nav.abrir("/dashboard");
+    verdade(!(await nav.tem("Descrição E2E da festa")), "descrição removida");
+  });
   await passo("adicionar e remover item da programação", async () => {
     await nav.abrir("/admin/evento");
     await nav.clicar("Adicionar item", { seletor: "summary" });
