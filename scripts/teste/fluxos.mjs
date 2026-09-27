@@ -507,6 +507,58 @@ await grupo("admin", async () => {
       sql("delete from usuarios where email like 'teste-pm-%@example.invalid'");
     }
   });
+  await passo("arquivar turma: faixa, campos desativados e o servidor recusa alterações", async () => {
+    await nav.abrir("/admin/turma");
+    await nav.clicar("Arquivar turma", { seletor: "button" });
+    await dormir(1800);
+    igual(sql(`select arquivada_em is not null from turmas where id='${turmaTeste()}'`), "t", "arquivada");
+    await nav.abrir("/duvidas");
+    await nav.esperarTexto("Turma arquivada em");
+    igual(await nav.ev("document.querySelector('#texto-duvida').matches(':disabled')"), true, "campo desativado");
+    // Simula uma aba antiga ou um envio forjado: reabilita o campo e envia mesmo assim.
+    await nav.ev("document.querySelector('fieldset').disabled = false");
+    await nav.preencher("#texto-duvida", "Dúvida arquivada E2E");
+    await nav.clicar("Enviar dúvida", { seletor: "button" });
+    await dormir(2000);
+    igual(sql("select count(*) from duvidas where conteudo like 'Dúvida arquivada E2E%'"), "0", "o servidor recusou");
+    await nav.abrir("/admin/turma");
+    await nav.esperarTexto("Turma arquivada");
+    igual(await nav.ev("[...document.querySelectorAll('button')].find((b) => b.textContent.includes('Desarquivar turma')).matches(':disabled')"), false, "desarquivar funciona");
+  });
+  await passo("desarquivar volta a permitir alterações", async () => {
+    await nav.abrir("/admin/turma");
+    await nav.clicar("Desarquivar turma", { seletor: "button" });
+    await dormir(1800);
+    igual(sql(`select arquivada_em is null from turmas where id='${turmaTeste()}'`), "t", "desarquivada");
+    await nav.abrir("/duvidas");
+    await nav.esperarTexto("Envie a sua dúvida");
+    igual(await nav.ev("document.querySelector('#texto-duvida').matches(':disabled')"), false, "campo liberado");
+    verdade(!(await nav.tem("Turma arquivada em")), "faixa sumiu");
+  });
+  await passo("excluir turma pelo admin exige o nome e leva a outra turma", async () => {
+    sql(`insert into turmas (nome,codigo_convite,criado_por)
+      select 'Excluir E2E','TESTEDEL001',u.id from usuarios u where u.email='teste-sh@example.invalid'
+      on conflict do nothing`);
+    sql(`insert into membros (turma_id,usuario_id,papel)
+      select t.id,u.id,'admin' from turmas t, usuarios u
+       where t.codigo_convite='TESTEDEL001' and u.email='teste-sh@example.invalid' on conflict do nothing`);
+    await nav.abrir("/dashboard");
+    await nav.clicar("Excluir E2E", { seletor: "button" });
+    await nav.assentar();
+    await nav.abrir("/admin/turma");
+    await nav.esperarTexto("Digite o nome da turma");
+    await nav.preencher("#confirmacao", "errado");
+    await nav.clicar("Excluir turma", { seletor: "button" });
+    await dormir(1800);
+    igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "1", "nome errado não apaga");
+    await nav.preencher("#confirmacao", "Excluir E2E");
+    await nav.clicar("Excluir turma", { seletor: "button" });
+    await nav.esperarUrl("/dashboard");
+    await dormir(1500);
+    igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "0", "apagada");
+    await nav.abrir("/dashboard");
+    await nav.esperarTexto("Sistemas de Informação 2026");
+  });
   await passo("remover um membro", async () => {
     await nav.abrir("/admin/membros");
     await nav.clicar("Remover", { escopo: "João Lima", seletor: "button" });
