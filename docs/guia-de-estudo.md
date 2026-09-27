@@ -236,6 +236,7 @@ decisoes        (turma_id, enquete_id, opcao_id, decidido_por, created_at)   PK 
 votos           (turma_id, opcao_id, usuario_id)       PK (opcao_id, usuario_id)
                 -- votos identificados; mudar voto = apagar os antigos do usuário nessa enquete e inserir os novos, em uma transação
 
+avisos          (id, turma_id, autor_id, titulo, conteudo, created_at)   -- mural; só cria e apaga, sem editar
 presencas       (turma_id, usuario_id, status CHECK ('vou','talvez','nao'), acompanhantes, observacao, updated_at)   PK (turma_id, usuario_id)
                 -- só 'vou' tem acompanhantes contados (normalizado em src/lib/presenca-regras.ts)
 duvidas         (id, turma_id, autor_id, conteudo, resposta, respondida BOOL, destaque BOOL, created_at)
