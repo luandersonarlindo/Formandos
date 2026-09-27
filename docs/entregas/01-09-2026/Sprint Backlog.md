@@ -8,6 +8,10 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os itens marcados com **†** (A2, A3, A6 e E4) não estavam no backlog do primeiro commit: entraram depois, conforme a equipe percebeu a necessidade — login com Google sozinho dependia de configuração externa, um administrador podia precisar ajudar mais de uma turma, e faltava alguém para gerir a plataforma inteira. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
+
 ## 1. Como ler este documento
 
 - **Épico:** grande tema do produto. **História:** pedido de um usuário, no formato *"Como [papel], quero [ação], para [benefício]"*.
@@ -26,11 +30,11 @@
 | ID | História | Prior. | Est. | Status |
 |---|---|---|---|---|
 | A1 | Como formando, quero **entrar com minha conta Google**, para não criar mais uma senha | M | M | Concluído |
-| A2 | Como formando, quero **entrar com email e senha** (com confirmação do email), para acessar mesmo sem Google | M | G | Concluído |
-| A3 | Como formando, quero **recuperar ou criar minha senha** por email, para não perder o acesso | S | M | Concluído |
+| A2 **†** | Como formando, quero **entrar com email e senha** (com confirmação do email), para acessar mesmo sem Google | M | G | Concluído |
+| A3 **†** | Como formando, quero **recuperar ou criar minha senha** por email, para não perder o acesso | S | M | Concluído |
 | A4 | Como formando, quero **entrar em uma turma com um código de convite**, para participar da minha formatura | M | M | Concluído |
 | A5 | Como administrador, quero **criar uma turma** e receber um código de convite, para chamar os colegas | M | M | Concluído |
-| A6 | Como administrador, quero **participar de várias turmas** e trocar entre elas, para ajudar mais de uma comissão | S | G | Concluído |
+| A6 **†** | Como administrador, quero **participar de várias turmas** e trocar entre elas, para ajudar mais de uma comissão | S | G | Concluído |
 
 ### Épico B — Votações e relatório
 
@@ -67,7 +71,7 @@
 | E1 | Como formando, quero **ver os fornecedores** indicados pela comissão, com contato | S | M | Concluído |
 | E2 | Como administrador, quero **cadastrar e remover fornecedores** | S | P | Concluído |
 | E3 | Como administrador, quero **gerenciar membros** (promover, rebaixar, remover) e **gerar novo código de convite** | M | M | Concluído |
-| E4 | Como gestor da plataforma (**master**), quero **ver e gerir todas as turmas e usuários** | C | G | Concluído |
+| E4 **†** | Como gestor da plataforma (**master**), quero **ver e gerir todas as turmas e usuários** | C | G | Concluído |
 
 ### Épico F — Qualidade
 
