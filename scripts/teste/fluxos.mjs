@@ -913,6 +913,30 @@ await grupo("extras", async () => {
     const f = await nav.ev("(() => { const e = document.activeElement; const s = getComputedStyle(e); return { tag: e.tagName, largura: s.outlineWidth, estilo: s.outlineStyle, sombra: s.boxShadow !== 'none' }; })()");
     verdade((f.estilo !== "none" && f.largura !== "0px") || f.sombra, `sem indicação de foco: ${JSON.stringify(f)}`);
   });
+  await passo("celular: gaveta do menu abre, fecha e navega", async () => {
+    const gavetaAberta = () => nav.ev("!!document.querySelector('[role=dialog][aria-label=Menu]')");
+    await nav.tamanho(390, 800, true);
+    await nav.abrir("/dashboard");
+    igual(await gavetaAberta(), false, "menu começa fechado");
+    await nav.clicar("Abrir menu", { seletor: "button" });
+    igual(await gavetaAberta(), true, "abre ao clicar no botão de menu");
+    await nav.tem("Tarefas"); // garante que o link da navegação está visível na gaveta
+    await nav.clicar("Fechar menu", { seletor: "button" });
+    await dormir(300);
+    igual(await gavetaAberta(), false, "fecha ao clicar em Fechar menu");
+    await nav.clicar("Abrir menu", { seletor: "button" });
+    igual(await gavetaAberta(), true, "reabre");
+    await nav.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await nav.cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await dormir(300);
+    igual(await gavetaAberta(), false, "Esc fecha a gaveta");
+    await nav.clicar("Abrir menu", { seletor: "button" });
+    await nav.clicar("Tarefas", { seletor: "a" });
+    await nav.esperarUrl("/tarefas");
+    await dormir(300);
+    igual(await gavetaAberta(), false, "navegar pelo link fecha a gaveta");
+    await nav.tamanho(1280, 900, false);
+  });
   await passo("celular: menu, cabeçalho e formulário cabem na tela com toque", async () => {
     await nav.tamanho(390, 800, true);
     await nav.abrir("/tarefas");
