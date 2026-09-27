@@ -17,11 +17,13 @@ import {
 } from "@/actions/admin";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { FormResposta } from "@/components/features/form-resposta";
+import { Paginacao } from "@/components/features/paginacao";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { exigirAdmin } from "@/lib/dal";
 import { listarDuvidas } from "@/lib/duvidas";
+import { lerPagina } from "@/lib/paginacao";
 
 export const metadata: Metadata = { title: "Moderação de dúvidas" };
 
@@ -61,17 +63,14 @@ export default async function ModeracaoDuvidasPage({
   searchParams,
 }: PageProps<"/admin/duvidas">) {
   const admin = await exigirAdmin();
-  const { filtro: parametro } = await searchParams;
+  const { filtro: parametro, pagina: paginaParametro } = await searchParams;
   const filtro = FILTROS.find((f) => f.valor === parametro)?.valor ?? "todas";
-  const duvidas = await listarDuvidas(admin, { moderacao: true });
-  const contagem = (v: string) =>
-    v === "todas"
-      ? duvidas.length
-      : duvidas.filter((d) => d.respondida === (v === "respondidas")).length;
-  const visiveis =
-    filtro === "todas"
-      ? duvidas
-      : duvidas.filter((d) => d.respondida === (filtro === "respondidas"));
+  const { itens: visiveis, pagina, totalPaginas, contagens } = await listarDuvidas(admin, {
+    moderacao: true,
+    filtro,
+    pagina: lerPagina(paginaParametro),
+  });
+  const contagem = (v: keyof typeof contagens) => contagens[v];
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -79,9 +78,9 @@ export default async function ModeracaoDuvidasPage({
         Moderação de dúvidas
       </h1>
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
-        {duvidas.length === 0
+        {contagens.todas === 0
           ? "Nenhuma dúvida enviada ainda."
-          : `${contagem("abertas")} sem resposta de ${duvidas.length} no total. As não respondidas aparecem primeiro.`}
+          : `${contagem("abertas")} sem resposta de ${contagens.todas} no total. As não respondidas aparecem primeiro.`}
       </p>
 
       <nav
@@ -112,10 +111,10 @@ export default async function ModeracaoDuvidasPage({
         <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
           <MessagesSquare className="size-8 text-muted-foreground" aria-hidden />
           <p className="font-medium">
-            {duvidas.length === 0 ? "Nenhuma dúvida ainda" : "Nenhuma dúvida neste filtro"}
+            {contagens.todas === 0 ? "Nenhuma dúvida ainda" : "Nenhuma dúvida neste filtro"}
           </p>
           <p className="text-sm text-muted-foreground">
-            {duvidas.length === 0
+            {contagens.todas === 0
               ? "Quando alguém da turma perguntar, ela aparece aqui."
               : "Escolha outro filtro para ver as demais."}
           </p>
@@ -191,6 +190,12 @@ export default async function ModeracaoDuvidasPage({
           ))}
         </ul>
       )}
+      <Paginacao
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        caminho="/admin/duvidas"
+        parametros={{ filtro: filtro === "todas" ? undefined : filtro }}
+      />
     </div>
   );
 }
