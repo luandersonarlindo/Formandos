@@ -513,6 +513,42 @@ await grupo("admin", async () => {
     await nav.esperarTexto("Ainda não votaram");
     await nav.esperarTexto("Participação nesta pergunta");
   });
+  const enqueteLocal = () => sql("select id from enquetes where titulo='Onde vai ser o nosso evento?'");
+  await passo("decisão da turma: fixar, aparecer no dashboard, encerrar a votação e reabrir", async () => {
+    await nav.abrir(`/admin/votacoes/votos/${enqueteLocal()}`);
+    await nav.esperarTexto("Decisão da turma");
+    await nav.clicar("Espaço ao Ar Livre / Chácara", { seletor: "label", escopo: "Opção escolhida" });
+    await nav.clicar("Fixar decisão", { seletor: "button" });
+    await nav.esperarTexto("Decisão fixada");
+    igual(sql(`select o.texto from decisoes d join opcoes o on o.id=d.opcao_id where d.turma_id='${turmaTeste()}' and d.enquete_id='${enqueteLocal()}'`), "Espaço ao Ar Livre / Chácara", "decisão no banco");
+    await nav.abrir("/dashboard");
+    await nav.esperarTexto("Decisões da turma");
+    await nav.esperarTexto("Espaço ao Ar Livre / Chácara");
+    await nav.abrir(`/votacoes/${idPadrao()}`);
+    await nav.esperarTexto("Escolha da turma");
+    igual(await nav.ev("[...document.querySelectorAll('label')].find((l) => l.textContent.includes('Escolha da turma')).querySelector('input').matches(':disabled')"), true, "opções desativadas");
+    await nav.abrir(`/admin/votacoes/votos/${enqueteLocal()}`);
+    await nav.clicar("Reabrir votação", { seletor: "button" });
+    await dormir(1800);
+    igual(sql(`select count(*) from decisoes where turma_id='${turmaTeste()}'`), "0", "votação reaberta");
+  });
+  await passo("decisão fixada por outra aba: o servidor recusa o voto de quem tem a página antiga", async () => {
+    sql(`delete from decisoes where turma_id='${turmaTeste()}'`);
+    await nav.abrir(`/votacoes/${idPadrao()}`);
+    await nav.esperarTexto("Onde vai ser o nosso evento?");
+    const antes = sql("select o.texto from votos v join opcoes o on o.id=v.opcao_id join usuarios u on u.id=v.usuario_id join enquetes e on e.id=o.enquete_id where u.email='teste-sh@example.invalid' and e.titulo='Onde vai ser o nosso evento?'");
+    sql(`insert into decisoes (turma_id,enquete_id,opcao_id)
+      select '${turmaTeste()}', e.id, o.id from enquetes e join opcoes o on o.enquete_id=e.id
+       where e.titulo='Onde vai ser o nosso evento?' and o.texto='Rooftop Urbano'`);
+    try {
+      await nav.clicar("Rooftop Urbano", { escopo: "Onde vai ser o nosso evento?", seletor: "label" });
+      await nav.clicar("Salvar voto", { escopo: "Onde vai ser o nosso evento?", seletor: "button" });
+      await nav.esperarTexto("já decidiu");
+      igual(sql("select o.texto from votos v join opcoes o on o.id=v.opcao_id join usuarios u on u.id=v.usuario_id join enquetes e on e.id=o.enquete_id where u.email='teste-sh@example.invalid' and e.titulo='Onde vai ser o nosso evento?'"), antes, "o voto não mudou");
+    } finally {
+      sql(`delete from decisoes where turma_id='${turmaTeste()}'`);
+    }
+  });
   await passo("relatório: vários catálogos e empate no topo", async () => {
     sql(`insert into votos (turma_id,opcao_id,usuario_id)
       select '${turmaTeste()}', o.id, u.id from usuarios u, opcoes o join enquetes e on e.id=o.enquete_id
@@ -545,6 +581,7 @@ await grupo("admin", async () => {
     await nav.esperarTexto("Educação Infantil e ABC");
     igual(sql("select count(*) from categorias ca join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id is not null"), "5", "categorias copiadas");
     igual(sql("select count(*) from enquetes e join categorias ca on ca.id=e.categoria_id join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id is not null"), "10", "perguntas copiadas");
+    await nav.esperar("[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Excluir catálogo'))", 10000, "botão Excluir catálogo");
     await nav.clicar("Excluir catálogo", { seletor: "button" });
     await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
     igual(sql("select count(*) from catalogos where nome='Educação Infantil e ABC'"), "0", "catálogo");
