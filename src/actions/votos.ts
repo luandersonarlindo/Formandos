@@ -56,11 +56,17 @@ export async function votar(
     return { erro: "Essa opção não pode ser combinada com as outras." };
   }
 
-  await transacao(async (db) => {
+  const resultado = await transacao(async (db) => {
     // Dois envios simultâneos do mesmo usuário na mesma enquete esperam a vez.
     await db.query("select pg_advisory_xact_lock(hashtext($1))", [
       `${membro.usuarioId}:${enqueteId}`,
     ]);
+    // Pergunta com decisão fixada não aceita mais votos.
+    const { rowCount: decidida } = await db.query(
+      "select 1 from decisoes where turma_id = $1 and enquete_id = $2",
+      [membro.turmaId, enqueteId],
+    );
+    if (decidida) return "decidida" as const;
     await db.query(
       "delete from votos where usuario_id = $1 and opcao_id = any($2::uuid[])",
       [membro.usuarioId, opcoes.map((o) => o.id)],
@@ -70,7 +76,11 @@ export async function votar(
        select $1, unnest($2::uuid[]), $3`,
       [membro.turmaId, opcaoIds, membro.usuarioId],
     );
+    return "ok" as const;
   });
+  if (resultado === "decidida") {
+    return { erro: "A comissão já decidiu esta pergunta, então a votação foi encerrada." };
+  }
 
   revalidatePath(`/votacoes/${catalogoId}`);
   revalidatePath("/votacoes");
