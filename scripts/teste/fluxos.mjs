@@ -361,6 +361,34 @@ await grupo("app", async () => {
     await dormir(1500);
     igual(sql("select count(*) from fornecedores where nome='Flores E2E'"), "0", "removido");
   });
+  await passo("orçamento do fornecedor: status, valor e some para o participante", async () => {
+    await nav.abrir("/terceiros");
+    await nav.clicar("Adicionar fornecedor", { seletor: "summary" });
+    await nav.preencher("#nome", "Espaço Orçamento E2E");
+    await nav.preencher("#categoria", "Espaço");
+    await nav.clicar("Adicionar fornecedor", { seletor: "button" });
+    await nav.esperarTexto("Espaço Orçamento E2E");
+    try {
+      await preencherEm("Espaço Orçamento E2E", "select[name=status]", "contratado");
+      await preencherEm("Espaço Orçamento E2E", "input[name=valorOrcado]", "1500,50");
+      await nav.clicar("Salvar", { escopo: "Espaço Orçamento E2E", seletor: "button" });
+      await dormir(1800);
+      igual(sql("select status || ':' || valor_orcado from fornecedores where nome='Espaço Orçamento E2E'"), "contratado:1500.50", "salvo no banco");
+      await nav.abrir("/terceiros");
+      await nav.esperarTexto("Contratado");
+      await nav.esperarTexto("1.500,50");
+      verdade(await nav.tem("contratado"), "resumo mostra o valor contratado");
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/terceiros");
+      await nav.esperarTexto("Espaço Orçamento E2E");
+      verdade(!(await nav.tem("Orçamento com fornecedores")), "participante não vê o card de orçamento");
+      verdade(!(await nav.tem("1.500,50")), "participante não vê o valor");
+      verdade(!(await nav.tem("Contratado")), "participante não vê o status");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql("delete from fornecedores where nome='Espaço Orçamento E2E'");
+    }
+  });
   await passo("filtro de categoria em Terceiros", async () => {
     await nav.abrir("/terceiros?categoria=Buffet");
     await nav.esperarTexto("Buffet Sabor & Arte");
