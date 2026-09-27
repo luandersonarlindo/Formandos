@@ -119,6 +119,18 @@ create table if not exists decisoes (
 );
 create index if not exists idx_decisoes_enquete on decisoes (turma_id, enquete_id);
 
+-- Confirmação de presença: cada membro diz se vai ao evento e quantos
+-- acompanhantes leva. Só quem vai ("vou") tem acompanhantes.
+create table if not exists presencas (
+  turma_id      uuid not null references turmas(id) on delete cascade,
+  usuario_id    uuid not null references usuarios(id) on delete cascade,
+  status        varchar(10) not null check (status in ('vou', 'talvez', 'nao')),
+  acompanhantes smallint not null default 0 check (acompanhantes between 0 and 10),
+  observacao    varchar(255),
+  updated_at    timestamptz not null default now(),
+  primary key (turma_id, usuario_id)
+);
+
 -- Dúvidas (Q&A) ------------------------------------------------------------
 
 create table if not exists duvidas (
