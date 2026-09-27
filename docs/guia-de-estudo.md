@@ -126,13 +126,15 @@ src/
    │  ├─ page.tsx                    /admin                          Resumo do painel
    │  ├─ membros/page.tsx            /admin/membros                  Listar, remover, promover a admin
    │  ├─ convite/page.tsx            /admin/convite                  Ver e regenerar o código de convite
-   │  ├─ evento/page.tsx             /admin/evento                   Editar data, local e programação
+   │  ├─ evento/page.tsx             /admin/evento                   Editar descrição, data, local, endereço, mapa, traje e programação
+   │  ├─ turma/page.tsx              /admin/turma                    Arquivar, desarquivar e excluir a turma
    │  ├─ duvidas/page.tsx            /admin/duvidas                  Responder, destacar, marcar como respondida
    │  └─ votacoes/
    │     ├─ page.tsx                 /admin/votacoes                 Catálogos personalizados da turma
    │     ├─ nova/page.tsx            /admin/votacoes/nova            Criar catálogo personalizado
    │     ├─ [catalogoId]/page.tsx    /admin/votacoes/[catalogoId]    Editar catálogo, categorias, perguntas
    │     └─ votos/[enqueteId]/page.tsx  /admin/votacoes/votos/[enqueteId]   Ver quem votou em cada opção
+   ├─ (conta)/conta/page.tsx        /conta           Ver e excluir a própria conta (só exige login)
    └─ api/auth/[...all]/route.ts    /api/auth/*      Único Route Handler (Better Auth: login, cadastro, confirmação de e-mail)
 ```
 
@@ -217,7 +219,9 @@ Conceitos que mais confundem iniciantes:
 usuarios        (id uuid, name, email, emailVerified, image, createdAt, updatedAt)   -- do Better Auth (modelName "usuarios"; colunas em camelCase, exigem aspas no SQL)
 session, account, verification                                                       -- do Better Auth
 
-turmas          (id, nome, codigo_convite UNIQUE, data_evento, local_evento, criado_por -> usuarios.id)
+turmas          (id, nome, codigo_convite UNIQUE, data_evento, data_fim_evento, local_evento, endereco, link_mapa, traje,
+                 descricao, observacoes_local, arquivada_em, criado_por -> usuarios.id)
+                -- arquivada_em preenchido = turma só para leitura (as Server Actions recusam alterações)
 membros         (turma_id, usuario_id -> usuarios.id, papel CHECK ('admin','participante'))   PK (turma_id, usuario_id)
                 -- sem UNIQUE em usuario_id: admin pode ter várias turmas (regra na aplicação, src/lib/vinculos.ts)
 tentativas_convite (id, usuario_id, created_at)        -- códigos inválidos, para limitar tentativas (10 a cada 15 min)
@@ -226,6 +230,8 @@ catalogos       (id, turma_id NULL, nome)              -- turma_id NULL = catál
 categorias      (id, catalogo_id, nome, ordem)
 enquetes        (id, categoria_id, titulo, tipo CHECK ('unica','multipla'), ordem)
 opcoes          (id, enquete_id, texto, exclusiva BOOL, ordem)
+decisoes        (turma_id, enquete_id, opcao_id, decidido_por, created_at)   PK (turma_id, opcao_id)
+                -- opção(ões) fixada(s) pela comissão; com decisão a enquete não aceita votos. É por turma porque o catálogo padrão é compartilhado
 votos           (turma_id, opcao_id, usuario_id)       PK (opcao_id, usuario_id)
                 -- votos identificados; mudar voto = apagar os antigos do usuário nessa enquete e inserir os novos, em uma transação
 
@@ -288,6 +294,8 @@ Pontos-chave:
 - **Upvote:** um por usuário por dúvida, alternável. A lista ordena por votos, com dúvidas em destaque fixadas no topo.
 - **Dúvida:** `respondida` e `destaque` são indicadores independentes; só o admin muda. Responder com texto marca como respondida; salvar em branco remove a resposta.
 - **Seed do catálogo padrão:** script que lê `catalogo-enquetes.md` (10 categorias, 23 perguntas) e insere no banco, com `turma_id` nulo. Rodar de novo só acrescenta o que faltar, sem apagar votos. Todas as turmas enxergam esse catálogo.
+- **Turma arquivada:** `exigirMembroEditavel` e `exigirAdminEditavel` (em `dal.ts`) trocam as versões antigas em toda ação que altera dados; ficam de fora desarquivar, excluir e sair da turma. Na tela, uma faixa avisa e um `<fieldset disabled>` desativa os campos, por fora do `AnimarPagina`. Só a trava do servidor é segurança.
+- **Decisão da turma:** o admin fixa a opção vencedora em `/admin/votacoes/votos/[enqueteId]`; `votar` recusa voto em pergunta decidida. Reabrir apaga a decisão.
 - **Catálogos personalizados:** só o admin da turma cria e edita (categorias e perguntas; não dá para editar o texto de uma pergunta depois de criada). Aparecem só para aquela turma. Podem nascer de um **catálogo-modelo**: quatro arquivos em `docs/catalogos-modelo/` (Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, Área da Saúde) que a Server Action `criarCatalogoDeModelo` copia para a turma. Os modelos não passam pelo seed e só aparecem para votar depois de copiados.
 - **Tarefas:** o admin cria, edita e exclui; o responsável muda só o andamento da própria tarefa.
 - **Terceiros:** o admin cadastra fornecedores da turma; o contato só vira link se começar com `http://` ou `https://`.
