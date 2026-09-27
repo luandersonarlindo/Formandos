@@ -10,11 +10,13 @@ import {
   Navigation,
   Shirt,
   StickyNote,
+  UserCheck,
   Users,
   Vote,
   type LucideIcon,
 } from "lucide-react";
 import { ContagemRegressiva } from "@/components/features/contagem-regressiva";
+import { FormPresenca } from "@/components/features/form-presenca";
 import { FormSairTurma } from "@/components/features/form-sair-turma";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,6 +30,8 @@ import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
 import { getDetalhesEvento, getResumoTurma, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
 import { linkComoChegar } from "@/lib/evento";
+import { getMinhaPresenca } from "@/lib/presenca";
+import { ROTULO_PRESENCA } from "@/lib/presenca-regras";
 import {
   formatarDataHora,
   formatarDiaCurto,
@@ -82,11 +86,12 @@ function Indicador({
 
 export default async function DashboardPage() {
   const membro = await exigirMembro();
-  const [programacao, resumo, detalhes, decisoes] = await Promise.all([
+  const [programacao, resumo, detalhes, decisoes, presenca] = await Promise.all([
     listarProgramacao(membro),
     getResumoTurma(membro),
     getDetalhesEvento(membro),
     listarDecisoes(membro),
+    getMinhaPresenca(membro),
   ]);
   const comoChegar = linkComoChegar({
     linkMapa: detalhes.linkMapa,
@@ -189,6 +194,26 @@ export default async function DashboardPage() {
           )}
         </dl>
       </section>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <UserCheck className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Você vai ao evento?
+          </CardTitle>
+          <CardDescription>
+            {presenca.status
+              ? `Sua resposta: ${ROTULO_PRESENCA[presenca.status]}${
+                  presenca.status === "vou" && presenca.acompanhantes > 0
+                    ? `, com ${presenca.acompanhantes} ${presenca.acompanhantes === 1 ? "acompanhante" : "acompanhantes"}`
+                    : ""
+                }. Você pode mudar quando quiser.`
+              : "A comissão precisa saber quantas pessoas vêm para fechar o espaço e a comida."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormPresenca inicial={presenca} />
+        </CardContent>
+      </Card>
 
       <div data-grupo className="mt-4 grid gap-4 md:grid-cols-3">
         <Indicador
