@@ -8,6 +8,10 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O escopo e os custos abaixo (marcados com **†**) já refletem decisões tomadas depois do primeiro commit do projeto — login com email e senha, administração de várias turmas e o papel de master, além de uma tentativa real de hospedagem (Render) que foi revertida. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
+
 O Termo de Abertura autoriza formalmente o projeto e registra o que ele é, o que pretende entregar e dentro de quais limites.
 
 ## 1. Identificação
@@ -38,7 +42,7 @@ A organização de formaturas depende de muitas decisões coletivas e de muita i
 
 ## 4. Escopo
 
-**Dentro:** acesso (Google e email e senha), turmas e convites, papéis, votações e relatório, dúvidas com votos, dashboard, tarefas, fornecedores, administração da turma e da plataforma. Detalhes em *Definição do MVP*.
+**Dentro †:** acesso (Google e email e senha), turmas e convites, papéis, votações e relatório, dúvidas com votos, dashboard, tarefas, fornecedores, administração da turma e da plataforma. Detalhes em *Definição do MVP*.
 
 **Fora:** hospedagem em produção, aplicativo nativo, pagamentos e notificações. Detalhes em *Definição do MVP*.
 
@@ -77,7 +81,7 @@ A organização de formaturas depende de muitas decisões coletivas e de muita i
 | Next.js, React, PostgreSQL, Better Auth, Tailwind, Zod, Vitest e demais bibliotecas | R$ 0 (código aberto) |
 | Login com Google (projeto no Google Cloud) | R$ 0 |
 | Envio de email (SMTP do Gmail com senha de app) | R$ 0 |
-| Hospedagem | Não haverá |
+| Hospedagem **†** | Não haverá |
 | Trabalho da equipe | 4 integrantes, horas do curso |
 
 ## 9. Riscos de alto nível

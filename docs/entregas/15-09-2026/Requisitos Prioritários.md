@@ -8,6 +8,10 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requisitos marcados com **†** (RF-02, RF-03, RF-05, RF-20 e RF-21) não estavam no pensamento do primeiro commit: entraram depois, quando a equipe decidiu que o login só com Google não bastava, que um administrador podia ajudar mais de uma turma, e que faltava um papel para gerir toda a plataforma. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
+
 ## 1. Como ler este documento
 
 - **RF** = requisito funcional (o que o sistema faz). **RNF** = requisito não funcional (como o sistema se comporta). **RN** = regra de negócio.
@@ -21,10 +25,10 @@
 | ID | Requisito | Prior. | Onde | Situação |
 |---|---|---|---|---|
 | RF-01 | O sistema deve permitir **entrar com a conta Google** | M | `/entrar` | Atendido |
-| RF-02 | O sistema deve permitir **criar conta e entrar com email e senha**, exigindo a confirmação do email por link | M | `/entrar` | Atendido |
-| RF-03 | O sistema deve permitir **definir ou recuperar a senha** por um link enviado ao email | S | `/esqueci-senha`, `/redefinir-senha` | Atendido |
+| RF-02 **†** | O sistema deve permitir **criar conta e entrar com email e senha**, exigindo a confirmação do email por link | M | `/entrar` | Atendido |
+| RF-03 **†** | O sistema deve permitir **definir ou recuperar a senha** por um link enviado ao email | S | `/esqueci-senha`, `/redefinir-senha` | Atendido |
 | RF-04 | O usuário sem turma deve poder **entrar em uma turma com um código de convite** ou **criar uma turma** | M | `/convite` | Atendido |
-| RF-05 | O administrador deve poder **participar de várias turmas** e escolher a turma em uso | S | barra lateral | Atendido |
+| RF-05 **†** | O administrador deve poder **participar de várias turmas** e escolher a turma em uso | S | barra lateral | Atendido |
 
 ### 2.2. Votações e relatório
 
@@ -59,8 +63,8 @@
 |---|---|---|---|---|
 | RF-18 | O administrador deve **promover, rebaixar e remover membros** | M | `/admin/membros` | Atendido |
 | RF-19 | O administrador deve **ver e gerar um novo código de convite**, e **copiá-lo** com uma mensagem pronta | M | `/admin/convite` | Atendido |
-| RF-20 | O **master** deve **ver todas as turmas e usuários** e gerir os membros de qualquer turma | C | `/master` | Atendido |
-| RF-21 | O **master** deve **excluir turmas e usuários**, com confirmação digitada | C | `/master/turmas`, `/master/usuarios` | Atendido |
+| RF-20 **†** | O **master** deve **ver todas as turmas e usuários** e gerir os membros de qualquer turma | C | `/master` | Atendido |
+| RF-21 **†** | O **master** deve **excluir turmas e usuários**, com confirmação digitada | C | `/master/turmas`, `/master/usuarios` | Atendido |
 
 ## 3. Regras de negócio
 

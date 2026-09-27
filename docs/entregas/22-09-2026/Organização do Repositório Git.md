@@ -8,6 +8,10 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
+## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+
+Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O `.gitignore` guarda um traço dessa evolução: a linha `.vercel` (marcada com **†**) é sobra de quando o projeto chegou a preparar um deploy real (no Render, não na Vercel) antes de decidir ficar só no GitHub. A tabela completa dessa e de outras mudanças, com o commit e o porquê, está em **Kick-off** (seção 0).
+
 ## 1. Visão geral
 
 | Item | Situação |
@@ -84,7 +88,7 @@ Distribuição do histórico até 26/09/2026: 19 `feat`, 5 `docs`, 5 `chore`, 1 
 | `.env*` (exceto `.env.example`) | Segredos locais |
 | `client_secret_*.json` | Credenciais do Google |
 | `scripts/teste/.tmp/` | Cookies e capturas dos testes |
-| `.vercel` | Sobras de hospedagem |
+| `.vercel` **†** | Sobras de hospedagem |
 
 O arquivo `.env.example` é o **modelo** das variáveis de ambiente; quem clona copia para `.env.local` e preenche.
 
