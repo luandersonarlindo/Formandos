@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirAdmin } from "@/lib/dal";
+import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import type { EstadoForm } from "./tipos";
 import { gerarCodigoConvite } from "@/lib/convite";
@@ -16,7 +16,7 @@ const esquemaPapel = esquemaMembro.extend({
 });
 
 export async function regenerarConvite() {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   for (let tentativa = 0; tentativa < 5; tentativa++) {
     try {
       await pool.query("update turmas set codigo_convite = $1 where id = $2", [
@@ -32,7 +32,7 @@ export async function regenerarConvite() {
 }
 
 export async function alterarPapel(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaPapel.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   const { usuarioId, papel } = dados.data;
@@ -58,7 +58,7 @@ export async function alterarPapel(formData: FormData) {
 }
 
 export async function removerMembro(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaMembro.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   // Sair da própria turma é outra ação (sairDaTurma).
@@ -93,7 +93,7 @@ export async function responderDuvida(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaResposta.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { duvidaId, resposta } = dados.data;
@@ -110,7 +110,7 @@ export async function responderDuvida(
 }
 
 export async function alternarDestaque(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   await pool.query(
@@ -121,7 +121,7 @@ export async function alternarDestaque(formData: FormData) {
 }
 
 export async function alternarRespondida(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   await pool.query(
@@ -132,7 +132,7 @@ export async function alternarRespondida(formData: FormData) {
 }
 
 export async function apagarDuvida(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   await pool.query("delete from duvidas where id = $1 and turma_id = $2", [

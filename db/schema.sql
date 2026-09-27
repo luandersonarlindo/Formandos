@@ -21,6 +21,9 @@ create table if not exists turmas (
   created_at     timestamptz not null default now()
 );
 
+-- Turma arquivada: fica só para leitura (nada muda) até ser desarquivada.
+alter table turmas add column if not exists arquivada_em timestamptz;
+
 -- Quem é administrador em alguma turma pode participar de várias. Essa regra
 -- ("só admin entra em outra turma") é conferida na aplicação, em
 -- src/lib/vinculos.ts, e não no banco.

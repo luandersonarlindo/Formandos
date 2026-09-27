@@ -4,6 +4,7 @@ import { Plus, type LucideIcon } from "lucide-react";
 import { AnimarPagina } from "@/components/animacao/animar-pagina";
 import { AvatarUsuario } from "./avatar-usuario";
 import { BotaoSair } from "./botao-sair";
+import { ConteudoTurma } from "./conteudo-turma";
 import { NavLink } from "./nav-link";
 
 export type ItemMenu = {
@@ -17,7 +18,7 @@ type Rodape = { href: string; rotulo: string };
 
 export type SeletorTurmas = {
   ativaId: string;
-  lista: { id: string; nome: string; papel: "admin" | "participante" }[];
+  lista: { id: string; nome: string; papel: "admin" | "participante"; arquivada: boolean }[];
   podeAdicionar: boolean;
 };
 
@@ -25,6 +26,8 @@ type AppShellProps = {
   titulo: string;
   turmas?: SeletorTurmas;
   itens: ItemMenu[];
+  // Data em que a turma foi arquivada (ISO), ou null. Deixa o conteúdo só leitura.
+  arquivadaEm?: string | null;
   rodape?: Rodape | Rodape[];
   usuario: { nome: string; email: string; imagem?: string | null };
   children: React.ReactNode;
@@ -35,6 +38,7 @@ export function AppShell({
   titulo,
   turmas,
   itens,
+  arquivadaEm = null,
   rodape,
   usuario,
   children,
@@ -84,6 +88,11 @@ export function AppShell({
                           }
                         />
                         <span className="min-w-0 flex-1 truncate">{t.nome}</span>
+                        {t.arquivada && (
+                          <span className="shrink-0 rounded-full border px-1.5 text-[10px] font-normal text-muted-foreground">
+                            arquivada
+                          </span>
+                        )}
                       </button>
                     </form>
                   </li>
@@ -135,7 +144,9 @@ export function AppShell({
         </div>
       </aside>
       <main id="conteudo" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none sm:p-6 lg:p-8 2xl:p-12">
-        <AnimarPagina>{children}</AnimarPagina>
+        <ConteudoTurma arquivadaEm={arquivadaEm}>
+          <AnimarPagina>{children}</AnimarPagina>
+        </ConteudoTurma>
       </main>
     </div>
   );

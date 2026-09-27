@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirAdmin } from "@/lib/dal";
+import { exigirAdminEditavel } from "@/lib/dal";
 import { pool } from "@/lib/db";
 import { CATEGORIAS_FORNECEDOR } from "@/lib/terceiros";
 import type { EstadoForm } from "./tipos";
@@ -30,7 +30,7 @@ export async function criarFornecedor(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaFornecedor.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { nome, categoria, descricao, contato } = dados.data;
@@ -45,7 +45,7 @@ export async function criarFornecedor(
 }
 
 export async function excluirFornecedor(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = z.object({ id: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   await pool.query("delete from fornecedores where id = $1 and turma_id = $2", [

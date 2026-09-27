@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { exigirAdmin } from "@/lib/dal";
+import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { getModelo } from "@/lib/modelos";
 import type { EstadoForm } from "./tipos";
@@ -52,7 +52,7 @@ export async function criarCatalogo(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaCatalogo.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
 
@@ -78,7 +78,7 @@ export async function criarCatalogoDeModelo(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = z.object({ modelo: z.string().min(1) }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Escolha um modelo." };
   const modelo = await getModelo(dados.data.modelo);
@@ -133,7 +133,7 @@ export async function renomearCatalogo(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaRenomear.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { rowCount } = await pool.query(
@@ -146,7 +146,7 @@ export async function renomearCatalogo(
 }
 
 export async function excluirCatalogo(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = z.object({ catalogoId: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   // Apaga em cascata categorias, enquetes, opções e votos.
@@ -162,7 +162,7 @@ export async function adicionarCategoria(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaCategoria.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { catalogoId, nome } = dados.data;
@@ -193,7 +193,7 @@ export async function adicionarCategoria(
 }
 
 export async function excluirCategoria(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = z.object({ categoriaId: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   await pool.query(
@@ -211,7 +211,7 @@ export async function adicionarEnquete(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const enviados = Object.fromEntries(formData) as Record<string, string>;
   const dados = esquemaEnquete.safeParse(enviados);
   if (!dados.success) {
@@ -276,7 +276,7 @@ export async function adicionarEnquete(
 }
 
 export async function excluirEnquete(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = z.object({ enqueteId: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   // Apaga também as opções e os votos da pergunta.

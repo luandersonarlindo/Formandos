@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirAdmin, exigirMembro } from "@/lib/dal";
+import { exigirAdminEditavel, exigirMembroEditavel } from "@/lib/dal";
 import { pool } from "@/lib/db";
 import { STATUS_TAREFA } from "@/lib/tarefas";
 import type { EstadoForm } from "./tipos";
@@ -54,7 +54,7 @@ export async function criarTarefa(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaTarefa.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { titulo, descricao, responsavelId, prazo } = dados.data;
@@ -74,7 +74,7 @@ export async function criarTarefa(
 
 // Administrador: muda status, responsável e prazo.
 export async function atualizarTarefa(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaAtualizacao.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   const { tarefaId, status, responsavelId, prazo } = dados.data;
@@ -91,7 +91,7 @@ export async function atualizarTarefa(formData: FormData) {
 
 // Responsável (mesmo sem ser admin) muda só o status da própria tarefa.
 export async function atualizarStatusTarefa(formData: FormData) {
-  const membro = await exigirMembro();
+  const membro = await exigirMembroEditavel();
   const dados = esquemaStatus.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
 
@@ -105,7 +105,7 @@ export async function atualizarStatusTarefa(formData: FormData) {
 }
 
 export async function excluirTarefa(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaId.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   await pool.query("delete from tarefas where id = $1 and turma_id = $2", [

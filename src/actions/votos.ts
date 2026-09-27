@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirMembro } from "@/lib/dal";
+import { exigirMembroEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import type { EstadoForm } from "./tipos";
 
@@ -19,7 +19,7 @@ export async function votar(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const membro = await exigirMembro();
+  const membro = await exigirMembroEditavel();
 
   const dados = esquemaVoto.safeParse({
     enqueteId: formData.get("enqueteId"),

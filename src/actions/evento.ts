@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirAdmin } from "@/lib/dal";
+import { exigirAdminEditavel } from "@/lib/dal";
 import { pool } from "@/lib/db";
 import type { EstadoForm } from "./tipos";
 
@@ -49,7 +49,7 @@ export async function salvarEvento(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaEvento.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { nome, dataEvento, localEvento } = dados.data;
@@ -71,7 +71,7 @@ export async function adicionarItemProgramacao(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = esquemaItem.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { horario, titulo, descricao } = dados.data;
@@ -94,7 +94,7 @@ export async function adicionarItemProgramacao(
 }
 
 export async function removerItemProgramacao(formData: FormData) {
-  const admin = await exigirAdmin();
+  const admin = await exigirAdminEditavel();
   const dados = z.object({ id: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   await pool.query("delete from programacao where id = $1 and turma_id = $2", [
