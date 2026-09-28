@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CircleCheck, MessageSquareReply, MessagesSquare, Star } from "lucide-react";
+import { CircleCheck, MessageSquareReply, MessagesSquare, Pencil, Star } from "lucide-react";
+import { editarDuvida } from "@/actions/duvidas";
 import { BotaoUpvote } from "@/components/features/botao-upvote";
+import { FormAcao } from "@/components/features/form-acao";
 import { FormNovaDuvida } from "@/components/features/form-nova-duvida";
 import { Paginacao } from "@/components/features/paginacao";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { exigirMembro } from "@/lib/dal";
 import { listarDuvidas } from "@/lib/duvidas";
 import { lerPagina } from "@/lib/paginacao";
@@ -121,6 +124,19 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                       </span>
                       {d.autor} · {formatarData.format(d.criadaEm)}
                     </p>
+                    {d.autorId === membro.usuarioId && (
+                      <details className="mt-1">
+                        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+                          <Pencil className="size-3.5" aria-hidden /> Editar dúvida
+                        </summary>
+                        <div className="mt-2">
+                          <FormAcao acao={editarDuvida} rotulo="Salvar">
+                            <input type="hidden" name="duvidaId" value={d.id} />
+                            <Textarea name="conteudo" defaultValue={d.conteudo} maxLength={500} rows={2} required />
+                          </FormAcao>
+                        </div>
+                      </details>
+                    )}
                     {d.resposta && (
                       <div className="mt-3 rounded-lg border-l-2 border-[var(--vitrine-a)] bg-muted/60 p-3 text-sm">
                         <p className="flex items-center gap-1.5 font-medium">

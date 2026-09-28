@@ -30,3 +30,16 @@ export function formatarPrazo(iso: string) {
 export function hojeIso() {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: FUSO }).format(new Date());
 }
+
+// "AAAA-MM-DDTHH:mm" no fuso do Brasil, pronto para <input type="datetime-local">.
+export function paraDatetimeLocal(data: Date) {
+  const partes = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: FUSO,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(data);
+  return partes.replace(" ", "T");
+}

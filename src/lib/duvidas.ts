@@ -10,6 +10,7 @@ export type Duvida = {
   respondida: boolean;
   destaque: boolean;
   criadaEm: Date;
+  autorId: string;
   autor: string;
   votos: number;
   votei: boolean;
@@ -60,7 +61,7 @@ export async function listarDuvidas(
 
   const { rows } = await pool.query(
     `select d.id, d.conteudo, d.resposta, d.respondida, d.destaque,
-            d.created_at as "criadaEm", u.name as autor,
+            d.created_at as "criadaEm", d.autor_id as "autorId", u.name as autor,
             (select count(*) from duvida_upvotes x
               where x.duvida_id = d.id)::int as votos,
             exists (select 1 from duvida_upvotes x

@@ -10,6 +10,7 @@ import {
   Mail,
   Wallet,
   Music,
+  Pencil,
   Phone,
   Plus,
   Store,
@@ -19,12 +20,17 @@ import {
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
-import { excluirFornecedor } from "@/actions/terceiros";
+import { atualizarFornecedor, excluirFornecedor } from "@/actions/terceiros";
+import { FormAcao } from "@/components/features/form-acao";
 import { FormOrcamento } from "@/components/features/form-orcamento";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import { exigirMembro } from "@/lib/dal";
 import { cn } from "@/lib/utils";
 import { formatarReal, ROTULO_ORCAMENTO } from "@/lib/orcamento";
@@ -218,6 +224,36 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                           status={(f as Fornecedor).status}
                           valorOrcado={(f as Fornecedor).valorOrcado}
                         />
+                        <details>
+                          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+                            <Pencil className="size-3.5" aria-hidden /> Editar dados
+                          </summary>
+                          <div className="mt-3">
+                            <FormAcao acao={atualizarFornecedor} rotulo="Salvar" className="grid gap-2">
+                              <input type="hidden" name="id" value={f.id} />
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor={`nome-${f.id}`} className="text-xs">Nome</Label>
+                                <Input id={`nome-${f.id}`} name="nome" defaultValue={f.nome} maxLength={255} required />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor={`categoria-${f.id}`} className="text-xs">Categoria</Label>
+                                <NativeSelect id={`categoria-${f.id}`} name="categoria" defaultValue={f.categoria} required>
+                                  {CATEGORIAS_FORNECEDOR.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                  ))}
+                                </NativeSelect>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor={`descricao-${f.id}`} className="text-xs">Descrição</Label>
+                                <Textarea id={`descricao-${f.id}`} name="descricao" defaultValue={f.descricao ?? ""} maxLength={1000} rows={2} />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor={`contato-${f.id}`} className="text-xs">Contato</Label>
+                                <Input id={`contato-${f.id}`} name="contato" defaultValue={f.contato ?? ""} maxLength={255} />
+                              </div>
+                            </FormAcao>
+                          </div>
+                        </details>
                         <form action={excluirFornecedor}>
                           <input type="hidden" name="id" value={f.id} />
                           <Button type="submit" variant="destructive" size="sm">

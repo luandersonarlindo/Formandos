@@ -192,6 +192,28 @@ export async function adicionarCategoria(
   return { ok: "Categoria adicionada." };
 }
 
+export async function renomearCategoria(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = esquemaCategoria
+    .omit({ catalogoId: true })
+    .extend({ categoriaId: z.uuid() })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+
+  const { rowCount } = await pool.query(
+    `update categorias ca set nome = $1
+      from catalogos c
+     where ca.id = $2 and c.id = ca.catalogo_id and c.turma_id = $3`,
+    [dados.data.nome, dados.data.categoriaId, admin.turmaId],
+  );
+  if (!rowCount) return { erro: "Categoria não encontrada." };
+  revalidarCatalogo();
+  return { ok: "Nome salvo." };
+}
+
 export async function excluirCategoria(formData: FormData) {
   const admin = await exigirAdminEditavel();
   const dados = z.object({ categoriaId: z.uuid() }).safeParse(Object.fromEntries(formData));
@@ -273,6 +295,115 @@ export async function adicionarEnquete(
   }
   revalidarCatalogo(resultado.catalogo);
   return { ok: "Pergunta adicionada." };
+}
+
+const esquemaAtualizarEnquete = z.object({
+  enqueteId: z.uuid(),
+  titulo: z
+    .string()
+    .trim()
+    .min(5, "A pergunta precisa ter pelo menos 5 caracteres.")
+    .max(500, "A pergunta pode ter no máximo 500 caracteres."),
+  tipo: z.enum(["unica", "multipla"], "Escolha o tipo da pergunta."),
+  novaOpcao: z.string().max(255, "A opção pode ter no máximo 255 caracteres.").optional().default(""),
+  exclusivaId: z.string().optional().default(""),
+});
+
+// Edita título, tipo e opções de uma pergunta já criada. Preserva o id das
+// opções existentes (e os votos ligados a elas): só apaga uma opção marcada
+// para remover se ela ainda não tiver voto nenhum. Pelo mesmo motivo, o tipo
+// só pode mudar enquanto ninguém votou na pergunta.
+export async function atualizarEnquete(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const enviados = Object.fromEntries(formData) as Record<string, string>;
+  const dados = esquemaAtualizarEnquete.safeParse(enviados);
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+  const { enqueteId, titulo, tipo, novaOpcao, exclusivaId } = dados.data;
+
+  const edicoes = new Map<string, { texto: string; remover: boolean }>();
+  for (const [chave, valor] of formData) {
+    if (typeof valor !== "string" || !chave.startsWith("opcao-")) continue;
+    const texto = valor.trim().slice(0, 255);
+    if (!texto) continue;
+    const id = chave.slice("opcao-".length);
+    edicoes.set(id, { texto, remover: formData.get(`remover-${id}`) === "on" });
+  }
+
+  const resultado = await transacao(async (db) => {
+    const { rows } = await db.query(
+      `select e.tipo,
+              (select count(distinct v.usuario_id)::int from votos v
+                 join opcoes o on o.id = v.opcao_id where o.enquete_id = e.id) as votantes
+         from enquetes e
+         join categorias ca on ca.id = e.categoria_id
+         join catalogos c on c.id = ca.catalogo_id
+        where e.id = $1 and c.turma_id = $2
+          for update of e`,
+      [enqueteId, admin.turmaId],
+    );
+    if (!rows.length) return { estado: "inexistente" as const };
+    if (rows[0].votantes > 0 && tipo !== rows[0].tipo) return { estado: "temVotos" as const };
+
+    const { rows: opcoesAtuais } = await db.query(
+      `select o.id, (select count(*)::int from votos v where v.opcao_id = o.id) as votos
+         from opcoes o where o.enquete_id = $1`,
+      [enqueteId],
+    );
+    const votosPorOpcao = new Map<string, number>(opcoesAtuais.map((o) => [o.id, o.votos]));
+
+    let restantes = opcoesAtuais.length;
+    for (const [id, e] of edicoes) {
+      if (e.remover && votosPorOpcao.get(id) === 0) restantes--;
+    }
+    if (novaOpcao.trim()) restantes++;
+    if (restantes < 2) return { estado: "poucasOpcoes" as const };
+
+    await db.query("update enquetes set titulo = $1, tipo = $2 where id = $3", [
+      titulo,
+      tipo,
+      enqueteId,
+    ]);
+
+    for (const [id, e] of edicoes) {
+      if (e.remover && votosPorOpcao.get(id) === 0) {
+        await db.query("delete from opcoes where id = $1 and enquete_id = $2", [id, enqueteId]);
+        continue;
+      }
+      await db.query("update opcoes set texto = $1, exclusiva = $2 where id = $3 and enquete_id = $4", [
+        e.texto,
+        tipo === "multipla" && exclusivaId === id,
+        id,
+        enqueteId,
+      ]);
+    }
+
+    if (novaOpcao.trim()) {
+      const { rows: ordemRows } = await db.query(
+        "select coalesce(max(ordem), -1) + 1 as proxima from opcoes where enquete_id = $1",
+        [enqueteId],
+      );
+      await db.query("insert into opcoes (enquete_id, texto, exclusiva, ordem) values ($1, $2, $3, $4)", [
+        enqueteId,
+        novaOpcao.trim().slice(0, 255),
+        tipo === "multipla" && exclusivaId === "nova",
+        ordemRows[0].proxima,
+      ]);
+    }
+    return { estado: "ok" as const };
+  });
+
+  if (resultado.estado === "inexistente") return { erro: "Pergunta não encontrada." };
+  if (resultado.estado === "temVotos") {
+    return { erro: "Não é possível mudar o tipo depois de já ter votos." };
+  }
+  if (resultado.estado === "poucasOpcoes") {
+    return { erro: "A pergunta precisa ter pelo menos 2 opções." };
+  }
+  revalidarCatalogo();
+  return { ok: "Pergunta atualizada." };
 }
 
 export async function excluirEnquete(formData: FormData) {

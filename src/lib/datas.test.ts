@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatarHora, formatarPrazo, hojeIso } from "./datas";
+import { formatarHora, formatarPrazo, hojeIso, paraDatetimeLocal } from "./datas";
 
 describe("formatarPrazo", () => {
   it("converte AAAA-MM-DD em DD/MM/AAAA sem mudar o dia", () => {
@@ -18,5 +18,12 @@ describe("formatarHora", () => {
   it("usa o fuso de Brasília, independente do servidor", () => {
     // 23:00 UTC = 20:00 em Brasília (UTC-3).
     expect(formatarHora.format(new Date("2026-12-12T23:00:00Z"))).toBe("20:00");
+  });
+});
+
+describe("paraDatetimeLocal", () => {
+  it("converte para o formato do input datetime-local, no fuso de Brasília", () => {
+    // 23:00 UTC = 20:00 em Brasília (UTC-3).
+    expect(paraDatetimeLocal(new Date("2026-12-12T23:00:00Z"))).toBe("2026-12-12T20:00");
   });
 });

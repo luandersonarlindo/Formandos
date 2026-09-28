@@ -122,6 +122,28 @@ export async function adicionarItemProgramacao(
   return { ok: "Item adicionado." };
 }
 
+export async function atualizarItemProgramacao(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = esquemaItem
+    .extend({ id: z.uuid() })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+  const { id, horario, titulo, descricao } = dados.data;
+
+  const { rowCount } = await pool.query(
+    `update programacao
+        set horario = $1::timestamp at time zone 'America/Sao_Paulo', titulo = $2, descricao = $3
+      where id = $4 and turma_id = $5`,
+    [horario, titulo, descricao, id, admin.turmaId],
+  );
+  if (!rowCount) return { erro: "Item não encontrado." };
+  revalidarEvento();
+  return { ok: "Item atualizado." };
+}
+
 export async function removerItemProgramacao(formData: FormData) {
   const admin = await exigirAdminEditavel();
   const dados = z.object({ id: z.uuid() }).safeParse(Object.fromEntries(formData));

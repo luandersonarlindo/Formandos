@@ -45,6 +45,27 @@ export async function criarFornecedor(
   return { ok: "Fornecedor adicionado." };
 }
 
+export async function atualizarFornecedor(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = esquemaFornecedor
+    .extend({ id: z.uuid() })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+  const { id, nome, categoria, descricao, contato } = dados.data;
+
+  const { rowCount } = await pool.query(
+    `update fornecedores set nome = $1, categoria = $2, descricao = $3, contato = $4
+      where id = $5 and turma_id = $6`,
+    [nome, categoria, descricao, contato, id, admin.turmaId],
+  );
+  if (!rowCount) return { erro: "Fornecedor não encontrado." };
+  revalidatePath("/terceiros");
+  return { ok: "Fornecedor atualizado." };
+}
+
 export async function excluirFornecedor(formData: FormData) {
   const admin = await exigirAdminEditavel();
   const dados = z.object({ id: z.uuid() }).safeParse(Object.fromEntries(formData));
