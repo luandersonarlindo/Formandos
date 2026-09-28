@@ -26,6 +26,10 @@ export const googleConfigurado = Boolean(
 export const auth = betterAuth({
   database: pool,
   baseURL: process.env.BETTER_AUTH_URL,
+  // Sem isso, acessar pelo IP da rede local (celular, tablet, TV) faz o
+  // Better Auth recusar login e sessão: por padrão só confia na origem de
+  // BETTER_AUTH_URL (localhost). Ver LAN_ORIGIN em .env.example.
+  trustedOrigins: process.env.LAN_ORIGIN ? [process.env.LAN_ORIGIN] : undefined,
   // A tabela de usuários do Better Auth se chama `usuarios` (e não `user`,
   // que é palavra reservada no PostgreSQL).
   user: { modelName: "usuarios" },
