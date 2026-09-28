@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarDays, CalendarClock, Link2, MapPin, Plus, Shirt, Trash2, Users } from "lucide-react";
+import { CalendarDays, CalendarClock, Link2, MapPin, Pencil, Plus, Shirt, Trash2, Users } from "lucide-react";
 import {
   adicionarItemProgramacao,
+  atualizarItemProgramacao,
   removerItemProgramacao,
   salvarEvento,
 } from "@/actions/evento";
@@ -21,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getEventoAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 import { listarProgramacao } from "@/lib/dashboard";
-import { formatarDiaCurto, formatarHora } from "@/lib/datas";
+import { formatarDiaCurto, formatarHora, paraDatetimeLocal } from "@/lib/datas";
 
 export const metadata: Metadata = { title: "Evento" };
 
@@ -160,12 +161,36 @@ export default async function EventoPage() {
                       <p className="wrap-break-word text-sm text-muted-foreground">{item.descricao}</p>
                     )}
                   </div>
-                  <form action={removerItemProgramacao}>
-                    <input type="hidden" name="id" value={item.id} />
-                    <Button type="submit" variant="destructive" size="sm">
-                      <Trash2 aria-hidden /> Remover
-                    </Button>
-                  </form>
+                  <div className="flex flex-col gap-2">
+                    <details className="group">
+                      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+                        <Pencil className="size-3.5" aria-hidden /> Editar
+                      </summary>
+                      <div className="mt-3 w-64">
+                        <FormAcao acao={atualizarItemProgramacao} rotulo="Salvar" rotuloPendente="Salvando…">
+                          <input type="hidden" name="id" value={item.id} />
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`horario-${item.id}`} className="text-xs">Data e hora</Label>
+                            <Input id={`horario-${item.id}`} name="horario" type="datetime-local" defaultValue={paraDatetimeLocal(item.horario)} className="h-9" required />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`titulo-${item.id}`} className="text-xs">Título</Label>
+                            <Input id={`titulo-${item.id}`} name="titulo" defaultValue={item.titulo} maxLength={255} className="h-9" required />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`descricao-${item.id}`} className="text-xs">Descrição</Label>
+                            <Textarea id={`descricao-${item.id}`} name="descricao" defaultValue={item.descricao ?? ""} maxLength={500} rows={2} />
+                          </div>
+                        </FormAcao>
+                      </div>
+                    </details>
+                    <form action={removerItemProgramacao}>
+                      <input type="hidden" name="id" value={item.id} />
+                      <Button type="submit" variant="destructive" size="sm">
+                        <Trash2 aria-hidden /> Remover
+                      </Button>
+                    </form>
+                  </div>
                 </li>
               ))}
             </ol>

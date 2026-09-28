@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { Megaphone, Trash2 } from "lucide-react";
-import { excluirAviso } from "@/actions/avisos";
+import { Megaphone, Pencil, Trash2 } from "lucide-react";
+import { atualizarAviso, excluirAviso } from "@/actions/avisos";
+import { FormAcao } from "@/components/features/form-acao";
 import { FormNovoAviso } from "@/components/features/form-novo-aviso";
 import { Paginacao } from "@/components/features/paginacao";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { listarAvisos } from "@/lib/avisos";
 import { exigirMembro } from "@/lib/dal";
 import { lerPagina } from "@/lib/paginacao";
@@ -56,12 +60,30 @@ export default async function AvisosPage({ searchParams }: PageProps<"/avisos">)
                     {a.autor} · {formatarData.format(a.criadoEm)}
                   </p>
                   {ehAdmin && (
-                    <form action={excluirAviso} className="mt-1 border-t pt-3">
-                      <input type="hidden" name="id" value={a.id} />
-                      <Button type="submit" variant="destructive" size="sm">
-                        <Trash2 aria-hidden /> Remover
-                      </Button>
-                    </form>
+                    <details className="mt-1 border-t pt-3">
+                      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+                        <Pencil className="size-3.5" aria-hidden /> Editar ou remover
+                      </summary>
+                      <div className="mt-3 flex flex-col gap-3">
+                        <FormAcao acao={atualizarAviso} rotulo="Salvar">
+                          <input type="hidden" name="id" value={a.id} />
+                          <div className="flex flex-col gap-1.5">
+                            <Label htmlFor={`titulo-${a.id}`} className="text-xs">Título</Label>
+                            <Input id={`titulo-${a.id}`} name="titulo" defaultValue={a.titulo} maxLength={200} required />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <Label htmlFor={`conteudo-${a.id}`} className="text-xs">Recado</Label>
+                            <Textarea id={`conteudo-${a.id}`} name="conteudo" defaultValue={a.conteudo} maxLength={2000} rows={3} required />
+                          </div>
+                        </FormAcao>
+                        <form action={excluirAviso}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <Button type="submit" variant="destructive" size="sm">
+                            <Trash2 aria-hidden /> Remover
+                          </Button>
+                        </form>
+                      </div>
+                    </details>
                   )}
                 </CardContent>
               </Card>

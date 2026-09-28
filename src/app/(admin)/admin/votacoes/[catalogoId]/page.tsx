@@ -15,10 +15,12 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import {
   adicionarCategoria,
+  atualizarEnquete,
   excluirCatalogo,
   excluirCategoria,
   excluirEnquete,
   renomearCatalogo,
+  renomearCategoria,
 } from "@/actions/catalogos";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormEnquete } from "@/components/features/form-enquete";
@@ -27,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { getCatalogoAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 
@@ -129,7 +132,14 @@ export default async function CatalogoAdminPage(
       {catalogo.categorias.map((categoria) => (
         <section key={categoria.id} id={`cat-${categoria.id}`} className="mt-8 scroll-mt-16">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">{categoria.nome}</h2>
+            {editavel ? (
+              <FormAcao acao={renomearCategoria} rotulo="Salvar" className="flex flex-1 flex-wrap items-center gap-2">
+                <input type="hidden" name="categoriaId" value={categoria.id} />
+                <Input name="nome" defaultValue={categoria.nome} maxLength={100} className="h-9 w-auto min-w-48 font-semibold" aria-label={`Nome da categoria ${categoria.nome}`} required />
+              </FormAcao>
+            ) : (
+              <h2 className="text-lg font-semibold">{categoria.nome}</h2>
+            )}
             {editavel && (
               <form action={excluirCategoria}>
                 <input type="hidden" name="categoriaId" value={categoria.id} />
@@ -189,6 +199,70 @@ export default async function CatalogoAdminPage(
                         </form>
                       )}
                     </div>
+
+                    {editavel && (
+                      <details className="border-t pt-3">
+                        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+                          <Pencil className="size-3.5" aria-hidden /> Editar pergunta
+                        </summary>
+                        <div className="mt-3">
+                          <FormAcao acao={atualizarEnquete} rotulo="Salvar" rotuloPendente="Salvando…">
+                            <input type="hidden" name="enqueteId" value={e.id} />
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor={`titulo-${e.id}`} className="text-xs">Pergunta</Label>
+                              <Input id={`titulo-${e.id}`} name="titulo" defaultValue={e.titulo} maxLength={500} required />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor={`tipo-${e.id}`} className="text-xs">Tipo</Label>
+                              {e.votantes > 0 ? (
+                                <>
+                                  <p className="text-sm text-muted-foreground">
+                                    {e.tipo === "unica" ? "Escolha única" : "Escolha múltipla"} (já tem voto, não dá para mudar)
+                                  </p>
+                                  <input type="hidden" name="tipo" value={e.tipo} />
+                                </>
+                              ) : (
+                                <NativeSelect id={`tipo-${e.id}`} name="tipo" defaultValue={e.tipo}>
+                                  <option value="unica">Escolha única</option>
+                                  <option value="multipla">Escolha múltipla</option>
+                                </NativeSelect>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <Label className="text-xs">Opções</Label>
+                              {e.opcoes.map((o) => (
+                                <div key={o.id} className="flex items-center gap-2">
+                                  <Input name={`opcao-${o.id}`} defaultValue={o.texto} maxLength={255} className="h-9" aria-label={`Opção ${o.texto}`} required />
+                                  <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                                    <input type="radio" name="exclusivaId" value={o.id} defaultChecked={o.exclusiva} />
+                                    Exclusiva
+                                  </label>
+                                  <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                                    <input type="checkbox" name={`remover-${o.id}`} />
+                                    Remover
+                                  </label>
+                                </div>
+                              ))}
+                              <div className="flex items-center gap-2">
+                                <Input name="novaOpcao" placeholder="Nova opção (opcional)" maxLength={255} className="h-9" />
+                                <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                                  <input type="radio" name="exclusivaId" value="nova" />
+                                  Exclusiva
+                                </label>
+                              </div>
+                              <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <input type="radio" name="exclusivaId" value="" defaultChecked={!e.opcoes.some((o) => o.exclusiva)} />
+                                Nenhuma opção exclusiva
+                              </label>
+                              <p className="text-xs text-muted-foreground">
+                                “Exclusiva” só vale em escolha múltipla: marcá-la desmarca as outras (ex.: “Nenhuma preferência”).
+                                Uma opção só é removida se ainda não tiver voto.
+                              </p>
+                            </div>
+                          </FormAcao>
+                        </div>
+                      </details>
+                    )}
                   </CardContent>
                 </Card>
               </li>

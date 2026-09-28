@@ -237,9 +237,27 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
                         <div className="mt-3 flex flex-col gap-2">
                           <form
                             action={atualizarTarefa}
-                            className="flex flex-wrap items-end gap-2"
+                            className="flex flex-col gap-2"
                           >
                             <input type="hidden" name="tarefaId" value={t.id} />
+                            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                              Título
+                              <Input
+                                name="titulo"
+                                defaultValue={t.titulo}
+                                maxLength={255}
+                                required
+                              />
+                            </label>
+                            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                              Descrição
+                              <Input
+                                name="descricao"
+                                defaultValue={t.descricao ?? ""}
+                                maxLength={1000}
+                              />
+                            </label>
+                            <div className="flex flex-wrap items-end gap-2">
                             <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                               Status
                               <NativeSelect
@@ -277,6 +295,7 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
                             <Button type="submit" variant="outline" size="sm">
                               Salvar
                             </Button>
+                            </div>
                           </form>
                           <form action={excluirTarefa}>
                             <input type="hidden" name="tarefaId" value={t.id} />

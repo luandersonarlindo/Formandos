@@ -28,6 +28,16 @@ const esquemaTarefa = z.object({
 
 const esquemaAtualizacao = z.object({
   tarefaId: z.uuid(),
+  titulo: z
+    .string()
+    .trim()
+    .min(3, "O título precisa ter pelo menos 3 caracteres.")
+    .max(255, "O título pode ter no máximo 255 caracteres."),
+  descricao: z
+    .string()
+    .trim()
+    .max(1000, "A descrição pode ter no máximo 1000 caracteres.")
+    .transform((v) => v || null),
   status: z.enum(STATUS_TAREFA),
   responsavelId: opcional(z.uuid()),
   prazo: opcional(z.iso.date("Data inválida.")),
@@ -72,18 +82,18 @@ export async function criarTarefa(
   return { ok: "Tarefa criada." };
 }
 
-// Administrador: muda status, responsável e prazo.
+// Administrador: muda título, descrição, status, responsável e prazo.
 export async function atualizarTarefa(formData: FormData) {
   const admin = await exigirAdminEditavel();
   const dados = esquemaAtualizacao.safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
-  const { tarefaId, status, responsavelId, prazo } = dados.data;
+  const { tarefaId, titulo, descricao, status, responsavelId, prazo } = dados.data;
   if (!(await responsavelValido(admin.turmaId, responsavelId))) return;
 
   await pool.query(
-    `update tarefas set status = $1, responsavel_id = $2, prazo = $3
-      where id = $4 and turma_id = $5`,
-    [status, responsavelId, prazo, tarefaId, admin.turmaId],
+    `update tarefas set titulo = $1, descricao = $2, status = $3, responsavel_id = $4, prazo = $5
+      where id = $6 and turma_id = $7`,
+    [titulo, descricao, status, responsavelId, prazo, tarefaId, admin.turmaId],
   );
   revalidatePath("/tarefas");
   revalidatePath("/dashboard");

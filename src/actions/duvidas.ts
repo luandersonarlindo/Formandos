@@ -34,6 +34,26 @@ export async function enviarDuvida(
   return { ok: "Dúvida enviada." };
 }
 
+// O autor pode editar o texto da própria dúvida (a resposta, se houver, não muda).
+export async function editarDuvida(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const membro = await exigirMembroEditavel();
+  const dados = esquemaDuvida
+    .extend({ duvidaId: z.uuid() })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+
+  const { rowCount } = await pool.query(
+    "update duvidas set conteudo = $1 where id = $2 and turma_id = $3 and autor_id = $4",
+    [dados.data.conteudo, dados.data.duvidaId, membro.turmaId, membro.usuarioId],
+  );
+  if (!rowCount) return { erro: "Dúvida não encontrada." };
+  revalidatePath("/duvidas");
+  return { ok: "Dúvida atualizada." };
+}
+
 // Liga ou desliga o upvote do usuário. Só vale para dúvidas da própria turma.
 export async function alternarUpvote(duvidaId: string) {
   const membro = await exigirMembroEditavel();

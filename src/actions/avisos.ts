@@ -40,6 +40,25 @@ export async function criarAviso(
   return { ok: "Aviso publicado." };
 }
 
+export async function atualizarAviso(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = esquemaAviso
+    .extend({ id: z.uuid() })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+
+  const { rowCount } = await pool.query(
+    "update avisos set titulo = $1, conteudo = $2 where id = $3 and turma_id = $4",
+    [dados.data.titulo, dados.data.conteudo, dados.data.id, admin.turmaId],
+  );
+  if (!rowCount) return { erro: "Aviso não encontrado." };
+  revalidarAvisos();
+  return { ok: "Aviso atualizado." };
+}
+
 export async function excluirAviso(formData: FormData) {
   const admin = await exigirAdminEditavel();
   const dados = z.object({ id: z.uuid() }).safeParse(Object.fromEntries(formData));
