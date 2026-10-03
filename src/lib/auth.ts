@@ -18,22 +18,47 @@ function enviarBoasVindas(usuario: UsuarioEmail) {
   );
 }
 
+// A Vercel publica cada preview num endereço novo (formandos-abc123.vercel.app).
+// O Google só devolve o código para o redirect URI cadastrado no Console, que é
+// o de produção, então em preview o botão do Google quebraria com
+// "Error 400: redirect_uri_mismatch". Fora de produção o login com Google fica
+// desligado e o email/senha segue valendo.
+const emProducao = process.env.VERCEL_ENV
+  ? process.env.VERCEL_ENV === "production"
+  : true;
+
 // Sem as credenciais, o login com Google fica desligado e só o email/senha vale.
 export const googleConfigurado = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
-);
+) && emProducao;
+
+// Sem isso o Better Auth recusa a origem e devolve 403 Invalid origin em toda
+// chamada autenticada por cookie. A lista SOMA à origem de BETTER_AUTH_URL (que
+// o Better Auth já inclui por conta própria): substituir a lista deixaria de fora
+// justamente a origem pública do deploy.
+const origensConfiaveis = [
+  // Preview da Vercel: o curinga cobre os endereços trocados a cada commit.
+  process.env.VERCEL_ENV === "production" ? null : "*.vercel.app",
+  // Acesso pelo IP da rede local (celular, tablet, TV). Ver LAN_ORIGIN.
+  process.env.LAN_ORIGIN,
+  // O IP da rede muda a cada casa; abrir pelo localhost tem de continuar
+  // funcionando sem mexer em nada.
+  "http://localhost:3000",
+].filter((origem): origem is string => Boolean(origem));
 
 export const auth = betterAuth({
   database: pool,
   baseURL: process.env.BETTER_AUTH_URL,
-  // Sem isso, acessar pelo IP da rede local (celular, tablet, TV) faz o
-  // Better Auth recusar login e sessão: por padrão só confia na origem de
-  // BETTER_AUTH_URL (localhost). Ver LAN_ORIGIN em .env.example.
-  trustedOrigins: process.env.LAN_ORIGIN ? [process.env.LAN_ORIGIN] : undefined,
+  trustedOrigins: origensConfiaveis,
+  // A Vercel encerra o TLS no proxy e repassa o host público em
+  // x-forwarded-host. Sem isto o Better Auth não enxerga a origem pública.
+  advanced: {
+    trustedProxyHeaders: true,
+    database: { generateId: "uuid" },
+  },
   // A tabela de usuários do Better Auth se chama `usuarios` (e não `user`,
   // que é palavra reservada no PostgreSQL).
   user: { modelName: "usuarios" },
-  advanced: { database: { generateId: "uuid" } },
   // Alternativa ao Google: conta própria do app, com senha própria (a senha
   // do Google nunca passa por aqui). O email só vale depois de confirmado pelo
   // link enviado; sem isso não há login. Quem entrou pelo Google cria a senha

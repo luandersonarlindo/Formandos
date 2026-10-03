@@ -193,11 +193,11 @@ As 10 categorias do catálogo padrão:
 5. **Criar o banco e as tabelas** (nesta ordem):
    ```bash
    createdb formandos        # ou crie o banco pelo seu cliente PostgreSQL
-   npm run db:auth           # tabelas do Better Auth: usuarios, session, account, verification
+   npm run db:migrate       # tabelas do Better Auth: usuarios, session, account, verification
    npm run db:schema         # tabelas do domínio (db/schema.sql): turmas, membros, catálogos, enquetes, votos, dúvidas…
    npm run db:seed           # catálogo padrão, lido de docs/catalogo-enquetes.md
    ```
-   Os três comandos podem ser repetidos sem problema: só criam o que falta. O `db:seed` não duplica o catálogo e, se o Markdown ganhar perguntas ou opções, acrescenta as novas sem apagar nada (os votos já dados continuam valendo).
+   Os três comandos podem ser repetidos sem problema: só criam o que falta. O `db:migrate` usa `MIGRATION_DATABASE_URL` (conexão direta, sem `-pooler`); se a variável estiver vazia ele sai sem avisar erro, porque no deploy quem roda essa migração é o build da Vercel. O `db:seed` não duplica o catálogo e, se o Markdown ganhar perguntas ou opções, acrescenta as novas sem apagar nada (os votos já dados continuam valendo).
 
 6. **Rodar os testes** (opcional):
    ```bash
@@ -218,14 +218,97 @@ As 10 categorias do catálogo padrão:
 | Comando | O que faz |
 |---|---|
 | `npm run dev` | Servidor de desenvolvimento |
-| `npm run build` / `npm start` | Build e servidor de produção |
+| `npm run build` / `npm start` | Compilação e servidor de produção |
 | `npm run typecheck` | Gera os tipos das rotas do Next e confere o TypeScript. Numa cópia recém-clonada, rode este comando (ou `npm run dev`) antes de abrir o editor: os tipos `PageProps` e `LayoutProps` só existem depois disso |
 | `npm test` | Testes unitários (Vitest) |
-| `npm run db:auth` | Tabelas do Better Auth |
+| `npm run db:migrate` | Tabelas do Better Auth (`MIGRATION_DATABASE_URL`) |
 | `npm run db:schema` | Tabelas do domínio (`db/schema.sql`) |
 | `npm run db:seed` | Catálogo padrão (`-- --dry` só mostra o que leria) |
 
 Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`.
+
+---
+
+## ☁️ Deploy na Vercel com o Neon
+
+### O que é preciso ter antes
+
+* **Um projeto no Neon** com o banco `neondb` criado.
+* **Um projeto na Vercel** ligado a este repositório (Framework Preset: Next.js). O `package.json` já tem `build`/`start`, não é preciso configurar o framework nem o comando de build.
+
+### As duas conexões do Neon
+
+O painel do Neon entrega duas strings e elas servem para coisas diferentes:
+
+| Variável | String do Neon | Para que serve |
+|---|---|---|
+| `DATABASE_URL` | **Com pool** (host com `-pooler`) | O app em execução. A Vercel sobe várias instâncias ao mesmo tempo e cada uma abriria um conjunto de conexões; o pooler (PgBouncer) é o que aguenta esse volume. |
+| `MIGRATION_DATABASE_URL` | **Direta** (host sem `-pooler`) | Só a migração. O pooler roda em modo transação e **não aceita DDL**. |
+
+Em caso de dúvida: a string da migração é a da direta com o sufixo `-pooler` apagado. O script `db/migrate.mjs` recusa a string do pooler e interrompe a compilação, em vez de deixar o banco pela metade.
+
+### Variáveis de ambiente na Vercel
+
+Em *Settings > Environment Variables*, cadastre:
+
+| Nome | Valor |
+|---|---|
+| `DATABASE_URL` | String **com pool** do Neon |
+| `MIGRATION_DATABASE_URL` | String **direta** do Neon |
+| `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | `https://formandos.vercel.app` (sem barra no final) |
+| `GOOGLE_CLIENT_ID` | Do Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | Do Google Cloud Console |
+| `ADMIN_MASTER_EMAILS` | Emails dos gestores da plataforma |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | Envio de email |
+
+`BETTER_AUTH_SECRET` tem de ser **o mesmo valor** em todas elas. Trocar a chave invalida todas as sessões e ninguém consegue entrar.
+
+`LAN_ORIGIN` **não** vai para a Vercel: existe para o acesso pelo IP da rede local em desenvolvimento.
+
+### Google Cloud Console
+
+Em *Credenciais > ID do cliente OAuth 2.0 > URIs de redirecionamento autorizados*, cadastre exatamente:
+
+```
+https://formandos.vercel.app/api/auth/callback/google
+```
+
+O Google não aceita o padrão `*.vercel.app`, e cada deploy de preview da Vercel sai num endereço diferente (`formandos-abc123.vercel.app`). Por isso o código **desliga o login com Google fora de produção** (`VERCEL_ENV !== "production"`): em preview o botão some e o login por email e senha continua valendo. Sem esse desvio, o preview cairia em `Error 400: redirect_uri_mismatch`.
+
+### A migração roda sozinha na compilação
+
+O `prebuild` chama `db/migrate.mjs`, que cria `usuarios`, `session`, `account` e `verification` antes do `next build`. As tabelas do domínio saem separadamente:
+
+```bash
+DATABASE_URL="<string direta do Neon>" npm run db:schema
+DATABASE_URL="<string direta do Neon>" npm run db:seed
+```
+
+Rode os dois uma vez, da sua máquina. A migração do Better Auth é idempotente e pode repetir.
+
+Depois, `MIGRATION_DATABASE_URL` pode ser removida da Vercel.
+
+### Sobre as origens confiáveis
+
+Toda chamada autenticada carrega o header `Origin`, e o Better Auth recusa com **403 Invalid origin** qualquer origem fora da lista. `src/lib/auth.ts` monta essa lista somando (e nunca substituindo) a origem do `BETTER_AUTH_URL`:
+
+* `*.vercel.app` — só fora de produção, para os previews passarem;
+* `LAN_ORIGIN` — acesso pelo IP da rede local, em desenvolvimento;
+* `http://localhost:3000` — para o `npm run dev` continuar funcionando sem mexer em nada.
+
+Substituir a lista em vez de somar é o que quebrava o login: a origem pública deixava de ser confiável e nenhuma chamada autenticada passava.
+
+### Diagnóstico rápido
+
+| Sintoma | Causa provável |
+|---|---|
+| **403 Invalid origin** | `BETTER_AUTH_URL` diferente do endereço real, ou lista de origens substituída em vez de somada. |
+| **Error 400: redirect_uri_mismatch** | O redirect URI do Google não bate com o endereço do deploy (ou o deploy é um preview, onde o Google não funciona). |
+| **prepared statement "s0" already exists** | `MIGRATION_DATABASE_URL` apontando para o pooler. Use a conexão direta. |
+| **FATAL: remaining connection slots** | `DATABASE_URL` na conexão direta. Use a com pool. |
+| **Tabela não existe** | `db:schema` nunca rodou no Neon. |
+| **Email não chega** | `SMTP_HOST` vazio, ou `SMTP_PASS` com a senha normal da conta em vez da senha de app. Ver o passo 4. |
 
 ---
 

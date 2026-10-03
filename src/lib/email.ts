@@ -1,4 +1,8 @@
-import "server-only";
+// Sem `import "server-only"` aqui de propósito: o script de migração
+// (npm run db:migrate, roda no build da Vercel) carrega src/lib/auth.ts fora do
+// Next, e esse pacote lança erro quando não está no runtime "react-server".
+// A proteção continua nos módulos que tocam o banco; este só monta texto e
+// envia email.
 import nodemailer from "nodemailer";
 
 // Envio de emails por SMTP (funciona com Gmail usando "senha de app").

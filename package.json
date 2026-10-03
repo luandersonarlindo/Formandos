@@ -5,11 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "prebuild": "node db/migrate.mjs --if-configured",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "db:schema": "node --env-file-if-exists=.env.local db/apply-schema.mjs",
     "db:seed": "node --env-file-if-exists=.env.local db/seed.mjs",
-    "db:auth": "node --env-file-if-exists=.env.local node_modules/auth/dist/index.mjs migrate --config src/lib/auth.ts -y",
+    "db:migrate": "node --env-file-if-exists=.env.local db/migrate.mjs",
     "test": "vitest run"
   },
   "dependencies": {
