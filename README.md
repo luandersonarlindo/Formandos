@@ -64,7 +64,7 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 * **Anime.js:** Animações da página inicial (entrada do topo, revelação ao rolar, contadores e barras). O conteúdo é renderizado no servidor e a animação é só um acréscimo; quem pede "menos movimento" no sistema vê a página parada.
 * **Nodemailer:** Envio de emails por SMTP (confirmação de conta, definir senha e boas-vindas).
 * **Tailwind CSS v4:** Estilização utilitária moderna e responsiva.
-* **shadcn/ui + Radix UI:** Componentes de interface acessíveis e reutilizáveis, copiados para `src/components/ui` conforme o uso (`Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`, `Sidebar`, `Sheet`, `Collapsible`, `Separator`, `Tooltip`, `NativeSelect`).
+* **shadcn/ui + Radix UI:** Componentes de interface acessíveis e reutilizáveis, copiados para `src/components/ui` conforme o uso (`Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`, `Sidebar`, `Sheet`, `Collapsible`, `Separator`, `Tooltip`, `DropdownMenu`, `NativeSelect`).
 * **Recharts:** Visualização de dados e gráficos para os relatórios automatizados das enquetes.
 * **Zod:** Validação dos dados recebidos pelas Server Actions.
 * **Vitest:** Testes unitários das funções puras.
@@ -106,6 +106,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/components/features`:** Componentes de domínio (menu lateral, cartão de votação, gráfico da enquete, botão de upvote, formulários de tarefa, fornecedor, evento e catálogo, contagem regressiva, estado vazio…).
 * **`/src/components/ilustracoes`:** Ilustrações Amico em JSX (`EquipeAmico`, `ChecklistAmico`, `PerguntasAmico`, `ColaboracaoAmico`, `AprendizadoAmico`). Vieram do [Storyset](https://storyset.com/amico), com os *ids* do Storyset trocados por classes `.amico-*` — *id* repetido é inválido em SVG — e a paleta ligada a variáveis CSS, para inverter com o tema.
 * **`/src/components/animacao`:** Animações de página (`AnimarPagina`) e a animação das ilustrações (`animarAmico`), com [anime.js](https://animejs.com). Quem tem *reduced-motion* ligado no sistema vê a ilustração parada, nunca invisível.
+* **`/src/lib/tema.ts` e `features/alternador-tema.tsx`:** Modo claro, escuro ou *sistema*. A escolha vai para o `localStorage` e vira a classe `.dark` no `<html>`, que é o que o Tailwind e o shadcn já esperam. Um script inline, o primeiro do `<body>`, aplica a escolha **antes da primeira pintura** — sem ele, quem escolhesse "escuro" veria a página clara e depois escura. O mesmo script já marca `data-sem-animacao`, o que também elimina o piscar de quem pede menos movimento.
 * **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `presenca.ts`, `avisos.ts`, `terceiros.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
 * **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
 * **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (Google e email e senha) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.

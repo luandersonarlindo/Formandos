@@ -152,6 +152,28 @@
   --vitrine-b: oklch(0.785 0.115 274.713); /* indigo-300 */
 }
 
+/* Modo de cor. O <html> recebe .dark pelo script do layout antes da primeira
+   pintura, então estas duas regras valem desde o primeiro quadro. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
+/* No botão de tema só o ícone do modo atual aparece. Escolher por CSS (e não
+   pelo estado do React) evita o ícone piscar: o servidor não sabe o que está
+   guardado no navegador. */
+[data-tema-icone] {
+  display: none;
+}
+[data-tema="sistema"] [data-tema-icone="sistema"],
+[data-tema="claro"] [data-tema-icone="claro"],
+[data-tema="escuro"] [data-tema-icone="escuro"],
+html:not([data-tema]) [data-tema-icone="sistema"] {
+  display: inline-flex;
+}
+
 /* Paleta das ilustrações Amico (src/components/ilustracoes). O SVG original do
    Storyset usa cinzas fixos, que somem no tema escuro; aqui eles viram variáveis
    e invertem junto com o tema. Os tons de pele continuam fixos no SVG, como no

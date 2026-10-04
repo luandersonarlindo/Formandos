@@ -17,6 +17,7 @@ import {
   UserRound,
   Vote,
 } from "lucide-react";
+import { AlternadorTema } from "@/components/features/alternador-tema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
@@ -66,7 +67,10 @@ export function Cabecalho({ logado }: Sessao) {
             </a>
           ))}
         </nav>
-        <BotaoEntrar logado={logado} />
+        <div className="flex items-center gap-2">
+          <AlternadorTema />
+          <BotaoEntrar logado={logado} />
+        </div>
       </div>
     </header>
   );
