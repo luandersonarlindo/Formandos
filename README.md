@@ -110,7 +110,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
 * **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas: `exigirSessao()`, `getMembro()`, `exigirMembro()`, `exigirAdmin()` e `exigirMaster()`. `src/lib/master.ts` decide quem é master e `src/lib/plataforma.ts` traz as consultas de todas as turmas.
 * **`/src/lib` (consultas e utilitários):** consultas de leitura por área (`votacoes.ts`, `relatorio.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `dashboard.ts`, `admin.ts`) e funções puras (`convite.ts`, `datas.ts`), estas com testes em `*.test.ts`.
-* **`/db`:** `schema.sql` (tabelas do domínio), `apply-schema.mjs` e `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`) e `catalogo-md.mjs` (leitor dos catálogos em Markdown).
+* **`/db`:** `migrate.mjs` (roda no `prebuild`: tabelas do Better Auth + `schema.sql`, idempotente), `schema.sql` (tabelas do domínio), `apply-schema.mjs`, `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`) e `catalogo-md.mjs` (leitor dos catálogos em Markdown).
 * **`/docs`:** catálogo de enquetes, catálogos-modelo (`catalogos-modelo/`) e guia de estudo.
 
 ---
@@ -197,11 +197,12 @@ As 10 categorias do catálogo padrão:
 5. **Criar o banco e as tabelas** (nesta ordem):
    ```bash
    createdb formandos        # ou crie o banco pelo seu cliente PostgreSQL
-   npm run db:migrate       # tabelas do Better Auth: usuarios, session, account, verification
-   npm run db:schema         # tabelas do domínio (db/schema.sql): turmas, membros, catálogos, enquetes, votos, dúvidas…
+   npm run db:migrate       # tabelas do Better Auth (usuarios, session, account, verification)
+                               # + db/schema.sql (turmas, membros, catálogos, enquetes, votos, dúvidas…)
+   npm run db:schema         # só o db/schema.sql, se preferir pular o passo anterior
    npm run db:seed           # catálogo padrão, lido de docs/catalogo-enquetes.md
    ```
-   Os três comandos podem ser repetidos sem problema: só criam o que falta. O `db:migrate` usa `MIGRATION_DATABASE_URL` (conexão direta, sem `-pooler`); se a variável estiver vazia ele sai sem avisar erro, porque no deploy quem roda essa migração é o build da Vercel. O `db:seed` não duplica o catálogo e, se o Markdown ganhar perguntas ou opções, acrescenta as novas sem apagar nada (os votos já dados continuam valendo).
+   Os comandos podem ser repetidos sem problema: só criam o que falta. O `db:migrate` usa `MIGRATION_DATABASE_URL` (conexão direta, sem `-pooler`); se a variável estiver vazia ele sai sem avisar erro, porque no deploy quem roda essa migração é o build da Vercel. O `db:seed` não duplica o catálogo e, se o Markdown ganhar perguntas ou opções, acrescenta as novas sem apagar nada (os votos já dados continuam valendo).
 
 6. **Rodar os testes** (opcional):
    ```bash
@@ -225,8 +226,8 @@ As 10 categorias do catálogo padrão:
 | `npm run build` / `npm start` | Compilação e servidor de produção |
 | `npm run typecheck` | Gera os tipos das rotas do Next e confere o TypeScript. Numa cópia recém-clonada, rode este comando (ou `npm run dev`) antes de abrir o editor: os tipos `PageProps` e `LayoutProps` só existem depois disso |
 | `npm test` | Testes unitários (Vitest) |
-| `npm run db:migrate` | Tabelas do Better Auth (`MIGRATION_DATABASE_URL`) |
-| `npm run db:schema` | Tabelas do domínio (`db/schema.sql`) |
+| `npm run db:migrate` | Tabelas do Better Auth + `db/schema.sql` (`MIGRATION_DATABASE_URL`). É o que o `prebuild` roda na Vercel |
+| `npm run db:schema` | Só as tabelas do domínio (`db/schema.sql`), no `DATABASE_URL` do `.env.local`. Para developing local |
 | `npm run db:seed` | Catálogo padrão (`-- --dry` só mostra o que leria) |
 
 Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`.
@@ -247,7 +248,7 @@ O painel do Neon entrega duas strings e elas servem para coisas diferentes:
 | Variável | String do Neon | Para que serve |
 |---|---|---|
 | `DATABASE_URL` | **Com pool** (host com `-pooler`) | O app em execução. A Vercel sobe várias instâncias ao mesmo tempo e cada uma abriria um conjunto de conexões; o pooler (PgBouncer) é o que aguenta esse volume. |
-| `MIGRATION_DATABASE_URL` | **Direta** (host sem `-pooler`) | Só a migração. O pooler roda em modo transação e **não aceita DDL**. |
+| `MIGRATION_DATABASE_URL` | **Direta** (host sem `-pooler`) | Só o DDL: as tabelas do Better Auth e o `db/schema.sql`. O pooler roda em modo transação e **não aceita DDL**. |
 
 Em caso de dúvida: a string da migração é a da direta com o sufixo `-pooler` apagado. O script `db/migrate.mjs` recusa a string do pooler e interrompe a compilação, em vez de deixar o banco pela metade.
 
@@ -282,16 +283,20 @@ O Google não aceita o padrão `*.vercel.app`, e cada deploy de preview da Verce
 
 ### A migração roda sozinha na compilação
 
-O `prebuild` chama `db/migrate.mjs`, que cria `usuarios`, `session`, `account` e `verification` antes do `next build`. As tabelas do domínio saem separadamente:
+O `prebuild` chama `db/migrate.mjs`, que antes do `next build` aplica:
+
+1. as tabelas do Better Auth (`usuarios`, `session`, `account`, `verification`), pelo CLI do pacote;
+2. o `db/schema.sql`, todas as tabelas do domínio, numa transação.
+
+As duas etapas são idempotentes (`create ... if not exists`, `alter table ... add column if not exists`), então toda compilação da Vercel deixa o banco no esquema que o código espera. **Não é preciso rodar nada à mão depois de mudar o `db/schema.sql`**: o próximo deploy aplica sozinho.
+
+O seed é a exceção, porque é conteúdo e não esquema. O catálogo padrão entra uma vez, à mão:
 
 ```bash
-DATABASE_URL="<string direta do Neon>" npm run db:schema
 DATABASE_URL="<string direta do Neon>" npm run db:seed
 ```
 
-Rode os dois uma vez, da sua máquina. A migração do Better Auth é idempotente e pode repetir.
-
-Depois, `MIGRATION_DATABASE_URL` pode ser removida da Vercel.
+Se o `MIGRATION_DATABASE_URL` faltar, o `prebuild` avisa e segue (é o caso do build local, que usa o banco da máquina). Com a variável ausente na Vercel, o build passa e o app quebra em tempo de execução com `column ... does not exist`; por isso ela é obrigatória lá.
 
 ### Sobre as origens confiáveis
 
@@ -311,7 +316,7 @@ Substituir a lista em vez de somar é o que quebrava o login: a origem pública 
 | **Error 400: redirect_uri_mismatch** | O redirect URI do Google não bate com o endereço do deploy (ou o deploy é um preview, onde o Google não funciona). |
 | **prepared statement "s0" already exists** | `MIGRATION_DATABASE_URL` apontando para o pooler. Use a conexão direta. |
 | **FATAL: remaining connection slots** | `DATABASE_URL` na conexão direta. Use a com pool. |
-| **Tabela não existe** | `db:schema` nunca rodou no Neon. |
+| **Tabela não existe** / **column ... does not exist** | O `prebuild` não rodou o `db/schema.sql`: confira se `MIGRATION_DATABASE_URL` está definida na Vercel e é a conexão direta. Paraoubleshooting, `DATABASE_URL="<direta do Neon>" npm run db:schema` |
 | **Email não chega** | `SMTP_HOST` vazio, ou `SMTP_PASS` com a senha normal da conta em vez da senha de app. Ver o passo 4. |
 
 ---
