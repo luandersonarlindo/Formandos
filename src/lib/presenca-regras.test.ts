@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { MAX_ACOMPANHANTES, normalizarPresenca, pessoasEsperadas } from "./presenca-regras";
+import {
+  ACOMPANHANTES_PADRAO,
+  limitarAcompanhantes,
+  normalizarPresenca,
+  pessoasEsperadas,
+  TETO_ACOMPANHANTES,
+} from "./presenca-regras";
 
 describe("normalizarPresenca", () => {
   it("só quem vai leva acompanhantes", () => {
@@ -7,10 +13,28 @@ describe("normalizarPresenca", () => {
     expect(normalizarPresenca("talvez", 3)).toEqual({ status: "talvez", acompanhantes: 0 });
     expect(normalizarPresenca("nao", 1)).toEqual({ status: "nao", acompanhantes: 0 });
   });
-  it("mantém o número dentro do limite", () => {
-    expect(normalizarPresenca("vou", 99).acompanhantes).toBe(MAX_ACOMPANHANTES);
+  it("usa o limite padrão quando a turma não escolheu outro", () => {
+    expect(normalizarPresenca("vou", 99).acompanhantes).toBe(ACOMPANHANTES_PADRAO);
     expect(normalizarPresenca("vou", -4).acompanhantes).toBe(0);
     expect(normalizarPresenca("vou", 1.9).acompanhantes).toBe(1);
+  });
+  it("respeita o limite escolhido pelo administrador da turma", () => {
+    expect(normalizarPresenca("vou", 99, 0).acompanhantes).toBe(0);
+    expect(normalizarPresenca("vou", 4, 2).acompanhantes).toBe(2);
+    expect(normalizarPresenca("vou", 4, 10).acompanhantes).toBe(4);
+  });
+});
+
+describe("limitarAcompanhantes", () => {
+  it("mantém o limite dentro do que o banco aceita", () => {
+    expect(limitarAcompanhantes(-3)).toBe(0);
+    expect(limitarAcompanhantes(0)).toBe(0);
+    expect(limitarAcompanhantes(7)).toBe(7);
+    expect(limitarAcompanhantes(999)).toBe(TETO_ACOMPANHANTES);
+  });
+  it("volta ao padrão quando o valor não é um número", () => {
+    expect(limitarAcompanhantes(Number.NaN)).toBe(ACOMPANHANTES_PADRAO);
+    expect(limitarAcompanhantes(Number.POSITIVE_INFINITY)).toBe(ACOMPANHANTES_PADRAO);
   });
 });
 

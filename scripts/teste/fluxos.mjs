@@ -50,7 +50,8 @@ const idPadrao = () => sql("select id from catalogos where turma_id is null orde
 // A turma do seed (o código de convite pode ser trocado pelos testes; o email do criador não).
 const turmaTeste = () => sql("select id from turmas where criado_por = (select id from usuarios where email='teste-sh@example.invalid') and nome='Sistemas de Informação 2026'");
 
-const nav = await iniciar();
+// Aponta para outro servidor com BASE_URL (ex.: testes em porta paralela).
+const nav = await iniciar({ base: process.env.BASE_URL ?? "http://localhost:3000" });
 const logsDesde = (n) => nav.logs.slice(n);
 async function grupo(nome, fn) {
   if (!grupos.includes(nome)) return;
@@ -64,7 +65,7 @@ async function grupo(nome, fn) {
 // Preenche um campo dentro de um cartão/lista identificado por um trecho de texto.
 async function preencherEm(escopo, seletor, valor) {
   const ok = await nav.ev(`(() => {
-    const raiz = [...document.querySelectorAll('[data-slot=card],li,section,details,form,article')].filter(c => c.textContent.includes(${JSON.stringify(escopo)})).sort((a, b) => a.textContent.length - b.textContent.length)[0];
+    const raiz = ${escopo.startsWith("@") ? `document.querySelector(${JSON.stringify(escopo.slice(1))})` : `[...document.querySelectorAll('[data-slot=card],li,section,details,form,article')].filter(c => c.textContent.includes(${JSON.stringify(escopo)})).sort((a, b) => a.textContent.length - b.textContent.length)[0]`};
     const el = raiz?.querySelector(${JSON.stringify(seletor)}); if (!el) return false;
     const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(valor)});
@@ -202,6 +203,15 @@ await grupo("participante", async () => {
     await nav.clicar("Entrar na turma", { seletor: "button" });
     await nav.esperarUrl("/dashboard");
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "participante", "papel");
+    // Sair limpa a autoria: a tarefa segue na turma, mas sem responsável, como manda a regra.
+    igual(
+      sql(`select count(*) from tarefas t join usuarios u on u.email='teste-jl@example.invalid' where t.titulo='Fechar o buffet' and t.responsavel_id=u.id`),
+      "0",
+      "a tarefa ficou sem responsável",
+    );
+    // O admin reatribui, para os próximos passos terem quem atualize o andamento.
+    sql(`update tarefas t set responsavel_id=(select id from usuarios where email='teste-jl@example.invalid')
+          where t.titulo='Fechar o buffet' and t.responsavel_id is null`);
   });
   await passo("participante que abre o painel do administrador volta ao dashboard", async () => {
     await nav.abrir("/admin");
@@ -307,10 +317,12 @@ await grupo("app", async () => {
     await nav.preencher("#texto-duvida", "Dúvida E2E: tem vaga de estacionamento?");
     await nav.clicar("Enviar dúvida", { seletor: "button" });
     await nav.esperarTexto("Dúvida E2E");
-    await nav.clicar("Votar nesta dúvida", { escopo: "Dúvida E2E", seletor: "button" });
+    const idDaDuvida = () => sql("select id from duvidas where conteudo like 'Dúvida E2E%' order by created_at desc limit 1");
+    const escopoDuvida = () => `@li[data-duvida='${idDaDuvida()}']`;
+    await nav.clicar("Votar nesta dúvida", { escopo: escopoDuvida(), seletor: "button" });
     await dormir(1500);
     igual(sql("select count(*) from duvida_upvotes x join duvidas d on d.id=x.duvida_id where d.conteudo like 'Dúvida E2E%'"), "1", "voto na dúvida");
-    await nav.clicar("Remover meu voto", { escopo: "Dúvida E2E", seletor: "button" });
+    await nav.clicar("Remover meu voto", { escopo: escopoDuvida(), seletor: "button" });
     await dormir(1500);
     igual(sql("select count(*) from duvida_upvotes x join duvidas d on d.id=x.duvida_id where d.conteudo like 'Dúvida E2E%'"), "0", "voto removido");
   });
@@ -318,6 +330,25 @@ await grupo("app", async () => {
     await nav.abrir("/duvidas?filtro=abertas");
     await nav.esperarTexto("Dúvida E2E");
     verdade(!(await nav.tem("O prazo é dia 20/10")), "resposta apareceu no filtro de abertas");
+  });
+  await passo("o autor exclui a própria dúvida e o outro membro não pode", async () => {
+    await nav.abrir("/duvidas");
+    await nav.preencher("#texto-duvida", "Dúvida Excluir E2E: pode repetir o almoço?");
+    await nav.clicar("Enviar dúvida", { seletor: "button" });
+    await nav.esperarTexto("Dúvida Excluir E2E");
+    const id = sql("select id from duvidas where conteudo like 'Dúvida Excluir E2E%'");
+    const escopo = `@li[data-duvida='${id}']`;
+    await nav.clicar("Excluir dúvida", { escopo, seletor: "summary" });
+    await nav.clicar("Excluir para sempre", { escopo, seletor: "button" });
+    await dormir(1800);
+    igual(sql("select count(*) from duvidas where conteudo like 'Dúvida Excluir E2E%'"), "0", "excluída");
+    await nav.esperarTexto("Dúvida enviada.");
+    // A dúvida do participante continua de pé: ninguém além do autor apaga a sua.
+    await nav.cookie(lerCookie("cookie-participante.txt"));
+    await nav.abrir("/duvidas");
+    await nav.esperarTexto("Dúvida E2E");
+    verdade(!(await nav.tem("Dúvida Excluir E2E")), "a dúvida excluída voltou");
+    await nav.cookie(lerCookie("cookie-admin.txt"));
   });
   await passo("dúvidas paginadas: páginas, filtro mantido e página fora do intervalo", async () => {
     sql(`insert into duvidas (turma_id, autor_id, conteudo)
@@ -661,12 +692,38 @@ await grupo("admin", async () => {
     await nav.esperarUrl("/admin/votacoes/");
     await nav.assentar();
     await nav.esperarTexto("Educação Infantil e ABC");
-    igual(sql("select count(*) from categorias ca join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id is not null"), "5", "categorias copiadas");
-    igual(sql("select count(*) from enquetes e join categorias ca on ca.id=e.categoria_id join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id is not null"), "10", "perguntas copiadas");
+    // Filtra pela turma do teste: outras turmas podem ter cópia do mesmo modelo.
+    igual(sql(`select count(*) from categorias ca join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id='${turmaTeste()}'`), "5", "categorias copiadas");
+    igual(sql(`select count(*) from enquetes e join categorias ca on ca.id=e.categoria_id join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id='${turmaTeste()}'`), "10", "perguntas copiadas");
     await nav.esperar("[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Excluir catálogo'))", 10000, "botão Excluir catálogo");
     await nav.clicar("Excluir catálogo", { seletor: "button" });
     await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
-    igual(sql("select count(*) from catalogos where nome='Educação Infantil e ABC'"), "0", "catálogo");
+    igual(sql(`select count(*) from catalogos where nome='Educação Infantil e ABC' and turma_id='${turmaTeste()}'`), "0", "catálogo");
+  });
+  await passo("catálogo padrão ligado ou desligado pela turma", async () => {
+    const votos = sql(`select count(*) from votos where turma_id='${turmaTeste()}'`);
+    await nav.abrir("/admin/votacoes");
+    await nav.esperarTexto("Catálogo padrão");
+    await nav.preencher("#usar", "nao");
+    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await dormir(2000);
+    igual(sql(`select usar_catalogo_padrao from turmas where id='${turmaTeste()}'`), "f", "desligado no banco");
+    await nav.abrir("/votacoes");
+    verdade(!(await nav.tem("Catálogo Padrão")), "o padrão sumiu das votações");
+    // Link guardado de antes não abre mais: nem para o admin.
+    await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+    await nav.esperarTexto("Página não encontrada");
+    await nav.abrir(`/votacoes/${idPadrao()}`);
+    await nav.esperarTexto("Página não encontrada");
+    // Nada foi apagado: os votos continuam guardados para quando a turma religar.
+    igual(sql(`select count(*) from votos where turma_id='${turmaTeste()}'`), votos, "votos intactos");
+    await nav.abrir("/admin/votacoes");
+    await nav.preencher("#usar", "sim");
+    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await dormir(2000);
+    igual(sql(`select usar_catalogo_padrao from turmas where id='${turmaTeste()}'`), "t", "religado");
+    await nav.abrir("/votacoes");
+    await nav.esperarTexto("Catálogo Padrão");
   });
   await passo("membros: busca sem acento, total da turma fixo e páginas", async () => {
     const proximo = () =>
@@ -769,11 +826,54 @@ await grupo("admin", async () => {
     await nav.abrir("/admin");
     await nav.esperarTexto("Presença confirmada");
   });
-  await passo("remover um membro", async () => {
+  await passo("limite de acompanhantes escolhido pelo admin corta as respostas acima", async () => {
+    await nav.abrir("/admin/presenca");
+    await nav.esperarTexto("Limite de acompanhantes");
+    await nav.preencher("#maxAcompanhantes", "1");
+    await nav.clicar("Salvar limite", { seletor: "button" });
+    await dormir(2000);
+    igual(sql(`select max_acompanhantes from turmas where id='${turmaTeste()}'`), "1", "limite no banco");
+    igual(
+      sql(`select p.acompanhantes from presencas p join membros m on m.turma_id=p.turma_id and m.usuario_id=p.usuario_id
+            join usuarios u on u.id=p.usuario_id
+           where u.email='teste-jl@example.invalid' and p.turma_id='${turmaTeste()}'`),
+      "1",
+      "resposta cortada para o novo limite",
+    );
+    // O participante vê o limite novo na hora.
+    await nav.cookie(lerCookie("cookie-participante.txt"));
+    await nav.abrir("/dashboard");
+    await nav.esperarTexto("De 0 a 1, sem contar você.");
+    await nav.cookie(lerCookie("cookie-admin.txt"));
+    await nav.abrir("/admin/presenca");
+    await nav.preencher("#maxAcompanhantes", "5");
+    await nav.clicar("Salvar limite", { seletor: "button" });
+    await dormir(2000);
+    igual(sql(`select max_acompanhantes from turmas where id='${turmaTeste()}'`), "5", "limite restaurado");
+  });
+  await passo("remover um membro apaga o que ele deixou na turma", async () => {
+    const rastro = (tabela, coluna) =>
+      sql(`select count(*) from ${tabela} where turma_id='${turmaTeste()}' and ${coluna}=(select id from usuarios where email='teste-jl@example.invalid')`);
+    verdade(Number(rastro("votos", "usuario_id")) > 0, "o teste precisa de um voto do participante para provar a limpeza");
+    verdade(Number(rastro("presencas", "usuario_id")) > 0, "o teste precisa da presença do participante");
     await nav.abrir("/admin/membros");
     await nav.clicar("Remover", { escopo: "João Lima", seletor: "button" });
     await dormir(1800);
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "removido");
+    for (const [tabela, coluna] of [
+      ["votos", "usuario_id"],
+      ["presencas", "usuario_id"],
+      ["duvidas", "autor_id"],
+      ["tarefas", "responsavel_id"],
+    ]) {
+      igual(rastro(tabela, coluna), "0", `${tabela} sem o participante`);
+    }
+    igual(
+      sql(`select count(*) from duvida_upvotes x join duvidas d on d.id=x.duvida_id
+            where d.turma_id='${turmaTeste()}' and x.usuario_id=(select id from usuarios where email='teste-jl@example.invalid')`),
+      "0",
+      "upvotes dados por ele",
+    );
     sql(`insert into membros (turma_id,usuario_id,papel) select '${turmaTeste()}', id, 'participante' from usuarios where email='teste-jl@example.invalid' on conflict do nothing`);
   });
 });

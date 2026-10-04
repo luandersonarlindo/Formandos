@@ -100,10 +100,11 @@ export async function iniciar({ base = "http://localhost:3000", largura = 1280, 
     async esperarUrl(parte, ms = 10000) {
       await nav.esperar(`(location.pathname + location.search).includes(${JSON.stringify(parte)})`, ms, `url com "${parte}"`);
     },
-    // Clica no primeiro elemento visível (dentro de `escopo`, um trecho de texto de um cartão) com esse texto.
+    // Clica no primeiro elemento visível (dentro de `escopo`) com esse texto.
+    // `escopo` é um trecho de texto de um cartão ou, começando com "@", um seletor CSS.
     async clicar(texto, { seletor = "button,a,summary,label", escopo = null, contem = true } = {}) {
       const ok = await nav.ev(`(() => {
-        const raiz = ${escopo ? `[...document.querySelectorAll('[data-slot=card],li,section,details,form,article')].filter(c => c.textContent.includes(${JSON.stringify(escopo)})).sort((a, b) => a.textContent.length - b.textContent.length)[0]` : "document"};
+        const raiz = ${escopo ? (escopo.startsWith("@") ? `document.querySelector(${JSON.stringify(escopo.slice(1))})` : `[...document.querySelectorAll('[data-slot=card],li,section,details,form,article')].filter(c => c.textContent.includes(${JSON.stringify(escopo)})).sort((a, b) => a.textContent.length - b.textContent.length)[0]`) : "document"};
         if (!raiz) return 'sem-escopo';
         const t = ${JSON.stringify(texto)};
         const el = [...raiz.querySelectorAll(${JSON.stringify(seletor)})].find(e => {

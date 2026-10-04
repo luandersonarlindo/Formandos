@@ -1,5 +1,6 @@
 import "server-only";
 import { pool } from "./db";
+import { catalogoVisivelSql } from "./catalogo-visibilidade";
 import type { Membro } from "./dal";
 
 export type CatalogoResumo = {
@@ -32,7 +33,8 @@ export type CatalogoVotacao = {
   categorias: CategoriaVotacao[];
 };
 
-// Catálogos visíveis à turma: o padrão (turma_id nulo) e os da própria turma.
+// Catálogos visíveis à turma: os da própria turma e, se a turma mantém o
+// catálogo padrão ligado, também o padrão global (turma_id nulo).
 export async function listarCatalogos(
   membro: Membro,
 ): Promise<CatalogoResumo[]> {
@@ -42,14 +44,14 @@ export async function listarCatalogos(
                from enquetes e
                join categorias ca on ca.id = e.categoria_id
               where ca.catalogo_id = c.id)::int as total,
-            (select count(distinct e.id)
+             (select count(distinct e.id)
                from votos v
                join opcoes o on o.id = v.opcao_id
                join enquetes e on e.id = o.enquete_id
                join categorias ca on ca.id = e.categoria_id
               where ca.catalogo_id = c.id and v.usuario_id = $1)::int as votadas
        from catalogos c
-      where c.turma_id is null or c.turma_id = $2
+      where ${catalogoVisivelSql("$2")}
       order by (c.turma_id is null) desc, c.nome`,
     [membro.usuarioId, membro.turmaId],
   );
@@ -57,15 +59,15 @@ export async function listarCatalogos(
 }
 
 // Catálogo com categorias, enquetes, opções e os votos atuais do usuário.
-// Devolve null se o catálogo não existe ou pertence a outra turma.
+// Devolve null se o catálogo não existe ou não é visível à turma.
 export async function getCatalogoParaVotar(
   catalogoId: string,
   membro: Membro,
 ): Promise<CatalogoVotacao | null> {
   const { rows: catalogos } = await pool.query(
-    `select id, nome, turma_id is null as padrao
-       from catalogos
-      where id = $1 and (turma_id is null or turma_id = $2)`,
+    `select c.id, c.nome, c.turma_id is null as padrao
+       from catalogos c
+      where c.id = $1 and ${catalogoVisivelSql("$2")}`,
     [catalogoId, membro.turmaId],
   );
   if (catalogos.length === 0) return null;

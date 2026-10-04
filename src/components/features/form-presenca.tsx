@@ -6,7 +6,6 @@ import { FormAcao } from "@/components/features/form-acao";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  MAX_ACOMPANHANTES,
   ROTULO_PRESENCA,
   STATUS_PRESENCA,
   type StatusPresenca,
@@ -16,11 +15,16 @@ import {
 // resposta salva continua na tela.
 export function FormPresenca({
   inicial,
+  limite,
 }: {
   inicial: { status: StatusPresenca | null; acompanhantes: number; observacao: string };
+  // Quantos acompanhantes a turma permite (escolha do administrador).
+  limite: number;
 }) {
   const [status, setStatus] = useState<StatusPresenca | null>(inicial.status);
-  const [acompanhantes, setAcompanhantes] = useState(String(inicial.acompanhantes));
+  const [acompanhantes, setAcompanhantes] = useState(
+    String(Math.min(inicial.acompanhantes, limite)),
+  );
   const [observacao, setObservacao] = useState(inicial.observacao);
 
   return (
@@ -54,12 +58,16 @@ export function FormPresenca({
             type="number"
             inputMode="numeric"
             min={0}
-            max={MAX_ACOMPANHANTES}
+            max={limite}
             value={acompanhantes}
             onChange={(e) => setAcompanhantes(e.target.value)}
             className="h-10 w-full sm:w-32"
           />
-          <p className="text-xs text-muted-foreground">De 0 a {MAX_ACOMPANHANTES}, sem contar você.</p>
+          <p className="text-xs text-muted-foreground">
+            {limite === 0
+              ? "A turma não permite acompanhantes."
+              : `De 0 a ${limite}, sem contar você.`}
+          </p>
         </div>
       )}
       {status !== null && (

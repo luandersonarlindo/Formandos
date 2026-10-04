@@ -11,6 +11,7 @@ import {
 import { podeEntrarEmOutraTurma, type Papel } from "@/lib/vinculos";
 import { pool, transacao } from "@/lib/db";
 import { gerarCodigoConvite, normalizarCodigo } from "@/lib/convite";
+import { removerMembroDaTurma } from "@/lib/saida-turma";
 import type { EstadoForm } from "./tipos";
 
 const esquemaNome = z.object({
@@ -192,15 +193,14 @@ export async function sairDaTurma(): Promise<EstadoForm> {
     const { rows } = await db.query(
       "select usuario_id, papel from membros where turma_id = $1 for update",
       [membro.turmaId],
-    );
+);
     const admins = rows.filter((r) => r.papel === "admin").length;
     if (membro.papel === "admin" && admins === 1 && rows.length > 1) {
       return "ultimo-admin" as const;
     }
-    await db.query(
-      "delete from membros where turma_id = $1 and usuario_id = $2",
-      [membro.turmaId, membro.usuarioId],
-    );
+    // Sai da turma é apagar o rastro dela naquela turma: votos, dúvidas,
+    // presença e upvotes.
+    await removerMembroDaTurma(db, membro.turmaId, membro.usuarioId);
     // Turma sem ninguém é removida (apaga também votos, dúvidas e tarefas).
     if (rows.length === 1) {
       await db.query("delete from turmas where id = $1", [membro.turmaId]);

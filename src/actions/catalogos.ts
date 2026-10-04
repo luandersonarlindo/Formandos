@@ -158,6 +158,28 @@ export async function excluirCatalogo(formData: FormData) {
   redirect("/admin/votacoes");
 }
 
+// Liga ou desliga o catálogo padrão (o global, igual para todas as turmas) para
+// esta turma. Desligar só esconde: os votos já dados continuam guardados e
+// voltam a aparecer se a turma ligar de novo.
+export async function alternarCatalogoPadrao(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = z.object({ usar: z.enum(["sim", "nao"]) }).safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: "Escolha se a turma usa o catálogo padrão." };
+
+  await pool.query("update turmas set usar_catalogo_padrao = $1 where id = $2", [
+    dados.data.usar === "sim",
+    admin.turmaId,
+  ]);
+  revalidarCatalogo();
+  revalidatePath("/", "layout");
+  return {
+    ok: dados.data.usar === "sim" ? "Catálogo padrão ligado." : "Catálogo padrão desligado.",
+  };
+}
+
 export async function adicionarCategoria(
   _estado: EstadoForm,
   formData: FormData,

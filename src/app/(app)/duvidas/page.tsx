@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CircleCheck, MessageSquareReply, MessagesSquare, Pencil, Star } from "lucide-react";
-import { editarDuvida } from "@/actions/duvidas";
+import { CircleCheck, MessageSquareReply, MessagesSquare, Pencil, Star, Trash2 } from "lucide-react";
+import { editarDuvida, excluirDuvida } from "@/actions/duvidas";
 import { BotaoUpvote } from "@/components/features/botao-upvote";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormNovaDuvida } from "@/components/features/form-nova-duvida";
@@ -89,7 +89,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
       ) : (
         <ul data-grupo className="mt-4 grid gap-3">
           {visiveis.map((d) => (
-            <li key={d.id}>
+            <li key={d.id} data-duvida={d.id}>
               <Card
                 className={
                   d.destaque
@@ -125,17 +125,38 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                       {d.autor} · {formatarData.format(d.criadaEm)}
                     </p>
                     {d.autorId === membro.usuarioId && (
-                      <details className="mt-1">
-                        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-                          <Pencil className="size-3.5" aria-hidden /> Editar dúvida
-                        </summary>
-                        <div className="mt-2">
-                          <FormAcao acao={editarDuvida} rotulo="Salvar">
-                            <input type="hidden" name="duvidaId" value={d.id} />
-                            <Textarea name="conteudo" defaultValue={d.conteudo} maxLength={500} rows={2} required />
-                          </FormAcao>
-                        </div>
-                      </details>
+                      <div className="mt-2 flex flex-wrap items-start gap-2">
+                        <details className="flex-1 basis-56">
+                          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+                            <Pencil className="size-3.5" aria-hidden /> Editar dúvida
+                          </summary>
+                          <div className="mt-2">
+                            <FormAcao acao={editarDuvida} rotulo="Salvar">
+                              <input type="hidden" name="duvidaId" value={d.id} />
+                              <Textarea name="conteudo" defaultValue={d.conteudo} maxLength={500} rows={2} required />
+                            </FormAcao>
+                          </div>
+                        </details>
+                        <details className="basis-56">
+                          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-destructive [&::-webkit-details-marker]:hidden">
+                            <Trash2 className="size-3.5" aria-hidden /> Excluir dúvida
+                          </summary>
+                          <div className="mt-2">
+                            <FormAcao
+                              acao={excluirDuvida}
+                              rotulo="Excluir para sempre"
+                              rotuloPendente="Excluindo…"
+                              variante="destructive"
+                              className="gap-2"
+                            >
+                              <input type="hidden" name="duvidaId" value={d.id} />
+                              <p className="text-xs text-muted-foreground">
+                                A dúvida e os votos que ela recebeu somem para todos. Não dá para desfazer.
+                              </p>
+                            </FormAcao>
+                          </div>
+                        </details>
+                      </div>
                     )}
                     {d.resposta && (
                       <div className="mt-3 rounded-lg border-l-2 border-[var(--vitrine-a)] bg-muted/60 p-3 text-sm">
