@@ -6,6 +6,7 @@ import {
   ComoFunciona,
   Equipe,
   Hero,
+  Ilustracao,
   Papeis,
   Recursos,
   Rodape,
@@ -34,6 +35,7 @@ export default async function Home() {
         <Catalogo />
         <Papeis />
         <Equipe />
+        <Ilustracao />
         <ChamadaFinal logado={logado} />
       </main>
       <Rodape />

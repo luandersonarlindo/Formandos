@@ -5,7 +5,6 @@ import {
   CircleCheck,
   CircleDashed,
   Clock,
-  ListTodo,
   Plus,
   Settings2,
   TriangleAlert,
@@ -17,7 +16,9 @@ import {
   atualizarTarefa,
   excluirTarefa,
 } from "@/actions/tarefas";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormNovaTarefa } from "@/components/features/form-nova-tarefa";
+import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -166,19 +167,18 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
       </nav>
 
       {visiveis.length === 0 ? (
-        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <ListTodo className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">
-            {tarefas.length === 0 ? "Nenhuma tarefa ainda" : "Nenhuma tarefa neste filtro"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {tarefas.length === 0
+        <EstadoVazio
+          className="mt-4"
+          descricao={
+            tarefas.length === 0
               ? ehAdmin
                 ? "Crie a primeira tarefa no formulário acima."
                 : "O administrador ainda não cadastrou tarefas."
-              : "Escolha outro status para ver as demais."}
-          </p>
-        </div>
+              : "Escolha outro status para ver as demais."
+          }
+          ilustracao={<ChecklistAmico />}
+          titulo={tarefas.length === 0 ? "Nenhuma tarefa ainda" : "Nenhuma tarefa neste filtro"}
+        />
       ) : (
         <ul data-grupo className="mt-4 grid gap-3">
           {visiveis.map((t) => {

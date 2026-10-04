@@ -152,12 +152,57 @@
   --vitrine-b: oklch(0.785 0.115 274.713); /* indigo-300 */
 }
 
+/* Paleta das ilustrações Amico (src/components/ilustracoes). O SVG original do
+   Storyset usa cinzas fixos, que somem no tema escuro; aqui eles viram variáveis
+   e invertem junto com o tema. Os tons de pele continuam fixos no SVG, como no
+   original. */
+:root {
+  --ilustra-tinta-1: oklch(0.454 0.03 228.6); /* #455a64, cabelo e roupa clara */
+  --ilustra-tinta-2: oklch(0.387 0.025 229.8); /* #37474f */
+  --ilustra-tinta-3: oklch(0.309 0.019 229.8); /* #263238, contorno mais escuro */
+  --ilustra-sup-1: oklch(0.97 0 0); /* #f5f5f5 */
+  --ilustra-sup-2: oklch(0.955 0 0); /* #f0f0f0, chão */
+  --ilustra-sup-3: oklch(0.907 0 0); /* #e0e0e0, sombra */
+  --ilustra-sup-4: oklch(0.98 0 0); /* #fafafa */
+  --ilustra-sup-5: oklch(0.922 0 0); /* #ebebeb */
+  --ilustra-sup-6: oklch(0.902 0 0); /* #e6e6e6 */
+  --ilustra-detalhe: oklch(1 0 0); /* #fff, folha das plantas */
+}
+.dark {
+  --ilustra-tinta-1: oklch(0.72 0.03 228.6);
+  --ilustra-tinta-2: oklch(0.62 0.025 229.8);
+  --ilustra-tinta-3: oklch(0.52 0.019 229.8);
+  --ilustra-sup-1: oklch(0.32 0 0);
+  --ilustra-sup-2: oklch(0.27 0 0);
+  --ilustra-sup-3: oklch(0.22 0 0);
+  --ilustra-sup-4: oklch(0.35 0 0);
+  --ilustra-sup-5: oklch(0.29 0 0);
+  --ilustra-sup-6: oklch(0.24 0 0);
+  --ilustra-detalhe: oklch(0.9 0 0);
+}
+/* Sem fill-box, a rotação de um <g> gira em torno da origem do SVG inteiro e a
+   ilustração sai torta; com ele, cada grupo gira no próprio centro. */
+.amico-plantas,
+.amico-personagens,
+.amico-objeto,
+.amico-estrelas > * {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.amico-plantas {
+  transform-origin: bottom center;
+}
+
 /* Elementos animados pelo Anime.js começam invisíveis só quando há JavaScript
    e a pessoa não pediu menos movimento. Sem JS, ou se a animação falhar, o
-   conteúdo aparece normalmente (o componente marca html[data-sem-animacao]). */
+   conteúdo aparece normalmente (o componente marca html[data-sem-animacao]).
+   [data-amico] entra aqui apenas na vitrine ([data-vitrine]), que é quem anima
+   a ilustração; nas páginas internas a ilustração é estática e não pode ser
+   escondida, senão nunca apareceria. */
 @media (scripting: enabled) {
   html:not([data-sem-animacao]) [data-hero],
   html:not([data-sem-animacao]) [data-reveal],
+  html:not([data-sem-animacao]) [data-vitrine] [data-amico],
   html:not([data-sem-animacao]) [data-item] {
     opacity: 0;
   }

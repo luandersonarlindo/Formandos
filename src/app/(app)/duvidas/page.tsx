@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CircleCheck, MessageSquareReply, MessagesSquare, Pencil, Star, Trash2 } from "lucide-react";
+import { CircleCheck, MessageSquareReply, Pencil, Star, Trash2 } from "lucide-react";
 import { editarDuvida, excluirDuvida } from "@/actions/duvidas";
 import { BotaoUpvote } from "@/components/features/botao-upvote";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormNovaDuvida } from "@/components/features/form-nova-duvida";
 import { Paginacao } from "@/components/features/paginacao";
+import { PerguntasAmico } from "@/components/ilustracoes/perguntas-amico";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,17 +77,16 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
       </nav>
 
       {visiveis.length === 0 ? (
-        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <MessagesSquare className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">
-            {contagens.todas === 0 ? "Nenhuma dúvida ainda" : "Nenhuma dúvida neste filtro"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {contagens.todas === 0
+        <EstadoVazio
+          className="mt-4"
+          descricao={
+            contagens.todas === 0
               ? "Seja a primeira pessoa a perguntar."
-              : "Escolha outro filtro para ver as demais."}
-          </p>
-        </div>
+              : "Escolha outro filtro para ver as demais."
+          }
+          ilustracao={<PerguntasAmico />}
+          titulo={contagens.todas === 0 ? "Nenhuma dúvida ainda" : "Nenhuma dúvida neste filtro"}
+        />
       ) : (
         <ul data-grupo className="mt-4 grid gap-3">
           {visiveis.map((d) => (

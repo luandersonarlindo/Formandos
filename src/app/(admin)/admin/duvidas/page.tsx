@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   CircleCheck,
   CircleDot,
-  MessagesSquare,
   RotateCcw,
   Star,
   StarOff,
@@ -16,8 +15,10 @@ import {
   apagarDuvida,
 } from "@/actions/admin";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormResposta } from "@/components/features/form-resposta";
 import { Paginacao } from "@/components/features/paginacao";
+import { PerguntasAmico } from "@/components/ilustracoes/perguntas-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,17 +109,16 @@ export default async function ModeracaoDuvidasPage({
       </nav>
 
       {visiveis.length === 0 ? (
-        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <MessagesSquare className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">
-            {contagens.todas === 0 ? "Nenhuma dúvida ainda" : "Nenhuma dúvida neste filtro"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {contagens.todas === 0
+        <EstadoVazio
+          className="mt-4"
+          descricao={
+            contagens.todas === 0
               ? "Quando alguém da turma perguntar, ela aparece aqui."
-              : "Escolha outro filtro para ver as demais."}
-          </p>
-        </div>
+              : "Escolha outro filtro para ver as demais."
+          }
+          ilustracao={<PerguntasAmico />}
+          titulo={contagens.todas === 0 ? "Nenhuma dúvida ainda" : "Nenhuma dúvida neste filtro"}
+        />
       ) : (
         <ul data-grupo className="mt-4 grid gap-4">
           {visiveis.map((d) => (

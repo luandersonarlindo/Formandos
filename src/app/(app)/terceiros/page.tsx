@@ -10,7 +10,6 @@ import {
   Flower2,
   Gift,
   Globe,
-  Handshake,
   Lightbulb,
   Mail,
   Wallet,
@@ -28,9 +27,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { atualizarFornecedor, excluirFornecedor } from "@/actions/terceiros";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
-import { FormOrcamento } from "@/components/features/form-orcamento";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
+import { FormOrcamento } from "@/components/features/form-orcamento";
+import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +40,6 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { exigirMembro } from "@/lib/dal";
-import { cn } from "@/lib/utils";
 import { formatarReal, ROTULO_ORCAMENTO } from "@/lib/orcamento";
 import {
   CATEGORIAS_FORNECEDOR,
@@ -48,6 +48,7 @@ import {
   listarFornecedoresAdmin,
   type Fornecedor,
 } from "@/lib/terceiros";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Terceiros" };
 
@@ -188,17 +189,18 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
       </nav>
 
       {visiveis.length === 0 ? (
-        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <Handshake className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">Nenhum fornecedor por aqui</p>
-          <p className="text-sm text-muted-foreground">
-            {fornecedores.length === 0
+        <EstadoVazio
+          className="mt-4"
+          descricao={
+            fornecedores.length === 0
               ? ehAdmin
                 ? "Adicione o primeiro fornecedor no formulário acima."
                 : "A comissão ainda não indicou fornecedores."
-              : "Escolha outra categoria para ver os demais."}
-          </p>
-        </div>
+              : "Escolha outra categoria para ver os demais."
+          }
+          ilustracao={<ColaboracaoAmico />}
+          titulo="Nenhum fornecedor por aqui"
+        />
       ) : (
         <ul data-grupo className="mt-4 grid gap-4 md:grid-cols-2">
           {visiveis.map((f) => {

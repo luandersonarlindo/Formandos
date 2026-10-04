@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { Megaphone, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { atualizarAviso, excluirAviso } from "@/actions/avisos";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormNovoAviso } from "@/components/features/form-novo-aviso";
 import { Paginacao } from "@/components/features/paginacao";
+import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,13 +43,12 @@ export default async function AvisosPage({ searchParams }: PageProps<"/avisos">)
       )}
 
       {total === 0 ? (
-        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <Megaphone className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">Nenhum aviso ainda</p>
-          <p className="text-sm text-muted-foreground">
-            {ehAdmin ? "Publique o primeiro recado no formulário acima." : "A comissão ainda não publicou nenhum recado."}
-          </p>
-        </div>
+        <EstadoVazio
+          className="mt-4"
+          descricao={ehAdmin ? "Publique o primeiro recado no formulário acima." : "A comissão ainda não publicou nenhum recado."}
+          ilustracao={<ColaboracaoAmico />}
+          titulo="Nenhum aviso ainda"
+        />
       ) : (
         <ul data-grupo className="mt-4 grid gap-3">
           {itens.map((a) => (

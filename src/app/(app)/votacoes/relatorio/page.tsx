@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, ChevronRight, Trophy, Users, Vote } from "lucide-react";
+import { ChevronRight, Trophy, Users, Vote } from "lucide-react";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { GraficoEnquete } from "@/components/features/grafico-enquete";
+import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import {
   Card,
   CardContent,
@@ -11,8 +13,8 @@ import {
 } from "@/components/ui/card";
 import { exigirMembro } from "@/lib/dal";
 import { getRelatorio } from "@/lib/relatorio";
-import { listarCatalogos } from "@/lib/votacoes";
 import { cn } from "@/lib/utils";
+import { listarCatalogos } from "@/lib/votacoes";
 
 export const metadata: Metadata = { title: "Relatório das votações" };
 
@@ -63,10 +65,7 @@ export default async function RelatorioPage(
       )}
 
       {!relatorio && (
-        <div className="mt-8 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <BarChart3 className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">Nenhum catálogo disponível.</p>
-        </div>
+        <EstadoVazio className="mt-8" ilustracao={<ChecklistAmico />} titulo="Nenhum catálogo disponível." />
       )}
 
       {relatorio && (

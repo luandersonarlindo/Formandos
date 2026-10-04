@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { animate, createScope, createTimeline, stagger } from "animejs";
+import { animarAmico } from "@/components/animacao/amico";
 
 // Anima a página inicial com o Anime.js. O conteúdo é renderizado no servidor
 // (fica completo sem JavaScript); aqui só se acrescenta movimento:
@@ -12,6 +13,8 @@ import { animate, createScope, createTimeline, stagger } from "animejs";
 //   [data-barra]   barra que cresce até a largura em data-barra (%)
 //   [data-linha]   linha que se desenha (escala de 0 a 1)
 //   [data-flutuar] enfeite que flutua sem parar
+//   [data-amico]   ilustração Amico: entra girando um pouco, e depois os
+//                  personagens flutuam e as estrelas piscam sem parar
 export function VitrineAnimada({ children }: { children: React.ReactNode }) {
   const raiz = useRef<HTMLDivElement>(null);
 
@@ -116,6 +119,11 @@ export function VitrineAnimada({ children }: { children: React.ReactNode }) {
           linha.style.transform = "scaleY(0)";
           ver(linha, () => animate(linha, { scaleY: [0, 1], duration: 1400, ease: "inOutQuad" }));
         });
+
+        // Ilustração Amico: entra girando um pouco e depois fica viva.
+        el.querySelectorAll<HTMLElement>("[data-amico]").forEach((alvo) => {
+          ver(alvo, () => animarAmico(alvo, escopo));
+        });
       } catch (erro) {
         // Se algo falhar, mostra o conteúdo sem animação em vez de deixá-lo invisível.
         console.error("Falha ao iniciar as animações da vitrine", erro);
@@ -130,5 +138,11 @@ export function VitrineAnimada({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  return <div ref={raiz}>{children}</div>;
+  // data-vitrine é o que permite ao globals.css esconder só a ilustração desta
+  // página (e não a das páginas internas, que são estáticas).
+  return (
+    <div ref={raiz} data-vitrine>
+      {children}
+    </div>
+  );
 }

@@ -151,8 +151,15 @@ export function AnimarPagina({
     const html = document.documentElement;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // data-animar="pronto" libera os blocos desta página, mas o
+      // html[data-sem-animacao] é o que desliga as regras de
+      // "esconde-antes-de-pintar" do globals.css. Sem marcar a flag aqui, os
+      // blocos ficariam invisíveis justamente para quem pediu menos movimento.
       el.dataset.animar = "pronto";
-      return;
+      html.dataset.semAnimacao = "";
+      return () => {
+        delete html.dataset.semAnimacao;
+      };
     }
 
     const limpezas: Array<() => void> = [];
