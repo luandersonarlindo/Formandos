@@ -90,11 +90,14 @@ export default async function RelatorioPage(
         </dl>
       )}
 
+      {/* top-14, e nao top-0: o cabecalho do painel (app-shell.tsx) e sticky em
+          top-0 e tem a mesma altura. Com top-0 as duas barras grudavam no mesmo
+          lugar e, tendo o mesmo z-index, a de baixo cobria o cabecalho. */}
       {relatorio && relatorio.categorias.length > 1 && (
         <nav
           aria-label="Categorias"
           className={cn(
-            "sticky top-0 z-10 mt-6 flex gap-2 overflow-x-auto border-b bg-background/85 py-2 backdrop-blur",
+            "sticky top-14 z-10 mt-6 flex gap-2 overflow-x-auto border-b bg-background/85 py-2 backdrop-blur",
             semRolagem,
           )}
         >

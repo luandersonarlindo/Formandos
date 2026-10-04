@@ -31,6 +31,7 @@ import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
 import { FormOrcamento } from "@/components/features/form-orcamento";
+import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,7 +149,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
       {ehAdmin && (
         <Card className="mt-4">
           <CardContent>
-            <details open={fornecedores.length === 0} className="group">
+            <PainelRecolhivel abertoInicial={fornecedores.length === 0} className="group">
               <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
                 <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
                   <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
@@ -158,7 +159,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
               <div className="mt-4">
                 <FormNovoFornecedor categorias={CATEGORIAS_FORNECEDOR} />
               </div>
-            </details>
+            </PainelRecolhivel>
           </CardContent>
         </Card>
       )}

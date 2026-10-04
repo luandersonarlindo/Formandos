@@ -33,32 +33,43 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
     setCarregando(true);
     setErro(null);
     setAviso(null);
-    const { error } = criando
-      ? await authClient.signUp.email({
-          name: nome,
-          email,
-          password: senha,
-          callbackURL: "/dashboard",
-        })
-      : await authClient.signIn.email({
-          email,
-          password: senha,
-          callbackURL: "/dashboard",
-        });
+    // O `try` não é sobre o `router.push`: ele não devolve promise, e quem
+    // resolve a tela é a navegação. O que ele cobre é a rejeição do authClient
+    // (rede caída, fetch recusado) — sem isso o `setCarregando(false)` nunca era
+    // chamado, o botão ficava travado em "Aguarde…" e nenhum erro aparecia.
+    try {
+      const { error } = criando
+        ? await authClient.signUp.email({
+            name: nome,
+            email,
+            password: senha,
+            callbackURL: "/dashboard",
+          })
+        : await authClient.signIn.email({
+            email,
+            password: senha,
+            callbackURL: "/dashboard",
+          });
 
-    if (error) {
-      setErro(traduzir(error.code, criando));
+      if (error) {
+        setErro(traduzir(error.code, criando));
+        setCarregando(false);
+        return;
+      }
+      if (criando) {
+        // O login só vale depois de confirmar o email pelo link enviado.
+        setAviso(`Enviamos um link de confirmação para ${email}. Abra o email e clique no link para ativar a conta.`);
+        setCarregando(false);
+        return;
+      }
+      router.push("/dashboard");
+      router.refresh();
+      // `carregando` continua true: a navegação desmonta este componente, e até
+      // lá o botão não deve aceitar um segundo envio.
+    } catch {
+      setErro("Não foi possível falar com o servidor. Tente de novo.");
       setCarregando(false);
-      return;
     }
-    if (criando) {
-      // O login só vale depois de confirmar o email pelo link enviado.
-      setAviso(`Enviamos um link de confirmação para ${email}. Abra o email e clique no link para ativar a conta.`);
-      setCarregando(false);
-      return;
-    }
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (

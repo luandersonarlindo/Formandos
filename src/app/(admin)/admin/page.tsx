@@ -21,8 +21,10 @@ export default async function AdminPage() {
 
   const cartoes = [
     { href: "/admin/membros", titulo: "Membros", valor: r.membros, texto: "gerenciar papéis e acessos", icone: Users },
+    // Sem href de propósito: a participação só existe espalhada enquete por
+    // enquete, dentro de /admin/votacoes/[catalogoId]. Ligar este cartão para
+    // /admin/votacoes mandava a pessoa para uma tela que não mostra o número.
     {
-      href: "/admin/votacoes",
       titulo: "Participação nas votações",
       valor: r.votantes,
       sufixo: `de ${r.membros}`,
