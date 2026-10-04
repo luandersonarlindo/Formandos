@@ -24,7 +24,16 @@ banco. São 73 passos em 6 grupos: `auth` (criar conta, confirmar email, entrar,
 sair, esqueci a senha, estados vazios), `participante`, `app` (tarefas, votos,
 dúvidas, terceiros), `admin` (membros, convite, evento, moderação, catálogos),
 `master` e `extras` (tela de erro, animação em movimento, foco por teclado,
-celular e TV).
+celular e TV). O resumo final conta 81 porque cada grupo acrescenta um passo de
+"sem erros de console".
+
+Limpe e semee antes de rodar, senão dados de uma execução anterior confuse as
+contagens e as comparações:
+
+```bash
+scripts/teste/limpar.sh
+scripts/teste/semear.sh
+```
 
 Suba o servidor **com o SMTP desligado**, para nenhum email real ser enviado (o
 email cai no log e o teste lê o link de lá), e com a conta fictícia como master:
@@ -38,6 +47,20 @@ node scripts/teste/fluxos.mjs              # todos os grupos (~4 min)
 node scripts/teste/fluxos.mjs admin,master # só alguns
 ```
 
+`LOG_SERVIDOR` aponta o log de onde o teste lê os links de email (por padrão
+`scripts/teste/.tmp/dev.log`) e `BASE_URL` a porta do servidor, para não
+depender da 3000:
+
+```bash
+PORT=3100 SMTP_HOST= BETTER_AUTH_URL=http://localhost:3100 \
+  ADMIN_MASTER_EMAILS="teste-sh@example.invalid" npm run start > /tmp/dev-3100.log 2>&1
+BASE_URL=http://localhost:3100 LOG_SERVIDOR=/tmp/dev-3100.log node scripts/teste/fluxos.mjs
+```
+
+Com `npm run start` o grupo `extras` falha num passo: a tela de erro do app
+depende do servidor de desenvolvimento criar a rota nova na hora. Rode `extras`
+contra `npm run dev`.
+
 Para reiniciar o servidor, mate pelo PID (`ss -ltnp | grep :3000`); `pkill -f`
 derruba o próprio terminal do agente. O grupo `extras` cria e apaga
 temporariamente `src/app/(app)/teste-erro/` para provocar a tela de erro.
@@ -45,7 +68,10 @@ temporariamente `src/app/(app)/teste-erro/` para provocar a tela de erro.
 ## O que cada arquivo faz
 
 - `fluxos.mjs` e `lib/navegador.mjs`: os testes de fluxo acima e o pequeno
-  controle do Chrome que eles usam.
+  controle do Chrome que eles usam. No `clicar` e no `preencherEm`, o `escopo` é
+  um trecho de texto do cartão; com o prefixo `@` vira um seletor CSS
+  (`"@li[data-duvida='...']"`), que é o jeito estável de mirar um item de lista
+  que tem controles dentro de `<details>`.
 
 - `semear.sh`: cria a admin Maria Souza e o participante João Lima, a turma
   "Sistemas de Informação 2026" (código `TESTESH0001`) com evento, programação,
@@ -53,7 +79,8 @@ temporariamente `src/app/(app)/teste-erro/` para provocar a tela de erro.
   (`cookie.txt` e `cookie-admin.txt` = admin, `cookie-participante.txt`).
   Usa o `DATABASE_URL` do ambiente ou do `.env.local`, e lê o
   `BETTER_AUTH_SECRET` sem imprimi-lo.
-- `limpar.sh`: apaga só o que o `semear.sh` criou.
+- `limpar.sh`: apaga só o que o `semear.sh` criou (turmas com código `TESTE%`,
+  usuários `teste-*@example.invalid` e os cookies). Não toca nas turmas reais.
 - `captura.mjs`: abre uma página no Chrome headless, tira um screenshot e mostra
   erros de console e de hidratação. `SEM=1` testa sem login; `COOKIE_FILE=…`
   troca de conta; `CLICK="Copiar"` clica num botão pelo texto.
