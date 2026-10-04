@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { LoaderCircle, MessageCircleQuestion, Send } from "lucide-react";
 import { enviarDuvida } from "@/actions/duvidas";
 import type { EstadoForm } from "@/actions/tipos";
@@ -12,7 +12,16 @@ const inicial: EstadoForm = {};
 
 export function FormNovaDuvida() {
   const [estado, acao, pendente] = useActionState(enviarDuvida, inicial);
-  const [tamanho, setTamanho] = useState(estado.valor?.length ?? 0);
+  // Campo controlado, e não com `defaultValue`: quando o envio dá certo o React
+  // esvazia o campo sozinho, e limpeza programática não dispara `onChange`. Com
+  // `defaultValue`, o contador ficava mostrando o tamanho do texto anterior.
+  const [texto, setTexto] = useState("");
+
+  // O servidor devolve `valor` quando rejeita o envio, para a pessoa não perder
+  // o que escreveu. Quando aceita, não devolve nada e o campo é zerado.
+  useEffect(() => {
+    setTexto(estado.valor ?? "");
+  }, [estado]);
 
   return (
     <form action={acao} className="flex flex-col gap-2">
@@ -28,8 +37,8 @@ export function FormNovaDuvida() {
         maxLength={500}
         rows={3}
         placeholder="Ex.: Qual é o prazo final para enviar as fotos do telão?"
-        defaultValue={estado.valor}
-        onChange={(e) => setTamanho(e.target.value.length)}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
         required
       />
       <div className="flex flex-wrap items-center gap-3">
@@ -48,7 +57,7 @@ export function FormNovaDuvida() {
           {estado.erro ?? estado.ok}
         </p>
         <span className="ml-auto text-xs text-muted-foreground tabular-nums" aria-hidden>
-          {tamanho}/500
+          {texto.length}/500
         </span>
       </div>
     </form>

@@ -8,6 +8,7 @@ import {
   salvarEvento,
 } from "@/actions/evento";
 import { FormAcao } from "@/components/features/form-acao";
+import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -196,7 +197,7 @@ export default async function EventoPage() {
             </ol>
           )}
 
-          <details open={programacao.length === 0} className="group rounded-xl border p-4">
+          <PainelRecolhivel abertoInicial={programacao.length === 0} className="group rounded-xl border p-4">
             <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
               <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
                 <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
@@ -221,7 +222,7 @@ export default async function EventoPage() {
                 </div>
               </FormAcao>
             </div>
-          </details>
+          </PainelRecolhivel>
         </CardContent>
       </Card>
     </div>

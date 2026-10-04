@@ -57,10 +57,14 @@ export default async function CatalogoPage(
         </CardHeader>
       </Card>
 
+      {/* top-14, e nao top-0: o cabecalho do painel (app-shell.tsx) e
+          sticky em top-0 e tem a mesma altura. Com top-0 as duas barras
+          grudavam no mesmo lugar e, tendo o mesmo z-index, a de baixo
+          cobria o cabecalho. */}
       {catalogo.categorias.length > 1 && (
         <nav
           aria-label="Categorias"
-          className="sticky top-0 z-10 mt-4 flex gap-2 overflow-x-auto border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-background/85 py-2 backdrop-blur"
+          className="sticky top-14 z-10 mt-4 flex gap-2 overflow-x-auto border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-background/85 py-2 backdrop-blur"
         >
           {catalogo.categorias.map((c) => (
             <a

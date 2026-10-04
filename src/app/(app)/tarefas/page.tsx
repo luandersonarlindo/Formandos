@@ -18,6 +18,7 @@ import {
 } from "@/actions/tarefas";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormNovaTarefa } from "@/components/features/form-nova-tarefa";
+import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -130,7 +131,7 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
       {ehAdmin && (
         <Card className="mt-4">
           <CardContent>
-            <details open={tarefas.length === 0} className="group">
+            <PainelRecolhivel abertoInicial={tarefas.length === 0} className="group">
               <summary className={resumoAberto}>
                 <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
                   <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
@@ -140,7 +141,7 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
               <div className="mt-4">
                 <FormNovaTarefa membros={membros} />
               </div>
-            </details>
+            </PainelRecolhivel>
           </CardContent>
         </Card>
       )}
