@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { trocarTurma } from "@/actions/turmas";
+import { AlternadorTema } from "./alternador-tema";
 import { AvatarUsuario } from "./avatar-usuario";
 import { BotaoSair } from "./botao-sair";
 import { ConteudoTurma } from "./conteudo-turma";
@@ -205,6 +206,7 @@ export async function AppShell({
             <span className="min-w-0 flex-1 truncate text-right text-xs font-medium text-muted-foreground md:hidden">
               {titulo}
             </span>
+            <AlternadorTema className="ml-auto md:ml-0" />
           </header>
           <main id="conteudo" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none sm:p-6 lg:p-8 2xl:p-12">
             <ConteudoTurma arquivadaEm={arquivadaEm}>
