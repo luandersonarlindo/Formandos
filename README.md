@@ -19,6 +19,7 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 * **Motor de Decisão (Enquetes por Categoria):**
   * O **catálogo padrão** vem pré-configurado, dividido em 10 categorias (*Formato do Evento*, *Espaço do Evento*, *Comida & Gastronomia*, *Bebidas & Bar*, *Música & Atrações*, *Experiência Visual & Recordações*, *Estrutura, Segurança & Recepção*, *Traje & Identidade Visual*, *Rituais & Pré-Eventos*, *Orçamento & Arrecadação*).
   * O administrador pode criar **catálogos personalizados** para a sua turma, com categorias e perguntas próprias, ou partir de um **modelo** por perfil de turma (Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, Área da Saúde).
+  * Cada turma pode **ligar ou desligar o catálogo padrão** em `/admin/votacoes`; desligado, ele some das telas e dos links já guardados sem apagar nenhum voto.
   * Opções de resposta descritivas e interativas (evitando o tradicional "sim/não"), com suporte a seleção única, múltipla escolha e opção neutra/negativa (*exclusiva*).
   * Os votos são **identificados**: o administrador vê quem votou em cada opção. Os participantes podem **alterar o voto**.
   * O administrador pode **fixar a decisão** da turma em uma pergunta: a escolha aparece no dashboard de todos e a votação daquela pergunta é encerrada (dá para reabrir).
@@ -33,13 +34,15 @@ O aplicativo funciona como um *hub* central de organização, dividindo as respo
 
 * **Mural de avisos:** o administrador publica recados para a turma (`/avisos`, no menu de todos), com os 3 mais recentes também no dashboard.
 
-* **Confirmação de presença:** cada membro diz se vai ao evento (vou, talvez, não vou) e quantos acompanhantes leva; o painel `/admin/presenca` mostra o total de pessoas esperadas, com filtro e paginação.
+* **Confirmação de presença:** cada membro diz se vai ao evento (vou, talvez, não vou) e quantos acompanhantes leva; o painel `/admin/presenca` mostra o total de pessoas esperadas, com filtro e paginação. O administrador ainda escolhe, por turma, **quantos acompanhantes cada pessoa pode levar** (padrão 5, máximo 20); se baixar o limite depois de alguém ter respondido, as respostas acima do novo teto são ajustadas na hora.
 
 * **Arquivar e excluir a turma:** o administrador pode **arquivar** a turma (todo o registro continua disponível, mas só para leitura e sem novos membros) e desarquivar depois, ou **excluí-la** de vez, digitando o nome para confirmar. Cada pessoa também pode **excluir a própria conta** (`/conta`).
 
+* **Sair ou ser removido da turma:** nos três casos (a pessoa sai, o administrador remove em `/admin/membros` e o master remove), tudo o que aquela pessoa deixou **naquela turma** é apagado numa transação: votos, confirmações de presença, dúvidas próprias, os votos que deu nas dúvidas dos outros e a autoria de decisões, avisos e tarefas (esses três ficam na turma sem autor). Tarefas, avisos, decisões e dúvidas dos outros permanecem.
+
 * **Listas grandes:** dúvidas (10 por página), membros (20, com busca por nome ou email sem diferenciar acentos) e, no master, usuários e turmas (20) são paginados pela URL (`?pagina=2`).
 
-* **Vitrine de Terceiros (Marketplace):** Catálogo para conectar a turma a prestadores de serviços (buffet, músicos, equipa de apoio/mordomos, fotógrafos), cadastrados pelo administrador de cada turma. O administrador também registra valor orçado e status (cotando, contratado, descartado) de cada fornecedor, com o total orçado e comprometido no topo da página; participantes não veem esses valores.
+* **Vitrine de Terceiros (Marketplace):** Catálogo para conectar a turma a prestadores de serviços (buffet, músicos, equipa de apoio/mordomos, fotógrafos), cadastrados pelo administrador de cada turma, com as categorias Buffet, Cantores/Músicos, Equipa de Apoio/Mordomos, Fotógrafos, Cabine de Fotos, Cerimônia e Honras, Segurança e Portaria, Iluminação e Som, Transporte e Hospedagem, Higiene e Limpeza, Brindes e Lembrancinhas e Outros. O administrador também registra valor orçado e status (cotando, contratado, descartado) de cada fornecedor, com o total orçado e comprometido no topo da página; participantes não veem esses valores.
 
 ---
 
@@ -118,7 +121,8 @@ Inspirado no projeto **Letmeask (NLW-06)**, a área `/duvidas` possui as seguint
 
 1. **Envio de Pergunta:** O aluno envia uma dúvida (ex: *"Quando será o prazo final para enviar as fotos do telão?"*).
 2. **Engajamento (Upvote):** Outros formandos que possuem a mesma dúvida clicam no ícone de *Like*. A lista reordena automaticamente colocando as perguntas mais votadas no topo.
-3. **Moderação ADM** (em `/admin/duvidas`): A comissão organizadora acessa com permissão administrativa para:
+3. **Exclusão pelo autor:** quem enviou a dúvida pode apagá-la quando não faz mais sentido; a pergunta e os votos que ela tinha somem. Nem a comissão nem os outros formandos podem excluir a dúvida de outra pessoa.
+4. **Moderação ADM** (em `/admin/duvidas`): A comissão organizadora acessa com permissão administrativa para:
    * **Fixar / Destacar:** Coloca perguntas cruciais no topo da tela.
    * **Responder:** Adiciona a resposta oficial da comissão.
    * **Marcar como Respondida:** Altera o status visual da pergunta para manter a organização.
@@ -129,7 +133,7 @@ Inspirado no projeto **Letmeask (NLW-06)**, a área `/duvidas` possui as seguint
 
 O sistema trabalha com dois tipos de catálogo:
 
-* **Catálogo padrão:** pré-configurado, igual para todas as turmas e somente leitura. Está descrito em [`docs/catalogo-enquetes.md`](docs/catalogo-enquetes.md) (10 categorias e 23 perguntas).
+* **Catálogo padrão:** pré-configurado, igual para todas as turmas e somente leitura. Está descrito em [`docs/catalogo-enquetes.md`](docs/catalogo-enquetes.md) (10 categorias e 23 perguntas). Cada turma decide em `/admin/votacoes` se usa ou não esse catálogo: **desligado, ele some das votações, do relatório, do painel e dos links já guardados, mas nada é apagado** (votos, enquetes e decisões continuam guardados e voltam a aparecer se a turma religar). Catálogos personalizados não são afetados por essa escolha.
 * **Catálogos personalizados:** criados pelo administrador de uma turma, visíveis apenas para essa turma, com categorias e perguntas próprias. Podem começar do zero ou de um **modelo** pronto, em [`docs/catalogos-modelo/`](docs/catalogos-modelo): Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, e Cursos da Área da Saúde. O modelo é copiado para a turma e pode ser editado.
 
 As 10 categorias do catálogo padrão:

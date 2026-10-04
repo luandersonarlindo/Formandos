@@ -9,17 +9,33 @@ export const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
   nao: "Não vou",
 };
 
-// Limite de acompanhantes por membro (o banco aceita até 10, para dar folga).
-export const MAX_ACOMPANHANTES = 5;
+// Teto aceito pelo banco (turmas.max_acompanhantes vai até 20). O que vale é o
+// limite que o administrador da turma escolheu.
+export const TETO_ACOMPANHANTES = 20;
+
+// Limite usado quando a turma ainda não escolheu outro (coluna do banco).
+export const ACOMPANHANTES_PADRAO = 5;
 
 // Só quem vai leva acompanhantes: com "talvez" ou "não vou" o número é zerado,
 // para o total de pessoas esperadas nunca contar quem não confirmou.
-export function normalizarPresenca(status: StatusPresenca, acompanhantes: number) {
+export function normalizarPresenca(
+  status: StatusPresenca,
+  acompanhantes: number,
+  limite = ACOMPANHANTES_PADRAO,
+) {
   return {
     status,
     acompanhantes:
-      status === "vou" ? Math.min(Math.max(0, Math.trunc(acompanhantes)), MAX_ACOMPANHANTES) : 0,
+      status === "vou"
+        ? Math.min(Math.max(0, Math.trunc(acompanhantes)), limitarAcompanhantes(limite))
+        : 0,
   };
+}
+
+// O limite da turma nunca sai do teto do banco.
+export function limitarAcompanhantes(limite: number): number {
+  if (!Number.isFinite(limite)) return ACOMPANHANTES_PADRAO;
+  return Math.min(Math.max(0, Math.trunc(limite)), TETO_ACOMPANHANTES);
 }
 
 // Membro + acompanhantes de quem confirmou.

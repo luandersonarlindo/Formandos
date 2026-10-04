@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
+import { removerMembroDaTurma } from "@/lib/saida-turma";
 import type { EstadoForm } from "./tipos";
 import { gerarCodigoConvite } from "@/lib/convite";
 
@@ -64,10 +65,8 @@ export async function removerMembro(formData: FormData) {
   // Sair da própria turma é outra ação (sairDaTurma).
   if (dados.data.usuarioId === admin.usuarioId) return;
 
-  await pool.query(
-    "delete from membros where turma_id = $1 and usuario_id = $2",
-    [admin.turmaId, dados.data.usuarioId],
-  );
+  // Expulso da turma é apagar o rastro dela: votos, dúvidas, presença e upvotes.
+  await transacao((db) => removerMembroDaTurma(db, admin.turmaId, dados.data.usuarioId));
   revalidatePath("/admin/membros");
 }
 

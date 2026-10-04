@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { alterarPapel, removerMembro } from "@/actions/admin";
 import Link from "next/link";
-import { Crown, Search, SearchX, ShieldCheck, ShieldOff, UserMinus, Users } from "lucide-react";
+import { Crown, Search, SearchX, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { Paginacao } from "@/components/features/paginacao";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +82,13 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
           <p className="text-sm text-muted-foreground">Confira o nome ou o email e tente de novo.</p>
         </div>
       ) : (
-        <ul data-grupo className="mt-4 grid gap-3">
+        <>
+          <p className="mt-4 flex items-start gap-1.5 text-sm text-muted-foreground">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            Remover alguém tira a pessoa da turma e apaga o que ela deixou nela: votos,
+            dúvidas, confirmações de presença e votos nas dúvidas dos outros.
+          </p>
+          <ul data-grupo className="mt-4 grid gap-3">
           {rows.map((m) => {
             const ehVoce = m.id === admin.usuarioId;
             const ultimoAdmin = m.papel === "admin" && totalAdmins === 1;
@@ -132,7 +138,8 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </>
       )}
       <Paginacao
         pagina={pagina}

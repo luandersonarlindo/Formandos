@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
+import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
 import { pool, transacao } from "@/lib/db";
 import type { EstadoForm } from "./tipos";
 
@@ -41,7 +42,7 @@ export async function fixarDecisao(
          from enquetes e
          join categorias ca on ca.id = e.categoria_id
          join catalogos c on c.id = ca.catalogo_id
-        where e.id = $1 and (c.turma_id is null or c.turma_id = $2)`,
+        where e.id = $1 and ${catalogoVisivelSql("$2")}`,
       [enqueteId, admin.turmaId],
     );
     if (enquetes.length === 0) return "inexistente" as const;

@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, LayoutList, Lock, Plus } from "lucide-react";
+import { ArrowRight, LayoutList, Library, Lock, Plus } from "lucide-react";
+import { alternarCatalogoPadrao } from "@/actions/catalogos";
+import { FormAcao } from "@/components/features/form-acao";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { listarCatalogosAdmin } from "@/lib/admin";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { contarCatalogosPadrao, listarCatalogosAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +22,10 @@ export const metadata: Metadata = { title: "Catálogos de enquetes" };
 
 export default async function VotacoesAdminPage() {
   const admin = await exigirAdmin();
-  const catalogos = await listarCatalogosAdmin(admin.turmaId);
+  const [catalogos, padroes] = await Promise.all([
+    listarCatalogosAdmin(admin.turmaId),
+    contarCatalogosPadrao(),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -32,6 +40,50 @@ export default async function VotacoesAdminPage() {
         catálogos personalizados você cria categorias e perguntas próprias. Em
         qualquer um, dá para ver quem votou em cada opção.
       </p>
+
+      {padroes > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <span className="mb-1 flex size-10 items-center justify-center rounded-lg border bg-muted/50 text-[var(--vitrine-a)]">
+              <Library className="size-5" aria-hidden />
+            </span>
+            <CardTitle className="text-lg">Catálogo padrão</CardTitle>
+            <CardDescription className="text-pretty">
+              As {padroes}{" "}
+              {padroes === 1 ? "catálogo padrão da plataforma" : "catálogos padrão da plataforma"}{" "}
+              {padroes === 1 ? "serve" : "servem"} de pergunta para toda turma que não desliga.
+              Desligar não apaga nada: os votos já dados ficam guardados e voltam a
+              aparecer se você ligar de novo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormAcao
+              acao={alternarCatalogoPadrao}
+              rotulo="Salvar"
+              rotuloPendente="Salvando…"
+              className="max-w-md"
+            >
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="usar">Uso na minha turma</Label>
+                <NativeSelect
+                  id="usar"
+                  name="usar"
+                  defaultValue={admin.usarCatalogoPadrao ? "sim" : "nao"}
+                  className="h-10"
+                >
+                  <option value="sim">Oferecer o catálogo padrão aos membros</option>
+                  <option value="nao">Usar só os catálogos da turma</option>
+                </NativeSelect>
+                <p className="text-xs text-muted-foreground">
+                  {admin.usarCatalogoPadrao
+                    ? "Agora os membros veem o catálogo padrão junto com os da turma."
+                    : "Agora os membros veem só os catálogos personalizados da turma."}
+                </p>
+              </div>
+            </FormAcao>
+          </CardContent>
+        </Card>
+      )}
 
       <div data-grupo className="mt-6 grid gap-4 md:grid-cols-2">
         {catalogos.map((c) => (
@@ -54,7 +106,7 @@ export default async function VotacoesAdminPage() {
                 <CardDescription>
                   {c.enquetes} {c.enquetes === 1 ? "pergunta" : "perguntas"}
                 </CardDescription>
-                <p className="mt-3 flex items-center gap-1 text-sm font-medium text-[var(--vitrine-a)]">
+                <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-[var(--vitrine-a)]">
                   {c.padrao ? "Ver votos" : "Editar e ver votos"} <ArrowRight className="size-4" aria-hidden />
                 </p>
               </CardHeader>

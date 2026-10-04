@@ -1,5 +1,6 @@
 import "server-only";
 import { pool } from "./db";
+import { catalogoVisivelSql } from "./catalogo-visibilidade";
 import type { Membro } from "./dal";
 
 export type OpcaoRelatorio = {
@@ -33,7 +34,8 @@ export async function getRelatorio(
   membro: Membro,
 ): Promise<Relatorio | null> {
   const { rowCount } = await pool.query(
-    "select 1 from catalogos where id = $1 and (turma_id is null or turma_id = $2)",
+    `select 1 from catalogos c
+      where c.id = $1 and ${catalogoVisivelSql("$2")}`,
     [catalogoId, membro.turmaId],
   );
   if (!rowCount) return null;

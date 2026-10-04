@@ -1,5 +1,6 @@
 import "server-only";
 import { pool } from "./db";
+import { catalogoVisivelSql } from "./catalogo-visibilidade";
 import { padraoBusca, sqlNormalizado } from "./busca";
 import { calcularPaginas, deslocamento, limitarPagina } from "./paginacao";
 
@@ -76,21 +77,23 @@ export async function listarCatalogosAdmin(turmaId: string): Promise<CatalogoAdm
                join categorias ca on ca.id = e.categoria_id
               where ca.catalogo_id = c.id)::int as enquetes
        from catalogos c
-      where c.turma_id is null or c.turma_id = $1
+      where ${catalogoVisivelSql("$1")}
       order by (c.turma_id is null) desc, c.nome`,
     [turmaId],
   );
   return rows;
 }
 
-// Catálogo padrão ou da própria turma, com quantos membros votaram em cada pergunta.
+// Catálogo da própria turma ou o padrão global (quando a turma o mantém ligado),
+// com quantos membros votaram em cada pergunta.
 export async function getCatalogoAdmin(
   catalogoId: string,
   turmaId: string,
 ): Promise<CatalogoDetalhe | null> {
   const { rows: cat } = await pool.query(
-    `select id, nome, turma_id is null as padrao from catalogos
-      where id = $1 and (turma_id is null or turma_id = $2)`,
+    `select c.id, c.nome, c.turma_id is null as padrao
+       from catalogos c
+      where c.id = $1 and ${catalogoVisivelSql("$2")}`,
     [catalogoId, turmaId],
   );
   if (cat.length === 0) return null;
@@ -154,7 +157,7 @@ export async function getVotosEnquete(
        from enquetes e
        join categorias ca on ca.id = e.categoria_id
        join catalogos c on c.id = ca.catalogo_id
-      where e.id = $1 and (c.turma_id is null or c.turma_id = $2)`,
+      where e.id = $1 and ${catalogoVisivelSql("$2")}`,
     [enqueteId, turmaId],
   );
   if (enq.length === 0) return null;
@@ -225,6 +228,15 @@ export async function getResumoAdmin(turmaId: string) {
     personalizados: number;
     confirmados: number;
   };
+}
+
+// Quantos catálogos padrão (globais) existem na plataforma, para o administrador
+// da turma saber se o seletor faz falta.
+export async function contarCatalogosPadrao(): Promise<number> {
+  const { rows } = await pool.query(
+    "select count(*)::int as n from catalogos where turma_id is null",
+  );
+  return rows[0].n;
 }
 
 export type LinhaMembro = {

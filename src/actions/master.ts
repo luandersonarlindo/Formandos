@@ -6,6 +6,7 @@ import { z } from "zod";
 import { exigirMaster } from "@/lib/dal";
 import { transacao } from "@/lib/db";
 import { emailsMaster } from "@/lib/master";
+import { removerMembroDaTurma } from "@/lib/saida-turma";
 import { apagarUsuario } from "@/lib/usuarios";
 import type { EstadoForm } from "./tipos";
 
@@ -67,10 +68,8 @@ export async function removerMembroMaster(formData: FormData) {
     const admins = rows.filter((r) => r.papel === "admin").length;
     // Não deixa a turma sem administrador. Para encerrá-la, exclua a turma.
     if (alvo.papel === "admin" && admins === 1) return;
-    await db.query(
-      "delete from membros where turma_id = $1 and usuario_id = $2",
-      [turmaId, usuarioId],
-    );
+    // Como sair da turma, remove também o rastro dela naquela turma.
+    await removerMembroDaTurma(db, turmaId, usuarioId);
   });
   revalidarTurma(turmaId);
 }

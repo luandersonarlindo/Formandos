@@ -214,7 +214,7 @@ export default async function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <FormPresenca inicial={presenca} />
+          <FormPresenca inicial={presenca} limite={membro.maxAcompanhantes} />
         </CardContent>
       </Card>
 

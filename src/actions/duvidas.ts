@@ -54,6 +54,26 @@ export async function editarDuvida(
   return { ok: "Dúvida atualizada." };
 }
 
+// O autor pode apagar a própria dúvida. A comissão tem a moderação em
+// /admin/duvidas, que apaga a dúvida de qualquer membro da turma.
+export async function excluirDuvida(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const membro = await exigirMembroEditavel();
+  const dados = z.object({ duvidaId: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: "Dúvida não encontrada." };
+
+  const { rowCount } = await pool.query(
+    "delete from duvidas where id = $1 and turma_id = $2 and autor_id = $3",
+    [dados.data.duvidaId, membro.turmaId, membro.usuarioId],
+  );
+  if (!rowCount) return { erro: "Dúvida não encontrada." };
+  revalidatePath("/duvidas");
+  revalidatePath("/admin/duvidas");
+  return { ok: "Dúvida excluída." };
+}
+
 // Liga ou desliga o upvote do usuário. Só vale para dúvidas da própria turma.
 export async function alternarUpvote(duvidaId: string) {
   const membro = await exigirMembroEditavel();

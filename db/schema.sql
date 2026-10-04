@@ -24,6 +24,13 @@ create table if not exists turmas (
 -- Turma arquivada: fica só para leitura (nada muda) até ser desarquivada.
 alter table turmas add column if not exists arquivada_em timestamptz;
 
+-- Configurações que o administrador da turma controla:
+--   max_acompanhantes = quantos acompanhantes cada membro pode levar (0 a 20);
+--   usar_catalogo_padrao = se a turma usa o catálogo padrão global.
+alter table turmas add column if not exists max_acompanhantes smallint not null default 5
+  check (max_acompanhantes between 0 and 20);
+alter table turmas add column if not exists usar_catalogo_padrao boolean not null default true;
+
 -- Detalhes do evento, editados pelo administrador e mostrados no dashboard.
 alter table turmas add column if not exists descricao         text;
 alter table turmas add column if not exists endereco          varchar(255);
@@ -120,16 +127,23 @@ create table if not exists decisoes (
 create index if not exists idx_decisoes_enquete on decisoes (turma_id, enquete_id);
 
 -- Confirmação de presença: cada membro diz se vai ao evento e quantos
--- acompanhantes leva. Só quem vai ("vou") tem acompanhantes.
+-- acompanhantes leva. Só quem vai ("vou") tem acompanhantes. Quantos são
+-- permitidos é escolha da turma (turmas.max_acompanhantes).
 create table if not exists presencas (
   turma_id      uuid not null references turmas(id) on delete cascade,
   usuario_id    uuid not null references usuarios(id) on delete cascade,
   status        varchar(10) not null check (status in ('vou', 'talvez', 'nao')),
-  acompanhantes smallint not null default 0 check (acompanhantes between 0 and 10),
+  acompanhantes smallint not null default 0 check (acompanhantes between 0 and 20),
   observacao    varchar(255),
   updated_at    timestamptz not null default now(),
   primary key (turma_id, usuario_id)
 );
+
+-- Bancos criados com o teto de 10 acompanhantes passam a aceitar o mesmo teto
+-- de turmas.max_acompanhantes.
+alter table presencas drop constraint if exists presencas_acompanhantes_check;
+alter table presencas add constraint presencas_acompanhantes_check
+  check (acompanhantes between 0 and 20);
 
 -- Mural de avisos: recados fixados da comissão, mostrados no dashboard e em
 -- /avisos. Só o administrador publica e apaga; sem edição, como fornecedores.

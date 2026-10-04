@@ -3,13 +3,22 @@ import { pool } from "./db";
 import type { Membro } from "./dal";
 import type { StatusOrcamento } from "./orcamento";
 
+// Categorias da vitrine de terceiros. Nenhum item é apagado quando uma categoria
+// sai daqui: os fornecedores antigos continuam com o texto que já tinham.
 export const CATEGORIAS_FORNECEDOR = [
   "Buffet",
   "Música e DJ",
   "Fotografia e vídeo",
+  "Cabine de fotos",
   "Decoração",
+  "Cerimônia e honras",
   "Equipe de apoio",
+  "Segurança e portaria",
+  "Iluminação e som",
   "Espaço",
+  "Transporte e hospedagem",
+  "Higiene e limpeza",
+  "Brindes e lembrancinhas",
   "Outros",
 ] as const;
 

@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { UserCheck, UsersRound } from "lucide-react";
+import { SlidersHorizontal, UserCheck, UsersRound } from "lucide-react";
+import { salvarLimiteAcompanhantes } from "@/actions/presenca";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { FormAcao } from "@/components/features/form-acao";
 import { Paginacao } from "@/components/features/paginacao";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { exigirAdmin } from "@/lib/dal";
 import { lerPagina } from "@/lib/paginacao";
 import { getResumoPresenca, listarPresencas, type FiltroPresenca } from "@/lib/presenca";
-import { ROTULO_PRESENCA } from "@/lib/presenca-regras";
+import { ROTULO_PRESENCA, TETO_ACOMPANHANTES } from "@/lib/presenca-regras";
 
 export const metadata: Metadata = { title: "Presença" };
 
@@ -62,6 +66,47 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
             {resumo.pendente > 0 && `${resumo.pendente} sem resposta.`}
           </p>
         </CardHeader>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1.5 text-lg">
+            <SlidersHorizontal className="size-5 text-[var(--vitrine-a)]" aria-hidden />
+            Limite de acompanhantes
+          </CardTitle>
+          <CardDescription className="text-pretty">
+            Quantos acompanhantes cada membro pode levar. Vale para toda a turma:{" "}
+            {admin.maxAcompanhantes === 0
+              ? "hoje ninguém pode levar acompanhante."
+              : `hoje cada membro pode levar até ${admin.maxAcompanhantes}.`}{" "}
+            Baixar o limite corta as respostas que ficaram acima dele.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormAcao
+            acao={salvarLimiteAcompanhantes}
+            rotulo="Salvar limite"
+            rotuloPendente="Salvando…"
+            className="max-w-md"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="maxAcompanhantes">Acompanhantes por pessoa</Label>
+              <Input
+                id="maxAcompanhantes"
+                name="maxAcompanhantes"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={TETO_ACOMPANHANTES}
+                defaultValue={admin.maxAcompanhantes}
+                className="h-10 sm:w-32"
+              />
+              <p className="text-xs text-muted-foreground">
+                De 0 (sem acompanhantes) a {TETO_ACOMPANHANTES}.
+              </p>
+            </div>
+          </FormAcao>
+        </CardContent>
       </Card>
 
       <nav
