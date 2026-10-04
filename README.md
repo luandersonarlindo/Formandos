@@ -226,6 +226,7 @@ As 10 categorias do catálogo padrão:
 | `npm run build` / `npm start` | Compilação e servidor de produção |
 | `npm run typecheck` | Gera os tipos das rotas do Next e confere o TypeScript. Numa cópia recém-clonada, rode este comando (ou `npm run dev`) antes de abrir o editor: os tipos `PageProps` e `LayoutProps` só existem depois disso |
 | `npm test` | Testes unitários (Vitest) |
+| `node scripts/teste/fluxos.mjs` | Testes de fluxo no navegador de verdade (Chrome), explicados em `scripts/teste/README.md` |
 | `npm run db:migrate` | Tabelas do Better Auth + `db/schema.sql` (`MIGRATION_DATABASE_URL`). É o que o `prebuild` roda na Vercel |
 | `npm run db:schema` | Só as tabelas do domínio (`db/schema.sql`), no `DATABASE_URL` do `.env.local`. Para developing local |
 | `npm run db:seed` | Catálogo padrão (`-- --dry` só mostra o que leria) |
@@ -326,6 +327,8 @@ Substituir a lista em vez de somar é o que quebrava o login: a origem pública 
 * Toda página protegida e toda Server Action validam sessão, turma e papel em `src/lib/dal.ts`. O `proxy.ts` é só a primeira barreira.
 * O login por email e senha exige confirmar o email pelo link enviado. Um Google já verificado não se junta a uma conta local não verificada.
 * Entradas validadas com Zod; consultas SQL sempre parametrizadas.
+* Sair da turma, ser removido pelo administrador ou pelo master apaga o rastro daquela pessoa naquela turma (votos, presença, dúvidas próprias e os votos que deu nas dúvidas dos outros), em transação. Tarefas, avisos, decisões e as dúvidas dos outros ficam sem autor em vez de sumirem. Ver `src/lib/saida-turma.ts`.
+* O autor é o único que exclui a própria dúvida; nem a comissão nem os demais formandos podem excluir a dúvida de outra pessoa.
 * Tentativas de código de convite inválido são limitadas (10 a cada 15 minutos por utilizador). Não há limite de envio de dúvidas nem de votos por utilizador.
 * Cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) configurados em `next.config.ts`.
 * Link "Pular para o conteúdo", títulos por página, tabela alternativa nos gráficos e mensagens de erro anunciadas para leitores de ecrã.
