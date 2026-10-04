@@ -22,8 +22,10 @@ import {
   renomearCatalogo,
   renomearCategoria,
 } from "@/actions/catalogos";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormEnquete } from "@/components/features/form-enquete";
+import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,13 +122,12 @@ export default async function CatalogoAdminPage(
       )}
 
       {catalogo.categorias.length === 0 && (
-        <div className="mt-8 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <Folder className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">Nenhuma categoria ainda</p>
-          {editavel && (
-            <p className="text-sm text-muted-foreground">Crie a primeira categoria no formulário abaixo.</p>
-          )}
-        </div>
+        <EstadoVazio
+          className="mt-8"
+          descricao={editavel ? "Crie a primeira categoria no formulário abaixo." : undefined}
+          ilustracao={<ChecklistAmico />}
+          titulo="Nenhuma categoria ainda"
+        />
       )}
 
       {catalogo.categorias.map((categoria) => (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
+  Check,
   CircleHelp,
   ClipboardList,
   Crown,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 
 const REPOSITORIO = "https://github.com/luandersonarlindo/Formandos";
 
@@ -428,6 +430,46 @@ export function Equipe() {
   );
 }
 
+const MOTIVOS = [
+  "Opinião identificada de cada formando, sem palpite solto no grupo",
+  "Categorias separadas para local, comida, música e DJ",
+  "Relatório pronto para a comissão fechar os fornecedores",
+];
+
+// Ilustração Amico (Storyset). Estática por enquanto: a animação fica para
+// depois da aprovação visual.
+export function Ilustracao() {
+  return (
+    <section className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 py-16 md:py-24">
+      <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div data-reveal>
+          <p className="text-sm font-medium tracking-wide text-[var(--vitrine-a)] uppercase">A turma unida</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-balance md:text-4xl">
+            Cada decisão sai de uma enquete, não de uma conversa de grupo
+          </h2>
+          <p className="mt-3 text-muted-foreground text-pretty">
+            Todo mundo vota, a comissão acompanha o resultado automático e a formatura acontece do jeito que a
+            turma escolheu — do Buffet ao tipo de música.
+          </p>
+          <ul data-grupo className="mt-6 space-y-2.5">
+          {MOTIVOS.map((motivo) => (
+            <li key={motivo} data-item className="flex items-center gap-2.5">
+              <span aria-hidden className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--vitrine-a)] text-white">
+                <Check className="size-3.5" />
+              </span>
+              <span className="text-sm">{motivo}</span>
+            </li>
+          ))}
+        </ul>
+        </div>
+        <div data-amico className="mx-auto w-full max-w-sm sm:max-w-md lg:max-w-lg">
+          <EquipeAmico className="h-auto w-full" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function ChamadaFinal({ logado }: Sessao) {
   return (
     <section className="px-4 pb-16 md:pb-24">
@@ -458,12 +500,16 @@ export function Rodape() {
     <footer className="border-t">
       <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground">
         <p>Formandos 🎓 · Gestão administrativa de formaturas e eventos</p>
-        <nav aria-label="Links do projeto" className="flex gap-5">
+        <nav aria-label="Links do projeto" className="flex flex-wrap gap-5">
           <a href={REPOSITORIO} className="hover:text-foreground" rel="noreferrer" target="_blank">
             Código no GitHub
           </a>
           <a href={`${REPOSITORIO}/blob/main/docs/guia-de-estudo.md`} className="hover:text-foreground" rel="noreferrer" target="_blank">
             Guia do projeto
+          </a>
+          {/* Atribuição exigida pelos termos da Freepik para a ilustração Amico. */}
+          <a href="https://storyset.com/amico" className="hover:text-foreground" rel="noreferrer" target="_blank">
+            Ilustração Amico por Storyset
           </a>
         </nav>
       </div>

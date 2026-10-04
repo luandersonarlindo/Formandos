@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { alterarPapel, removerMembro } from "@/actions/admin";
 import Link from "next/link";
-import { Crown, Search, SearchX, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
+import { Crown, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
+import { alterarPapel, removerMembro } from "@/actions/admin";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { Paginacao } from "@/components/features/paginacao";
+import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { exigirAdmin } from "@/lib/dal";
 import { listarMembrosAdmin } from "@/lib/admin";
 import { lerBusca } from "@/lib/busca";
+import { exigirAdmin } from "@/lib/dal";
 import { lerPagina } from "@/lib/paginacao";
 
 export const metadata: Metadata = { title: "Membros" };
@@ -76,11 +78,12 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
       )}
 
       {rows.length === 0 ? (
-        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <SearchX className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">Nenhum membro encontrado</p>
-          <p className="text-sm text-muted-foreground">Confira o nome ou o email e tente de novo.</p>
-        </div>
+        <EstadoVazio
+          className="mt-4"
+          descricao="Confira o nome ou o email e tente de novo."
+          ilustracao={<EquipeAmico />}
+          titulo="Nenhum membro encontrado"
+        />
       ) : (
         <>
           <p className="mt-4 flex items-start gap-1.5 text-sm text-muted-foreground">

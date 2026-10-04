@@ -103,7 +103,9 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/proxy.ts`:** Redireciona para o login quem não tem sessão. É uma verificação rápida, **não** a barreira final de segurança.
 * **`/src/app`:** Rotas, layouts, telas de erro (`error.tsx`, `global-error.tsx`), carregamento (`loading.tsx`) e `not-found.tsx`.
 * **`/src/components/ui`:** Componentes genéricos da biblioteca shadcn/ui.
-* **`/src/components/features`:** Componentes de domínio (menu lateral, cartão de votação, gráfico da enquete, botão de upvote, formulários de tarefa, fornecedor, evento e catálogo, contagem regressiva…).
+* **`/src/components/features`:** Componentes de domínio (menu lateral, cartão de votação, gráfico da enquete, botão de upvote, formulários de tarefa, fornecedor, evento e catálogo, contagem regressiva, estado vazio…).
+* **`/src/components/ilustracoes`:** Ilustrações Amico em JSX (`EquipeAmico`, `ChecklistAmico`, `PerguntasAmico`, `ColaboracaoAmico`, `AprendizadoAmico`). Vieram do [Storyset](https://storyset.com/amico), com os *ids* do Storyset trocados por classes `.amico-*` — *id* repetido é inválido em SVG — e a paleta ligada a variáveis CSS, para inverter com o tema.
+* **`/src/components/animacao`:** Animações de página (`AnimarPagina`) e a animação das ilustrações (`animarAmico`), com [anime.js](https://animejs.com). Quem tem *reduced-motion* ligado no sistema vê a ilustração parada, nunca invisível.
 * **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `presenca.ts`, `avisos.ts`, `terceiros.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
 * **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
 * **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (Google e email e senha) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
@@ -341,4 +343,5 @@ Substituir a lista em vez de somar é o que quebrava o login: a origem pública 
 * **NLW-06-ReactJS (Rocketseat - Letmeask):** [Repositório GitHub](https://github.com/rocketseat-education/nlw-06-reactjs)
 * **Figma (Letmeask):** [Layout de Referência](https://www.figma.com/design/2r8K23o2jmF2z17AtBilZe/Letmeask--Community-%253Fnode-id%253D0-1%2526p%253Df%2526t%253D8VVmpO1EYRbg9LfF-0)
 * **Better Auth:** [Documentação](https://www.better-auth.com/docs)
+* **Storyset (ilustrações Amico):** [Coleção Amico](https://storyset.com/amico) — [Termos de uso da Freepik](https://freepik.com/legal/terms-of-use). A atribuição aparece no rodapé da vitrine.
 * **Guia de estudo do projeto:** [`docs/guia-de-estudo.md`](docs/guia-de-estudo.md)

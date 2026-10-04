@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SlidersHorizontal, UserCheck, UsersRound } from "lucide-react";
+import { SlidersHorizontal, UsersRound } from "lucide-react";
 import { salvarLimiteAcompanhantes } from "@/actions/presenca";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
 import { Paginacao } from "@/components/features/paginacao";
+import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -134,11 +136,12 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
       </nav>
 
       {itens.length === 0 ? (
-        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <UserCheck className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">Ninguém neste filtro</p>
-          <p className="text-sm text-muted-foreground">Escolha outro filtro para ver os demais.</p>
-        </div>
+        <EstadoVazio
+          className="mt-4"
+          descricao="Escolha outro filtro para ver os demais."
+          ilustracao={<EquipeAmico />}
+          titulo="Ninguém neste filtro"
+        />
       ) : (
         <ul data-grupo className="mt-4 grid gap-3">
           {itens.map((m) => (

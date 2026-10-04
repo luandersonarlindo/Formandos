@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, School, TriangleAlert, Users } from "lucide-react";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { Paginacao } from "@/components/features/paginacao";
+import { AprendizadoAmico } from "@/components/ilustracoes/aprendizado-amico";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { exigirMaster } from "@/lib/dal";
@@ -25,10 +27,7 @@ export default async function TurmasMasterPage({ searchParams }: PageProps<"/mas
       </p>
 
       {total === 0 ? (
-        <div className="mt-6 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-          <School className="size-8 text-muted-foreground" aria-hidden />
-          <p className="font-medium">Nenhuma turma criada ainda</p>
-        </div>
+        <EstadoVazio className="mt-6" ilustracao={<AprendizadoAmico />} titulo="Nenhuma turma criada ainda" />
       ) : (
         <ul data-grupo className="mt-6 grid gap-4 md:grid-cols-2">
           {turmas.map((t) => (
