@@ -40,11 +40,32 @@ const igual = (a, b, msg) => {
 const verdade = (c, msg) => {
   if (!c) throw new Error(msg);
 };
+const JANELA_LOG = 40000;
 const ultimoLink = (parte) => {
-  const links = fs.readFileSync(LOG, "utf8").slice(-20000).match(/https?:\/\/[^\s"'<>]+/g) ?? [];
+  const links = fs.readFileSync(LOG, "utf8").slice(-JANELA_LOG).match(/https?:\/\/[^\s"'<>]+/g) ?? [];
   const l = links.filter((x) => x.includes(parte)).at(-1);
   if (!l) throw new Error(`link com "${parte}" não apareceu no log do servidor (${LOG})`);
   return l.replace(/&amp;/g, "&");
+};
+// Sem SMTP_HOST o servidor imprime o email inteiro no log (src/lib/email.ts).
+// A janela é maior que a do ultimoLink porque agora cada ação da turma também
+// manda email, e um email novo pode empurrar o link antigo para fora da fatia.
+// O corte é pela marca do log, e não por linha em branco: o corpo do email tem
+// parágrafos, e quebrar nele cortaria o email no meio.
+const MARCA_EMAIL = "[email não enviado: SMTP_HOST vazio]";
+const emails = () => fs.readFileSync(LOG, "utf8").slice(-JANELA_LOG);
+const ultimoEmail = (trecho) => {
+  const bloco = emails()
+    .split(MARCA_EMAIL)
+    .filter((b) => b.includes(trecho))
+    .at(-1);
+  if (!bloco) {
+    throw new Error(
+      `email com "${trecho}" não apareceu no log do servidor (${LOG}). ` +
+        `A suíte precisa rodar com SMTP_HOST vazio: com provedor configurado não há log para ler.`,
+    );
+  }
+  return bloco;
 };
 const idPadrao = () => sql("select id from catalogos where turma_id is null order by nome limit 1");
 // A turma do seed (o código de convite pode ser trocado pelos testes; o email do criador não).
@@ -120,6 +141,15 @@ const NOVO = "teste-novo@example.invalid";
 
 await grupo("auth", async () => {
   await nav.cookie(null);
+  // Compila /entrar e o endpoint de login antes do primeiro passo. A primeira
+  // requisição de uma rota leva quase 30s com o compilador frio, e o passo
+  // abaixo só espera 10s pelo texto de erro: sem este aquecimento ele falha por
+  // tempo, não por defeito.
+  await nav.abrir("/entrar");
+  await nav.preencher("#email", "aquecimento@example.invalid");
+  await nav.preencher("#senha", "SenhaAquecimento1");
+  await nav.clicar("Entrar", { seletor: "form button[type=submit]" });
+  await nav.esperar("document.readyState === 'complete'", 30000, "compilação do login");
   await passo("login com senha errada mostra erro", async () => {
     await nav.abrir("/entrar");
     await nav.preencher("#email", "ninguem@example.invalid");
@@ -149,6 +179,8 @@ await grupo("auth", async () => {
     await nav.abrir(ultimoLink("verify-email"));
     await nav.esperarUrl("/convite");
     igual(sql(`select "emailVerified" from usuarios where email='${NOVO}'`), "t", "email confirmado");
+    // Confirmar o email dispara as boas-vindas logo em seguida.
+    verdade(ultimoEmail("Sua conta no Formandos está pronta").includes(NOVO), "email de boas-vindas enviado");
   });
   await passo("código de convite inválido mostra erro", async () => {
     await nav.preencher("#codigo", "ZZZZZZZZ");
@@ -214,6 +246,10 @@ await grupo("auth", async () => {
     await nav.preencher("#email", NOVO);
     await nav.clicar("Enviar link", { seletor: "button" });
     await nav.esperarTexto("Confira o seu email");
+    verdade(
+      ultimoEmail("Defina sua senha no Formandos").includes("reset-password"),
+      "email de redefinição aponta para o link da senha",
+    );
   });
   await passo("redefinir a senha pelo link e entrar com a nova", async () => {
     await dormir(500);
@@ -241,6 +277,12 @@ await grupo("auth", async () => {
     await nav.esperar("location.pathname === '/'", 10000, "voltar para a página inicial");
     igual(sql(`select count(*) from usuarios where email='${NOVO}'`), "0", "conta apagada");
     igual(sql("select count(*) from turmas where nome='Turma Nova Teste'"), "0", "turma dele apagada junto");
+    // O email chega depois da conta cair, então tem de citar as turmas de antes.
+    const exclusao = ultimoEmail("como você pediu");
+    verdade(exclusao.includes("Turma Nova Teste"), "email de exclusão cita a turma que ele estava");
+    // O texto puro do log é o que a pessoa recebe quando o cliente não mostra
+    // HTML; é nele que a irreversibilidade precisa estar escrita.
+    verdade(exclusao.includes("Não dá para recuperar"), "email de exclusão avisa que não volta atrás");
     await nav.abrir("/dashboard");
     await nav.esperarUrl("/entrar");
   });
@@ -258,10 +300,18 @@ await grupo("participante", async () => {
     await nav.clicar("Sair da turma", { seletor: "button" });
     await nav.esperarUrl("/convite");
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "sem turma");
+    verdade(
+      ultimoEmail("Você saiu da turma Sistemas de Informação 2026").includes("Se mudar de ideia"),
+      "email de saída oferece voltar com o código de convite",
+    );
     await nav.preencher("#codigo", "TESTESH0001");
     await nav.clicar("Entrar na turma", { seletor: "button" });
     await nav.esperarUrl("/dashboard");
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "participante", "papel");
+    verdade(
+      ultimoEmail("Você entrou na turma Sistemas de Informação 2026").includes("João Lima"),
+      "email de entrada saúda pelo nome",
+    );
     // Sair limpa a autoria: a tarefa segue na turma, mas sem responsável, como manda a regra.
     igual(
       sql(`select count(*) from tarefas t join usuarios u on u.email='teste-jl@example.invalid' where t.titulo='Fechar o buffet' and t.responsavel_id=u.id`),
@@ -1003,6 +1053,13 @@ await grupo("admin", async () => {
     await excluir("Remover", { escopo: "João Lima" });
     await dormir(1800);
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "removido");
+    // Saiu por decisão do admin: o email tem de dizer isso, não "você saiu".
+    verdade(
+      ultimoEmail("Você foi removido da turma Sistemas de Informação 2026").includes(
+        "Um administrador removeu você da turma",
+      ),
+      "email de remoção diz que foi decisão do admin",
+    );
     for (const [tabela, coluna] of [
       ["votos", "usuario_id"],
       ["presencas", "usuario_id"],
@@ -1078,6 +1135,12 @@ await grupo("master", async () => {
     await nav.clicar("Excluir usuário", { escopo: "Apagar Teste", seletor: "button" });
     await dormir(1800);
     igual(sql("select count(*) from usuarios where email='teste-del@example.invalid'"), "0", "apagado");
+    // Mesmo assunto da exclusão pedida pela própria pessoa; o corpo é que diz
+    // que veio de um administrador.
+    verdade(
+      ultimoEmail("Um administrador excluiu sua conta").includes("Um administrador excluiu sua conta"),
+      "email de exclusão pelo master diz quem excluiu",
+    );
   });
   await passo("excluir turma exige o nome de confirmação", async () => {
     sql(`insert into turmas (nome,codigo_convite) values ('Turma Apagar Teste','TESTEDEL001')`);
@@ -1091,6 +1154,24 @@ await grupo("master", async () => {
     await nav.clicar("Excluir turma", { seletor: "button" });
     await nav.esperar("location.pathname === '/master/turmas'", 10000, "voltar à lista de turmas");
     igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "0", "apagada");
+  });
+  // Fica no fim do grupo de propósito: tira o João Lima da turma do seed, e os
+  // grupos seguintes já não dependem da presença dele.
+  await passo("master remove membro da turma e avisa por email", async () => {
+    await nav.abrir(`/master/turmas/${turmaTeste()}`);
+    await nav.clicar("Remover", { escopo: "João Lima", seletor: "button" });
+    await dormir(1800);
+    igual(
+      sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"),
+      "0",
+      "removido da turma pelo master",
+    );
+    verdade(
+      ultimoEmail("Você foi removido da turma Sistemas de Informação 2026").includes(
+        "Um administrador removeu você da turma",
+      ),
+      "email de remoção pelo master",
+    );
   });
 });
 

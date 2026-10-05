@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
+import { emailRemovidoDaTurma, enviarEmailSilencioso, urlDoSite } from "@/lib/email";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
+import { dadosParaEmail } from "@/lib/usuarios";
 import type { EstadoForm } from "./tipos";
 import { gerarCodigoConvite } from "@/lib/convite";
 
@@ -65,8 +67,17 @@ export async function removerMembro(formData: FormData) {
   // Sair da própria turma é outra ação (sairDaTurma).
   if (dados.data.usuarioId === admin.usuarioId) return;
 
+  // Nome e email do removido saem lidos agora: logo abaixo a transação apaga o
+  // rastro dele, e o email precisa saber para quem falar.
+  const alvo = await dadosParaEmail(dados.data.usuarioId);
+  if (!alvo) return;
+
   // Expulso da turma é apagar o rastro dela: votos, dúvidas, presença e upvotes.
   await transacao((db) => removerMembroDaTurma(db, admin.turmaId, dados.data.usuarioId));
+  await enviarEmailSilencioso({
+    para: alvo.email,
+    ...emailRemovidoDaTurma(alvo.name, admin.turmaNome, urlDoSite("/dashboard")),
+  });
   revalidatePath("/admin/membros");
 }
 

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { COOKIE_TURMA, exigirSessao } from "@/lib/dal";
 import { transacao } from "@/lib/db";
+import { emailContaExcluida, enviarEmailSilencioso } from "@/lib/email";
 import { ehMaster } from "@/lib/master";
 import { apagarUsuario } from "@/lib/usuarios";
 import type { EstadoForm } from "./tipos";
@@ -67,8 +68,16 @@ export async function excluirMinhaConta(
     return { erro: "O email digitado não confere com o da sua conta." };
   }
 
-  const erro = await transacao((db) => apagarUsuario(db, user.id));
-  if (erro) return { erro };
+  const resultado = await transacao((db) => apagarUsuario(db, user.id));
+  if (!resultado.ok) return { erro: resultado.erro };
+
+  // O email sai depois da transação e antes do redirect: ele cita as turmas que
+  // só existiam enquanto a conta estava de pé, e o catch garante que uma falha
+  // de SMTP não segure a pessoa numa tela de conta que não existe mais.
+  await enviarEmailSilencioso({
+    para: user.email,
+    ...emailContaExcluida(user.name, resultado.turmas),
+  });
 
   // As sessões foram apagadas junto com a conta; só resta limpar o cookie da turma.
   (await cookies()).delete(COOKIE_TURMA);

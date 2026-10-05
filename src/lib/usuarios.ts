@@ -5,10 +5,16 @@ import { pool } from "./db";
 // Regras para apagar uma conta, usadas pelo master (excluirUsuario) e por quem
 // exclui a própria conta (excluirMinhaConta).
 
-// Dentro de uma transação: confere as turmas dele e apaga a conta. Devolve a
-// mensagem de erro, ou null se apagou. Não confere quem pode pedir a exclusão
-// nem o email de confirmação: isso é de quem chama.
-export async function apagarUsuario(db: PoolClient, usuarioId: string): Promise<string | null> {
+// Dentro de uma transação: confere as turmas dele e apaga a conta. Devolve o
+// erro, ou as turmas em que ele estava se apagou. Não confere quem pode pedir a
+// exclusão nem o email de confirmação: isso é de quem chama.
+//
+// `ok` existe para o TypeScript separar os dois retornos: com `erro: string`
+// sozinho o `if (resultado.erro)` não afunila, porque string vazia é falsy.
+export async function apagarUsuario(
+  db: PoolClient,
+  usuarioId: string,
+): Promise<{ ok: false; erro: string } | { ok: true; turmas: string[] }> {
   // Trava os membros das turmas dele para conferir os administradores.
   const { rows: membros } = await db.query(
     `select m.turma_id, m.usuario_id, m.papel, t.nome
@@ -28,16 +34,33 @@ export async function apagarUsuario(db: PoolClient, usuarioId: string): Promise<
     const admins = lista.filter((m) => m.papel === "admin").length;
     if (lista.length === 1) vazias.push(turmaId);
     else if (ele?.papel === "admin" && admins === 1) {
-      return `É o único administrador de "${lista[0].nome}". Promova outro membro antes.`;
+      return { ok: false as const, erro: `É o único administrador de "${lista[0].nome}". Promova outro membro antes.` };
     }
   }
+  // Os nomes das turmas dele saem aqui, antes do delete: depois que a conta
+  // cai, os vínculos vão por cascata e o email de exclusão ainda precisa
+  // citar as turmas em que ele estava.
+  const turmas = [
+    ...new Set(membros.filter((m) => m.usuario_id === usuarioId).map((m) => m.nome)),
+  ];
   // Turma que ficaria sem ninguém é removida junto.
   for (const turmaId of vazias) {
     await db.query("delete from turmas where id = $1", [turmaId]);
   }
   // Apaga em cascata sessões, contas, participação, votos e dúvidas dele.
   await db.query("delete from usuarios where id = $1", [usuarioId]);
-  return null;
+  return { ok: true as const, turmas };
+}
+
+// Nome e email de quem vai receber um aviso. Sempre chamado ANTES de apagar o
+// rastro da pessoa na turma: depois, a consulta volta vazia.
+export async function dadosParaEmail(
+  usuarioId: string,
+): Promise<{ name: string; email: string } | undefined> {
+  const { rows } = await pool.query("select name, email from usuarios where id = $1", [
+    usuarioId,
+  ]);
+  return rows[0];
 }
 
 export type ImpactoExclusaoConta = {
