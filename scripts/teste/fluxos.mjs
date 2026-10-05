@@ -58,6 +58,23 @@ const nav = await iniciar({ base: process.env.BASE_URL ?? "http://localhost:3000
 const abrirDadosDoEvento = async () => {
   await nav.clicar("Dados do evento", { seletor: "summary" });
 };
+// O formulario de pergunta e um unico painel no fim da pagina, e ele continua
+// aberto depois do envio. Cada clique no resumo alterna, entao so abre quando
+// precisa. Repetir porque o painel sobrevive ao re-render do servidor, mas o
+// clique pode cair enquanto a pagina ainda esta trocando, e o painel volta
+// fechado: aqui o erro seria só "sem-elemento" la embaixo, sem dizer o porque.
+const abrirFormularioDePergunta = async () => {
+  const estado = () =>
+    nav.ev(
+      "(() => { const d = [...document.querySelectorAll('details')].find(x=>x.querySelector('summary')?.textContent.includes('Adicionar pergunta')); return !d ? 'sem-painel' : d.open ? 'aberto' : 'fechado'; })()",
+    );
+  for (let i = 0; i < 20; i++) {
+    if ((await estado()) === "aberto") return;
+    await nav.clicar("Adicionar pergunta", { seletor: "summary" }).catch(() => {});
+    await dormir(500);
+  }
+  throw new Error("o formulario de pergunta nao abriu");
+};
 const logsDesde = (n) => nav.logs.slice(n);
 async function grupo(nome, fn) {
   if (!grupos.includes(nome)) return;
@@ -68,10 +85,23 @@ async function grupo(nome, fn) {
   const novos = logsDesde(antes);
   await passo("sem erros de console no grupo", async () => verdade(novos.length === 0, novos.join(" | ")));
 }
+// Escopo de um cartão/lista por trecho de texto, ou CSS quando começa com "@".
+function expressaoDoEscopo(escopo) {
+  return escopo.startsWith("@")
+    ? `document.querySelector(${JSON.stringify(escopo.slice(1))})`
+    : `[...document.querySelectorAll('[data-slot=card],li,section,details,form,article')].filter(c => c.textContent.includes(${JSON.stringify(escopo)})).sort((a, b) => a.textContent.length - b.textContent.length)[0]`;
+}
+// Avalia uma expressão dentro do escopo. A página de votações tem dois
+// input[name=titulo]: o da edição da pergunta existente e o do formulário de
+// adicionar, e o da edição vem antes no documento. Sem escopo, o
+// document.querySelector pega o errado e o preenchimento vai parar no campo
+// que não é o do teste.
+const em = (escopo, expressao) =>
+  nav.ev(`(() => { const raiz = ${expressaoDoEscopo(escopo)}; return ${expressao}; })()`);
 // Preenche um campo dentro de um cartão/lista identificado por um trecho de texto.
 async function preencherEm(escopo, seletor, valor) {
   const ok = await nav.ev(`(() => {
-    const raiz = ${escopo.startsWith("@") ? `document.querySelector(${JSON.stringify(escopo.slice(1))})` : `[...document.querySelectorAll('[data-slot=card],li,section,details,form,article')].filter(c => c.textContent.includes(${JSON.stringify(escopo)})).sort((a, b) => a.textContent.length - b.textContent.length)[0]`};
+    const raiz = ${expressaoDoEscopo(escopo)};
     const el = raiz?.querySelector(${JSON.stringify(seletor)}); if (!el) return false;
     const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(valor)});
@@ -609,7 +639,10 @@ await grupo("admin", async () => {
       "foco entra no primeiro campo",
     );
     await nav.preencher("[role=dialog] [name=titulo]", "Item E2E Editado");
-    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    // Sem escopo, o primeiro "Salvar" do documento é o do formulário do evento,
+    // que.reporta largura mesmo dentro do <details> recolhido, e o diálogo
+    // ficaria aberto sem salvar.
+    await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     verdade(!(await nav.ev("!!document.querySelector('[role=dialog]')")), "diálogo fecha ao salvar");
     igual(sql("select count(*) from programacao where titulo='Item E2E Editado'"), "1", "no banco");
@@ -649,13 +682,52 @@ await grupo("admin", async () => {
     igual(sql("select count(*) from catalogos where nome='Catálogo E2E Renomeado'"), "1", "renomeado");
     await nav.preencher("#nome-categoria", "Categoria E2E");
     await nav.clicar("Adicionar categoria", { seletor: "button" });
-    await nav.esperarTexto("Adicionar pergunta em Categoria E2E");
-    await nav.clicar("Adicionar pergunta em Categoria E2E", { seletor: "summary" });
-    await preencherEm("Adicionar pergunta em Categoria E2E", "input[name=titulo]", "Qual cor da decoração?");
-    await preencherEm("Adicionar pergunta em Categoria E2E", "textarea[name=opcoes]", "Azul\nRosa\nDourado");
-    await nav.clicar("Adicionar pergunta", { escopo: "Adicionar pergunta em Categoria E2E", seletor: "button", contem: false });
+    // Uma categoria só: o seletor some e a pergunta vai para a única categoria.
+    await abrirFormularioDePergunta();
+    verdade(
+      !(await em("Adicionar pergunta", "!!raiz.querySelector('select[name=categoriaId]')")),
+      "sem seletor com uma categoria só",
+    );
+    await preencherEm("Adicionar pergunta", "input[name=titulo]", "Qual cor da decoração?");
+    await preencherEm("Adicionar pergunta", "textarea[name=opcoes]", "Azul\nRosa\nDourado");
+    await nav.clicar("Adicionar pergunta", { seletor: "button", contem: false });
     await nav.esperarTexto("Qual cor da decoração?");
     igual(sql("select count(*) from opcoes o join enquetes e on e.id=o.enquete_id where e.titulo='Qual cor da decoração?'"), "3", "três opções");
+    igual(
+      sql("select k.nome from categorias k join enquetes e on e.categoria_id=k.id where e.titulo='Qual cor da decoração?'"),
+      "Categoria E2E",
+      "a pergunta foi para a única categoria",
+    );
+    // Duas categorias: o seletor aparece, e a pergunta tem que ir para a escolhida.
+    await nav.preencher("#nome-categoria", "Outra E2E");
+    await nav.clicar("Adicionar categoria", { seletor: "button" });
+    await dormir(2000);
+    await abrirFormularioDePergunta();
+    await nav.esperar(
+      "!![...document.querySelectorAll('details')].find(d=>d.querySelector('summary')?.textContent.includes('Adicionar pergunta'))?.querySelector('select[name=categoriaId]')",
+      15000,
+      "seletor de categoria com duas categorias",
+    );
+    await preencherEm(
+      "Adicionar pergunta",
+      "select[name=categoriaId]",
+      await em("Adicionar pergunta", "[...raiz.querySelectorAll('select[name=categoriaId] option')].find(o=>o.textContent.trim()==='Outra E2E').value"),
+    );
+    await preencherEm("Adicionar pergunta", "input[name=titulo]", "Qual a música da abertura?");
+    await preencherEm("Adicionar pergunta", "textarea[name=opcoes]", "Samba\nAxé");
+    igual(await em("Adicionar pergunta", "raiz.querySelector('input[name=titulo]').value"), "Qual a música da abertura?", "o título foi para o formulário de adicionar, não para o de edição");
+    await nav.clicar("Adicionar pergunta", { seletor: "button", contem: false });
+    await nav.esperarTexto("Qual a música da abertura?");
+    igual(
+      sql("select k.nome from categorias k join enquetes e on e.categoria_id=k.id where e.titulo='Qual a música da abertura?'"),
+      "Outra E2E",
+      "a pergunta foi para a categoria escolhida, não para a primeira",
+    );
+    igual(
+      sql("select count(*) from enquetes e join categorias k on k.id=e.categoria_id where k.nome='Categoria E2E' and e.titulo='Qual a música da abertura?'"),
+      "0",
+      "nada foi parar na primeira categoria",
+    );
   });
   await passo("ver quem votou em uma pergunta", async () => {
     await nav.abrir(`/admin/votacoes/${idPadrao()}`);
