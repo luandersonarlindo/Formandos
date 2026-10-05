@@ -12,6 +12,8 @@ type FormAcaoProps = {
   rotuloPendente?: string;
   variante?: "default" | "destructive";
   className?: string;
+  /** Chamado depois que a ação volta sem erro. Usado para fechar diálogos. */
+  onSucesso?: () => void;
   children: React.ReactNode;
 };
 
@@ -25,11 +27,14 @@ export function FormAcao({
   rotuloPendente = "Salvando…",
   variante = "default",
   className,
+  onSucesso,
   children,
 }: FormAcaoProps) {
   const [estado, formAcao, pendente] = useActionState(acao, inicial);
   const formulario = useRef<HTMLFormElement>(null);
   const enviados = useRef<[string, string][]>([]);
+  const sucesso = useRef(onSucesso);
+  sucesso.current = onSucesso;
 
   // O React 19 limpa os campos depois de toda ação. Com erro de validação isso
   // apagaria o que a pessoa digitou, então os textos enviados são devolvidos.
@@ -44,6 +49,10 @@ export function FormAcao({
         campo.value = valor;
       }
     }
+  }, [estado]);
+
+  useEffect(() => {
+    if (estado.ok) sucesso.current?.();
   }, [estado]);
 
   return (

@@ -25,6 +25,7 @@ import {
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormEnquete } from "@/components/features/form-enquete";
+import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -273,20 +274,6 @@ export default async function CatalogoAdminPage(
               </li>
             ))}
           </ul>
-
-          {editavel && (
-            <details className="group mt-3 rounded-xl border p-4">
-              <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
-                  <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
-                </span>
-                Adicionar pergunta em {categoria.nome}
-              </summary>
-              <div className="mt-4">
-                <FormEnquete categoriaId={categoria.id} />
-              </div>
-            </details>
-          )}
         </section>
       ))}
 
@@ -307,6 +294,27 @@ export default async function CatalogoAdminPage(
             </FormAcao>
           </CardContent>
         </Card>
+      )}
+
+      {/* Um formulário só, aqui no fim, em vez de um repetido no fim de cada
+          categoria. Com dez categorias eram dez cópias do mesmo formulário
+          espalhadas pela página, e a pessoa tinha que rolar até a categoria
+          certa para adicionar uma pergunta. A categoria agora é escolhida
+          dentro do formulário. */}
+      {editavel && catalogo.categorias.length > 0 && (
+        <PainelRecolhivel className="group mt-4 rounded-xl border p-4">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
+              <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
+            </span>
+            Adicionar pergunta
+          </summary>
+          <div className="mt-4">
+            <FormEnquete
+              categorias={catalogo.categorias.map((c) => ({ id: c.id, nome: c.nome }))}
+            />
+          </div>
+        </PainelRecolhivel>
       )}
     </div>
   );
