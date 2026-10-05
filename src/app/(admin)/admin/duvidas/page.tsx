@@ -14,6 +14,7 @@ import {
   alternarRespondida,
   apagarDuvida,
 } from "@/actions/admin";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormResposta } from "@/components/features/form-resposta";
@@ -36,18 +37,16 @@ const formatarData = new Intl.DateTimeFormat("pt-BR", {
 function AcaoSimples({
   acao,
   duvidaId,
-  variante = "outline",
   children,
 }: {
   acao: (formData: FormData) => Promise<void>;
   duvidaId: string;
-  variante?: "outline" | "destructive";
   children: React.ReactNode;
 }) {
   return (
     <form action={acao}>
       <input type="hidden" name="duvidaId" value={duvidaId} />
-      <Button type="submit" variant={variante} size="sm">
+      <Button type="submit" variant="outline" size="sm">
         {children}
       </Button>
     </form>
@@ -176,13 +175,16 @@ export default async function ModeracaoDuvidasPage({
                       {d.respondida ? <RotateCcw aria-hidden /> : <CircleCheck aria-hidden />}
                       {d.respondida ? "Reabrir" : "Marcar como respondida"}
                     </AcaoSimples>
-                    <AcaoSimples
+                    <ConfirmarExclusao
                       acao={apagarDuvida}
-                      duvidaId={d.id}
-                      variante="destructive"
-                    >
-                      <Trash2 aria-hidden /> Apagar
-                    </AcaoSimples>
+                      campos={{ duvidaId: d.id }}
+                      alvo="a dúvida"
+                      nome={d.autor}
+                      aviso="A dúvida e os votos que ela recebeu somem para todos."
+                      rotulo="Apagar"
+                      descricao={`Apagar a dúvida de ${d.autor}`}
+                      icone={<Trash2 aria-hidden />}
+                    />
                   </div>
                 </CardContent>
               </Card>

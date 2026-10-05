@@ -23,12 +23,12 @@ import {
   renomearCategoria,
 } from "@/actions/catalogos";
 import { EstadoVazio } from "@/components/features/estado-vazio";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormEnquete } from "@/components/features/form-enquete";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,15 +92,22 @@ export default async function CatalogoAdminPage(
               <input type="hidden" name="catalogoId" value={catalogo.id} />
               <Input name="nome" defaultValue={catalogo.nome} maxLength={255} className="h-10" required aria-label="Nome do catálogo" />
             </FormAcao>
-            <form action={excluirCatalogo} className="flex flex-col gap-2 rounded-lg border border-dashed border-destructive/40 p-3 md:flex-row md:items-center md:justify-between">
-              <input type="hidden" name="catalogoId" value={catalogo.id} />
+            <div className="flex flex-col gap-2 rounded-lg border border-dashed border-destructive/40 p-3 md:flex-row md:items-center md:justify-between">
               <p className="text-xs text-muted-foreground">
                 Apaga também todas as perguntas e os votos deste catálogo. Não dá para desfazer.
               </p>
-              <Button type="submit" variant="destructive" size="sm" className="self-start">
-                <Trash2 aria-hidden /> Excluir catálogo
-              </Button>
-            </form>
+              <ConfirmarExclusao
+                acao={excluirCatalogo}
+                campos={{ catalogoId: catalogo.id }}
+                alvo="o catálogo"
+                nome={catalogo.nome}
+                aviso="Apaga também todas as perguntas e os votos deste catálogo."
+                rotulo="Excluir catálogo"
+                descricao={`Excluir o catálogo ${catalogo.nome}`}
+                icone={<Trash2 aria-hidden />}
+                className="self-start"
+              />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -147,12 +154,16 @@ export default async function CatalogoAdminPage(
               <h2 className="text-lg font-semibold">{categoria.nome}</h2>
             )}
             {editavel && (
-              <form action={excluirCategoria}>
-                <input type="hidden" name="categoriaId" value={categoria.id} />
-                <Button type="submit" variant="destructive" size="sm">
-                  <Trash2 aria-hidden /> Excluir categoria
-                </Button>
-              </form>
+              <ConfirmarExclusao
+                acao={excluirCategoria}
+                campos={{ categoriaId: categoria.id }}
+                alvo="a categoria"
+                nome={categoria.nome}
+                aviso="Apaga também as perguntas e os votos desta categoria."
+                rotulo="Excluir categoria"
+                descricao={`Excluir a categoria ${categoria.nome}`}
+                icone={<Trash2 aria-hidden />}
+              />
             )}
           </div>
 
@@ -197,12 +208,16 @@ export default async function CatalogoAdminPage(
                         <Eye className="size-3.5" aria-hidden /> Ver quem votou
                       </Link>
                       {editavel && (
-                        <form action={excluirEnquete}>
-                          <input type="hidden" name="enqueteId" value={e.id} />
-                          <Button type="submit" variant="destructive" size="sm">
-                            <Trash2 aria-hidden /> Excluir pergunta
-                          </Button>
-                        </form>
+                        <ConfirmarExclusao
+                          acao={excluirEnquete}
+                          campos={{ enqueteId: e.id }}
+                          alvo="a pergunta"
+                          nome={e.titulo}
+                          aviso="Apaga também as opções e os votos desta pergunta."
+                          rotulo="Excluir pergunta"
+                          descricao={`Excluir a pergunta ${e.titulo}`}
+                          icone={<Trash2 aria-hidden />}
+                        />
                       )}
                     </div>
 

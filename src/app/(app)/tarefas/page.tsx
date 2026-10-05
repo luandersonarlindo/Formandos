@@ -16,6 +16,7 @@ import {
   atualizarTarefa,
   excluirTarefa,
 } from "@/actions/tarefas";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormNovaTarefa } from "@/components/features/form-nova-tarefa";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
@@ -298,12 +299,14 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
                             </Button>
                             </div>
                           </form>
-                          <form action={excluirTarefa}>
-                            <input type="hidden" name="tarefaId" value={t.id} />
-                            <Button type="submit" variant="destructive" size="sm">
-                              Excluir tarefa
-                            </Button>
-                          </form>
+                          <ConfirmarExclusao
+                            acao={excluirTarefa}
+                            campos={{ tarefaId: t.id }}
+                            alvo="a tarefa"
+                            nome={t.titulo}
+                            rotulo="Excluir tarefa"
+                            descricao={`Excluir a tarefa ${t.titulo}`}
+                          />
                         </div>
                       </details>
                     ) : (

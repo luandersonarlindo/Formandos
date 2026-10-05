@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Pencil, Trash2 } from "lucide-react";
 import { atualizarAviso, excluirAviso } from "@/actions/avisos";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormNovoAviso } from "@/components/features/form-novo-aviso";
 import { Paginacao } from "@/components/features/paginacao";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,12 +77,15 @@ export default async function AvisosPage({ searchParams }: PageProps<"/avisos">)
                             <Textarea id={`conteudo-${a.id}`} name="conteudo" defaultValue={a.conteudo} maxLength={2000} rows={3} required />
                           </div>
                         </FormAcao>
-                        <form action={excluirAviso}>
-                          <input type="hidden" name="id" value={a.id} />
-                          <Button type="submit" variant="destructive" size="sm">
-                            <Trash2 aria-hidden /> Remover
-                          </Button>
-                        </form>
+                        <ConfirmarExclusao
+                          acao={excluirAviso}
+                          campos={{ id: a.id }}
+                          alvo="o aviso"
+                          nome={a.titulo}
+                          rotulo="Remover"
+                          descricao={`Remover o aviso ${a.titulo}`}
+                          icone={<Trash2 aria-hidden />}
+                        />
                       </div>
                     </details>
                   )}

@@ -13,10 +13,10 @@ import {
   Users,
 } from "lucide-react";
 import { adicionarItemProgramacao, removerItemProgramacao, salvarEvento } from "@/actions/evento";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { BotaoEditarItem } from "@/components/features/editar-item-programacao";
 import { FormAcao } from "@/components/features/form-acao";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -187,12 +187,15 @@ export default async function EventoPage() {
                         horarioLocal: paraDatetimeLocal(item.horario),
                       }}
                     />
-                    <form action={removerItemProgramacao}>
-                      <input type="hidden" name="id" value={item.id} />
-                      <Button type="submit" variant="destructive" size="sm">
-                        <Trash2 aria-hidden /> Remover
-                      </Button>
-                    </form>
+                    <ConfirmarExclusao
+                      acao={removerItemProgramacao}
+                      campos={{ id: item.id }}
+                      alvo="o item"
+                      nome={item.titulo}
+                      rotulo="Remover"
+                      descricao={`Remover ${item.titulo}`}
+                      icone={<Trash2 aria-hidden />}
+                    />
                   </div>
                 </li>
               ))}

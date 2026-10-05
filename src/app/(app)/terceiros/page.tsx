@@ -27,6 +27,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { atualizarFornecedor, excluirFornecedor } from "@/actions/terceiros";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
@@ -34,7 +35,6 @@ import { FormOrcamento } from "@/components/features/form-orcamento";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -271,12 +271,15 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                             </FormAcao>
                           </div>
                         </details>
-                        <form action={excluirFornecedor}>
-                          <input type="hidden" name="id" value={f.id} />
-                          <Button type="submit" variant="destructive" size="sm">
-                            <Trash2 aria-hidden /> Remover
-                          </Button>
-                        </form>
+                        <ConfirmarExclusao
+                          acao={excluirFornecedor}
+                          campos={{ id: f.id }}
+                          alvo="o fornecedor"
+                          nome={f.nome}
+                          rotulo="Remover"
+                          descricao={`Remover o fornecedor ${f.nome}`}
+                          icone={<Trash2 aria-hidden />}
+                        />
                       </div>
                     )}
                   </CardContent>
