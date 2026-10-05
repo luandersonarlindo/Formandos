@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Crown, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
 import { alterarPapel, removerMembro } from "@/actions/admin";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { Paginacao } from "@/components/features/paginacao";
@@ -128,12 +129,16 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
                         </form>
                       )}
                       {!ehVoce && (
-                        <form action={removerMembro}>
-                          <input type="hidden" name="usuarioId" value={m.id} />
-                          <Button type="submit" variant="destructive" size="sm">
-                            <UserMinus aria-hidden /> Remover
-                          </Button>
-                        </form>
+                        <ConfirmarExclusao
+                          acao={removerMembro}
+                          campos={{ usuarioId: m.id }}
+                          alvo="o membro"
+                          nome={`${m.name} (${m.email})`}
+                          aviso="Some da turma junto com o que ele deixou nela."
+                          rotulo="Remover"
+                          descricao={`Remover ${m.name}`}
+                          icone={<UserMinus aria-hidden />}
+                        />
                       )}
                     </div>
                   </CardContent>

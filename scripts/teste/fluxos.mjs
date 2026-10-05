@@ -76,6 +76,13 @@ const abrirFormularioDePergunta = async () => {
   throw new Error("o formulario de pergunta nao abriu");
 };
 const logsDesde = (n) => nav.logs.slice(n);
+// Os botões de exclusão abrem um diálogo antes de apagar. Clica no botão,
+// confere que o diálogo apareceu e confirma dentro dele.
+const excluir = async (texto, { escopo = null, contem = true, seletor = "button" } = {}) => {
+  await nav.clicar(texto, { escopo, seletor, contem });
+  await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, `diálogo de "${texto}"`);
+  await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+};
 async function grupo(nome, fn) {
   if (!grupos.includes(nome)) return;
   console.log(`\n== ${nome}`);
@@ -332,7 +339,7 @@ await grupo("app", async () => {
   await passo("excluir tarefa", async () => {
     await nav.abrir("/tarefas");
     await nav.clicar("Gerenciar tarefa", { escopo: "Tarefa E2E", seletor: "summary" });
-    await nav.clicar("Excluir tarefa", { escopo: "Tarefa E2E", seletor: "button" });
+    await excluir("Excluir tarefa", { escopo: "Tarefa E2E" });
     await dormir(1500);
     igual(sql("select count(*) from tarefas where titulo='Tarefa E2E'"), "0", "apagada");
   });
@@ -424,7 +431,7 @@ await grupo("app", async () => {
     await nav.clicar("Adicionar fornecedor", { seletor: "button" });
     await nav.esperarTexto("Flores E2E");
     igual(sql("select count(*) from fornecedores where nome='Flores E2E'"), "1", "no banco");
-    await nav.clicar("Remover", { escopo: "Flores E2E", seletor: "button" });
+    await excluir("Remover", { escopo: "Flores E2E" });
     await dormir(1500);
     igual(sql("select count(*) from fornecedores where nome='Flores E2E'"), "0", "removido");
   });
@@ -483,7 +490,7 @@ await grupo("app", async () => {
     verdade(!(await nav.tem("Remover")), "participante não vê o botão de remover");
     await nav.cookie(lerCookie("cookie-admin.txt"));
     await nav.abrir("/avisos");
-    await nav.clicar("Remover", { escopo: "Aviso E2E", seletor: "button" });
+    await excluir("Remover", { escopo: "Aviso E2E" });
     await dormir(1500);
     igual(sql("select count(*) from avisos where titulo='Aviso E2E'"), "0", "removido");
   });
@@ -615,7 +622,7 @@ await grupo("admin", async () => {
     await nav.clicar("Adicionar", { seletor: "button", contem: false });
     await nav.esperarTexto("Item E2E");
     igual(sql("select count(*) from programacao where titulo='Item E2E'"), "1", "no banco");
-    await nav.clicar("Remover", { escopo: "Item E2E", seletor: "button" });
+    await excluir("Remover", { escopo: "Item E2E" });
     await dormir(1800);
     igual(sql("select count(*) from programacao where titulo='Item E2E'"), "0", "removido");
   });
@@ -646,7 +653,7 @@ await grupo("admin", async () => {
     await dormir(1800);
     verdade(!(await nav.ev("!!document.querySelector('[role=dialog]')")), "diálogo fecha ao salvar");
     igual(sql("select count(*) from programacao where titulo='Item E2E Editado'"), "1", "no banco");
-    await nav.clicar("Remover", { escopo: "Item E2E Editado", seletor: "button" });
+    await excluir("Remover", { escopo: "Item E2E Editado" });
     await dormir(1800);
     igual(sql("select count(*) from programacao where titulo like 'Item E2E%'"), "0", "removido");
   });
@@ -665,7 +672,7 @@ await grupo("admin", async () => {
     await dormir(1800);
     igual(sql("select respondida from duvidas where conteudo like 'Posso levar%'"), "f", "reaberta");
     await nav.abrir("/admin/duvidas");
-    await nav.clicar("Apagar", { escopo: "Posso levar acompanhante", seletor: "button" });
+    await excluir("Apagar", { escopo: "Posso levar acompanhante" });
     await dormir(1800);
     igual(sql("select count(*) from duvidas where conteudo like 'Posso levar%'"), "0", "apagada");
   });
@@ -784,15 +791,25 @@ await grupo("admin", async () => {
   await passo("excluir pergunta, categoria e catálogo", async () => {
     const cat = sql("select id from catalogos where nome='Catálogo E2E Renomeado'");
     await nav.abrir(`/admin/votacoes/${cat}`);
+    // O diálogo mostra o nome do item e o cancelamento não apaga nada.
     await nav.clicar("Excluir pergunta", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo de confirmação");
+    verdade(
+      (await nav.ev("document.querySelector('[role=dialog]')?.textContent ?? ''")).includes("Qual cor da decoração?"),
+      "o diálogo nomeia a pergunta que vai ser apagada",
+    );
+    await nav.clicar("Cancelar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await dormir(1200);
+    igual(sql("select count(*) from enquetes where titulo='Qual cor da decoração?'"), "1", "cancelar não apaga a pergunta");
+    await excluir("Excluir pergunta", { seletor: "button" });
     await dormir(1800);
     igual(sql("select count(*) from enquetes where titulo='Qual cor da decoração?'"), "0", "pergunta");
     await nav.abrir(`/admin/votacoes/${cat}`);
-    await nav.clicar("Excluir categoria", { seletor: "button" });
+    await excluir("Excluir categoria", { seletor: "button" });
     await dormir(1800);
     igual(sql("select count(*) from categorias where nome='Categoria E2E'"), "0", "categoria");
     await nav.abrir(`/admin/votacoes/${cat}`);
-    await nav.clicar("Excluir catálogo", { seletor: "button" });
+    await excluir("Excluir catálogo", { seletor: "button" });
     await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
     igual(sql("select count(*) from catalogos where nome='Catálogo E2E Renomeado'"), "0", "catálogo");
   });
@@ -806,7 +823,7 @@ await grupo("admin", async () => {
     igual(sql(`select count(*) from categorias ca join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id='${turmaTeste()}'`), "5", "categorias copiadas");
     igual(sql(`select count(*) from enquetes e join categorias ca on ca.id=e.categoria_id join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id='${turmaTeste()}'`), "10", "perguntas copiadas");
     await nav.esperar("[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Excluir catálogo'))", 10000, "botão Excluir catálogo");
-    await nav.clicar("Excluir catálogo", { seletor: "button" });
+    await excluir("Excluir catálogo", { seletor: "button" });
     await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
     igual(sql(`select count(*) from catalogos where nome='Educação Infantil e ABC' and turma_id='${turmaTeste()}'`), "0", "catálogo");
   });
@@ -967,7 +984,7 @@ await grupo("admin", async () => {
     verdade(Number(rastro("votos", "usuario_id")) > 0, "o teste precisa de um voto do participante para provar a limpeza");
     verdade(Number(rastro("presencas", "usuario_id")) > 0, "o teste precisa da presença do participante");
     await nav.abrir("/admin/membros");
-    await nav.clicar("Remover", { escopo: "João Lima", seletor: "button" });
+    await excluir("Remover", { escopo: "João Lima" });
     await dormir(1800);
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "removido");
     for (const [tabela, coluna] of [
@@ -1072,10 +1089,18 @@ await grupo("extras", async () => {
     fs.mkdirSync(pasta, { recursive: true });
     fs.writeFileSync(`${pasta}/page.tsx`, 'export default function P() { throw new Error("erro de teste"); }\n');
     try {
-      await dormir(2500);
-      await nav.abrir("/teste-erro");
-      await nav.esperarTexto("Algo deu errado");
-      await nav.esperarTexto("Tentar de novo");
+      // O dev server só passa a conhecer a rota depois de notar o arquivo novo;
+      // nesse intervalo a resposta é 404 e a tela de erro não aparece. Cada
+      // navegação também aquece o compilador, que a frio leva mais de dez
+      // segundos quando a suíte já percorreu o app inteiro. Por isso o passo
+      // espera a rota existir em vez de rezar num sleep fixo.
+      for (let tentativa = 0; tentativa < 20; tentativa++) {
+        await nav.abrir("/teste-erro");
+        if (!(await nav.tem("Página não encontrada"))) break;
+        await dormir(1000);
+      }
+      await nav.esperarTexto("Algo deu errado", 30000);
+      await nav.esperarTexto("Tentar de novo", 30000);
       await nav.foto(`${TMP}/tela-de-erro.png`);
       await nav.clicar("Tentar de novo", { seletor: "button" });
       await dormir(1500);
