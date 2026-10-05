@@ -97,6 +97,25 @@ export function urlDoSite(caminho = "") {
   return `${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}${caminho}`;
 }
 
+// O site só está publicado quando BETTER_AUTH_URL aponta para um endereço de
+// verdade. Em desenvolvimento ela vale http://localhost:3001, e um link desses
+// no email seria pior do que nenhum: levaria quem recebe para a máquina de
+// quem programmei, e ainda entrega a URL do ambiente dentro do email.
+//
+// Por isso o HTML só mostra endereço quando o site está publicado. O texto
+// puro continua levando: ele é o reserva para cliente que não mostra HTML, e é
+// de onde os testes de ponta a ponta tiram o link de confirmação.
+const HOSTS_LOCAIS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "[::1]"]);
+function sitePublicado() {
+  const url = process.env.BETTER_AUTH_URL;
+  if (!url) return false;
+  try {
+    return !HOSTS_LOCAIS.has(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 function escapar(s: string) {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
@@ -129,6 +148,9 @@ function caixaEmail({
   const site = urlDoSite("/");
   const corA = acento === "aviso" ? TINTA.aviso : TINTA.marca;
   const corB = acento === "aviso" ? TINTA.avisoClara : TINTA.marcaClara;
+  const assinatura = sitePublicado()
+    ? `Formandos &middot; <a href="${escapar(site)}" style="color:${TINTA.marca};text-decoration:none">${escapar(site)}</a>`
+    : "Formandos";
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -152,7 +174,7 @@ ${corpo}
 </td></tr>
 <tr><td style="padding:18px 32px 26px;border-top:1px solid ${TINTA.borda}">
 <p style="margin:0 0 6px;font-size:12px;line-height:1.6;color:${TINTA.apagado}">${escapar(motivo)}</p>
-<p style="margin:0;font-size:12px;line-height:1.6;color:${TINTA.apagado}">Formandos &middot; <a href="${escapar(site)}" style="color:${TINTA.marca};text-decoration:none">${escapar(site)}</a></p>
+<p style="margin:0;font-size:12px;line-height:1.6;color:${TINTA.apagado}">${assinatura}</p>
 </td></tr>
 </table>
 </td></tr>
@@ -162,12 +184,15 @@ ${corpo}
 }
 
 function botao(url: string, rotulo: string) {
+  // Email sem botão é melhor que email com botão para localhost.
+  if (!sitePublicado()) return "";
   return `<p style="margin:22px 0"><a href="${escapar(url)}" style="display:inline-block;padding:12px 22px;background:${TINTA.marca};color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px">${escapar(rotulo)}</a></p>`;
 }
 
 // Botão é ignorado por uma parte boa dos clientes e por metade das contas,
 // então o endereço cru vai sempre junto, visível.
 function linkCru(url: string) {
+  if (!sitePublicado()) return "";
   return pApagado(
     `Se o botão não funcionar, copie este endereço:<br><span style="color:${TINTA.texto};word-break:break-all">${escapar(url)}</span>`,
   );
