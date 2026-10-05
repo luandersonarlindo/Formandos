@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   emailBoasVindas,
   emailContaExcluida,
@@ -9,6 +9,13 @@ import {
   emailVerificacao,
   type Email,
 } from "@/lib/email";
+
+// O HTML só tem botão e endereço quando o site está publicado (ver
+// sitePublicado, em email.ts). Os testes que olham a aparência do email
+// precisam estar nesse estado, senão passam a ver o email sem botão — que é o
+// email de desenvolvimento, não o de produção. O bloco "endereço no email"
+// abaixo troca esse valor e devolve no afterEach.
+process.env.BETTER_AUTH_URL = "https://formandos.app";
 
 // O teste de ponta a ponta tira o link de confirmação e o de redefinição do
 // TEXTO puro do log do servidor, porque é isso que o console.log imprime sem
@@ -37,6 +44,78 @@ const COM_LINK: Array<[string, () => Omit<Email, "para">]> = [
     () => emailRemovidoDaTurma("Ana", "Turma 2026", "https://formandos.app/dashboard"),
   ],
 ];
+
+// O HTML só pode mostrar endereço quando o site está publicado. Em
+// desenvolvimento BETTER_AUTH_URL vale http://localhost:3001, e um link desses
+// no email levaria quem recebe para a máquina de quem programmei.
+describe("endereço no email", () => {
+  const urlOriginal = process.env.BETTER_AUTH_URL;
+
+  beforeEach(() => {
+    delete process.env.BETTER_AUTH_URL;
+  });
+  afterEach(() => {
+    if (urlOriginal === undefined) delete process.env.BETTER_AUTH_URL;
+    else process.env.BETTER_AUTH_URL = urlOriginal;
+  });
+
+  const todos = () => [
+    emailVerificacao("Ana", "http://localhost:3001/api/auth/verify-email?token=x"),
+    emailBoasVindas("Ana", "http://localhost:3001/dashboard"),
+    emailRedefinirSenha("Ana", "http://localhost:3001/redefinir?token=x"),
+    emailEntrouNaTurma("Ana", "Turma 2026", "http://localhost:3001/dashboard"),
+    emailSaiuDaTurma("Ana", "Turma 2026", "http://localhost:3001/dashboard"),
+    emailRemovidoDaTurma("Ana", "Turma 2026", "http://localhost:3001/dashboard"),
+    emailContaExcluida("Ana", ["Turma 2026"]),
+  ];
+
+  it.each([
+    ["localhost", "http://localhost:3001"],
+    ["127.0.0.1", "http://127.0.0.1:3001"],
+    ["0.0.0.0", "http://0.0.0.0:3001"],
+  ])("não vaza %s para o HTML", (_nome, url) => {
+    process.env.BETTER_AUTH_URL = url;
+    for (const email of todos()) {
+      expect(email.html).not.toContain("localhost");
+      expect(email.html).not.toContain("127.0.0.1");
+      expect(email.html).not.toContain("0.0.0.0");
+      // Nem a chamada do botão, nem o endereço de reserva, nem o rodapé.
+      expect(email.html).not.toContain("href=");
+      expect(email.html).not.toContain("copie este endereço");
+    }
+  });
+
+  it("também some com o botão quando não há site publicado", () => {
+    process.env.BETTER_AUTH_URL = "http://localhost:3001";
+    expect(emailVerificacao("Ana", "http://localhost:3001/v").html).not.toContain(
+      "Confirmar email",
+    );
+  });
+
+  it("no site publicado, o HTML traz o endereço real", () => {
+    process.env.BETTER_AUTH_URL = "https://formandos.app";
+    const html = emailVerificacao("Ana", "https://formandos.app/v").html;
+    expect(html).toContain('href="https://formandos.app/v"');
+    expect(html).toContain("copie este endereço");
+    expect(html).toContain("https://formandos.app/");
+  });
+
+  it("sem BETTER_AUTH_URL também não inventa endereço", () => {
+    for (const email of todos()) {
+      expect(email.html).not.toContain("localhost");
+      expect(email.html).not.toContain("href=");
+    }
+  });
+
+  it("o texto puro continua levando o endereço: é o reserva sem HTML", () => {
+    // Aqui a janela é o contrário: sem o endereço no texto, os testes de ponta a
+    // ponta não acham o link de confirmação nem o de redefinição de senha.
+    process.env.BETTER_AUTH_URL = "http://localhost:3001";
+    expect(emailVerificacao("Ana", "http://localhost:3001/v").texto).toContain(
+      "http://localhost:3001/v",
+    );
+  });
+});
 
 describe("parte de texto dos emails", () => {
   it.each(COM_LINK)("%s leva o link no texto puro", (_nome, monta) => {
