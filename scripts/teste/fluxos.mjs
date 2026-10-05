@@ -52,6 +52,12 @@ const turmaTeste = () => sql("select id from turmas where criado_por = (select i
 
 // Aponta para outro servidor com BASE_URL (ex.: testes em porta paralela).
 const nav = await iniciar({ base: process.env.BASE_URL ?? "http://localhost:3000" });
+// "Dados do evento" é um painel recolhido sempre que a turma já tem nome, então
+// os passos que preenchem esses campos precisam abri-lo antes. Clicar no resumo
+// alterna, e cada nav.abrir recarrega a página, devolvendo o estado inicial.
+const abrirDadosDoEvento = async () => {
+  await nav.clicar("Dados do evento", { seletor: "summary" });
+};
 const logsDesde = (n) => nav.logs.slice(n);
 async function grupo(nome, fn) {
   if (!grupos.includes(nome)) return;
@@ -522,6 +528,7 @@ await grupo("admin", async () => {
   });
   await passo("salvar dados do evento", async () => {
     await nav.abrir("/admin/evento");
+    await abrirDadosDoEvento();
     await nav.preencher("#localEvento", "Salão Novo E2E");
     await nav.clicar("Salvar", { seletor: "button", contem: false });
     await nav.esperarTexto("Salvo").catch(() => {});
@@ -530,6 +537,7 @@ await grupo("admin", async () => {
   });
   await passo("detalhes do evento: descrição, endereço, mapa e traje aparecem no dashboard", async () => {
     await nav.abrir("/admin/evento");
+    await abrirDadosDoEvento();
     await nav.preencher("#descricao", "Descrição E2E da festa");
     await nav.preencher("#endereco", "Rua E2E, 100 - Recife");
     await nav.preencher("#traje", "Gala E2E");
@@ -553,12 +561,14 @@ await grupo("admin", async () => {
     );
     // Término antes do início é recusado.
     await nav.abrir("/admin/evento");
+    await abrirDadosDoEvento();
     await nav.preencher("#dataEvento", "2030-05-10T20:00");
     await nav.preencher("#dataFimEvento", "2030-05-10T19:00");
     await nav.clicar("Salvar", { seletor: "button", contem: false });
     await nav.esperarTexto("O término precisa ser depois do início");
     // Limpa os campos de teste para os passos seguintes.
     await nav.abrir("/admin/evento");
+    await abrirDadosDoEvento();
     for (const id of ["#descricao", "#endereco", "#traje", "#observacoesLocal", "#linkMapa", "#dataFimEvento"]) {
       await nav.preencher(id, "");
     }
@@ -578,6 +588,34 @@ await grupo("admin", async () => {
     await nav.clicar("Remover", { escopo: "Item E2E", seletor: "button" });
     await dormir(1800);
     igual(sql("select count(*) from programacao where titulo='Item E2E'"), "0", "removido");
+  });
+  await passo("editar item da programação em diálogo", async () => {
+    await nav.abrir("/admin/evento");
+    await nav.clicar("Adicionar item", { seletor: "summary" });
+    await nav.preencher("#horario", "2026-12-05T21:00");
+    await nav.preencher("#titulo", "Item E2E Editar");
+    await nav.clicar("Adicionar", { seletor: "button", contem: false });
+    await nav.esperarTexto("Item E2E Editar");
+    await nav.clicar("Editar", { escopo: "Item E2E Editar", seletor: "button" });
+    await nav.esperarTexto("Editar item");
+    igual(
+      await nav.ev("document.querySelector('[role=dialog] [name=titulo]')?.value"),
+      "Item E2E Editar",
+      "diálogo abre preenchido com o item atual",
+    );
+    igual(
+      await nav.ev("document.activeElement?.getAttribute('name')"),
+      "horario",
+      "foco entra no primeiro campo",
+    );
+    await nav.preencher("[role=dialog] [name=titulo]", "Item E2E Editado");
+    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await dormir(1800);
+    verdade(!(await nav.ev("!!document.querySelector('[role=dialog]')")), "diálogo fecha ao salvar");
+    igual(sql("select count(*) from programacao where titulo='Item E2E Editado'"), "1", "no banco");
+    await nav.clicar("Remover", { escopo: "Item E2E Editado", seletor: "button" });
+    await dormir(1800);
+    igual(sql("select count(*) from programacao where titulo like 'Item E2E%'"), "0", "removido");
   });
   await passo("moderação: responder, destacar, reabrir e apagar dúvida", async () => {
     await nav.abrir("/admin/duvidas");

@@ -30,14 +30,17 @@ const esquemaCategoria = z.object({
   nome: nome("O nome da categoria", 100),
 });
 const esquemaEnquete = z.object({
-  categoriaId: z.uuid(),
+  categoriaId: z.uuid("Escolha a categoria da pergunta."),
   titulo: z
     .string()
     .trim()
     .min(5, "A pergunta precisa ter pelo menos 5 caracteres.")
     .max(500, "A pergunta pode ter no máximo 500 caracteres."),
   tipo: z.enum(["unica", "multipla"], "Escolha o tipo da pergunta."),
-  opcoes: z.string(),
+  opcoes: z
+    .string()
+    .min(1, "Informe as opções da pergunta, uma por linha.")
+    .max(3200, "As opções estão longas demais."),
   exclusiva: z.string().trim().max(255, "A opção exclusiva é longa demais."),
 });
 

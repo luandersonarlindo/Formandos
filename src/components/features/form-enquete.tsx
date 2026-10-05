@@ -7,20 +7,43 @@ import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 
 const inicial: EstadoForm = {};
 
-export function FormEnquete({ categoriaId }: { categoriaId: string }) {
+// Uma pergunta só. A categoria vem no formulário, e não de uma lista de
+// formulários repetidos: o servidor devolve `categoriaId` junto dos valores
+// quando rejeita o envio, então a escolha sobrevive ao erro.
+export function FormEnquete({ categorias }: { categorias: { id: string; nome: string }[] }) {
   const [estado, acao, pendente] = useActionState(adicionarEnquete, inicial);
   const [tipo, setTipo] = useState<"unica" | "multipla">("unica");
   // Se houve erro, o servidor devolve o que foi digitado.
   const v = estado.valores;
-  const id = `enq-${categoriaId}`;
+  const [categoriaId, setCategoriaId] = useState(v?.categoriaId ?? categorias[0]?.id ?? "");
+  const id = "enq";
 
   return (
     <form action={acao} className="grid gap-3">
-      <input type="hidden" name="categoriaId" value={categoriaId} />
+      {categorias.length === 1 ? (
+        <input type="hidden" name="categoriaId" value={categorias[0].id} />
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-categoria`}>Categoria</Label>
+          <NativeSelect
+            id={`${id}-categoria`}
+            name="categoriaId"
+            value={categoriaId}
+            onChange={(e) => setCategoriaId(e.target.value)}
+          >
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+      )}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`${id}-titulo`}>Pergunta</Label>
         <Input id={`${id}-titulo`} name="titulo" defaultValue={v?.titulo} maxLength={500} required />

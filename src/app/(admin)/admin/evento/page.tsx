@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarDays, CalendarClock, Link2, MapPin, Pencil, Plus, Shirt, Trash2, Users } from "lucide-react";
 import {
-  adicionarItemProgramacao,
-  atualizarItemProgramacao,
-  removerItemProgramacao,
-  salvarEvento,
-} from "@/actions/evento";
+  CalendarDays,
+  CalendarClock,
+  ChevronDown,
+  Link2,
+  MapPin,
+  Plus,
+  Settings2,
+  Shirt,
+  Trash2,
+  Users,
+} from "lucide-react";
+import { adicionarItemProgramacao, removerItemProgramacao, salvarEvento } from "@/actions/evento";
+import { BotaoEditarItem } from "@/components/features/editar-item-programacao";
 import { FormAcao } from "@/components/features/form-acao";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { Button } from "@/components/ui/button";
@@ -48,88 +55,97 @@ export default async function EventoPage() {
       </p>
 
       <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Dados do evento</CardTitle>
-          <CardDescription>Nome da turma, descrição, data, local e o que os convidados precisam saber.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormAcao acao={salvarEvento} rotulo="Salvar">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nome" className={rotulo}>
-                <Users className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome da turma
-              </Label>
-              <Input id="nome" name="nome" defaultValue={evento.nome} maxLength={100} className="h-10" required />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="descricao">Descrição (opcional)</Label>
-              <Textarea
-                id="descricao"
-                name="descricao"
-                defaultValue={evento.descricao}
-                maxLength={1000}
-                rows={3}
-                placeholder="Ex.: A formatura da turma de Sistemas de Informação. Venha comemorar com a gente!"
-              />
-              <p className="text-xs text-muted-foreground">Aparece no topo do dashboard, para todos os membros.</p>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
+        <PainelRecolhivel abertoInicial={!evento.nome} className="group">
+          <summary className="flex cursor-pointer list-none items-center gap-2.5 px-4 text-lg font-medium [&::-webkit-details-marker]:hidden">
+            <Settings2 className="size-4.5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
+            Dados do evento
+            <span className="ml-auto flex min-w-0 items-center gap-2 text-sm font-normal text-muted-foreground">
+              <span className="truncate">{evento.nome || "Nada preenchido ainda"}</span>
+              <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+            </span>
+          </summary>
+          <div className="px-4 pt-4">
+            <p className="mb-3 text-sm text-muted-foreground">
+              Nome da turma, descrição, data, local e o que os convidados precisam saber.
+            </p>
+            <FormAcao acao={salvarEvento} rotulo="Salvar">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="dataEvento" className={rotulo}>
-                  <CalendarDays className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Início da festa
+                <Label htmlFor="nome" className={rotulo}>
+                  <Users className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome da turma
                 </Label>
-                <Input id="dataEvento" name="dataEvento" type="datetime-local" defaultValue={evento.dataLocal} className="h-10" />
+                <Input id="nome" name="nome" defaultValue={evento.nome} maxLength={100} className="h-10" required />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="dataFimEvento" className={rotulo}>
-                  <CalendarClock className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Término (opcional)
-                </Label>
-                <Input id="dataFimEvento" name="dataFimEvento" type="datetime-local" defaultValue={evento.dataFimLocal} className="h-10" />
-              </div>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="localEvento" className={rotulo}>
-                  <MapPin className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome do local
-                </Label>
-                <Input id="localEvento" name="localEvento" defaultValue={evento.local} maxLength={255} placeholder="Ex.: Salão Cristal" className="h-10" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="endereco" className={rotulo}>
-                  <MapPin className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Endereço (opcional)
-                </Label>
-                <Input id="endereco" name="endereco" defaultValue={evento.endereco} maxLength={255} placeholder="Rua, número, bairro e cidade" className="h-10" />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="linkMapa" className={rotulo}>
-                <Link2 className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Link do mapa (opcional)
-              </Label>
-              <Input id="linkMapa" name="linkMapa" type="url" defaultValue={evento.linkMapa} maxLength={500} placeholder="https://maps.app.goo.gl/…" className="h-10" />
-              <p className="text-xs text-muted-foreground">
-                Vira o botão “Como chegar”. Sem link, o botão usa o endereço (ou o nome do local) numa busca do Google Maps.
-              </p>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="traje" className={rotulo}>
-                  <Shirt className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Traje (opcional)
-                </Label>
-                <Input id="traje" name="traje" defaultValue={evento.traje} maxLength={100} placeholder="Ex.: Gala / Black tie" className="h-10" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="observacoesLocal">Observações do local (opcional)</Label>
+                <Label htmlFor="descricao">Descrição (opcional)</Label>
                 <Textarea
-                  id="observacoesLocal"
-                  name="observacoesLocal"
-                  defaultValue={evento.observacoesLocal}
-                  maxLength={500}
-                  rows={2}
-                  placeholder="Estacionamento, portaria, acessibilidade…"
+                  id="descricao"
+                  name="descricao"
+                  defaultValue={evento.descricao}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder="Ex.: A formatura da turma de Sistemas de Informação. Venha comemorar com a gente!"
                 />
+                <p className="text-xs text-muted-foreground">Aparece no topo do dashboard, para todos os membros.</p>
               </div>
-            </div>
-          </FormAcao>
-        </CardContent>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="dataEvento" className={rotulo}>
+                    <CalendarDays className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Início da festa
+                  </Label>
+                  <Input id="dataEvento" name="dataEvento" type="datetime-local" defaultValue={evento.dataLocal} className="h-10" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="dataFimEvento" className={rotulo}>
+                    <CalendarClock className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Término (opcional)
+                  </Label>
+                  <Input id="dataFimEvento" name="dataFimEvento" type="datetime-local" defaultValue={evento.dataFimLocal} className="h-10" />
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="localEvento" className={rotulo}>
+                    <MapPin className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome do local
+                  </Label>
+                  <Input id="localEvento" name="localEvento" defaultValue={evento.local} maxLength={255} placeholder="Ex.: Salão Cristal" className="h-10" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="endereco" className={rotulo}>
+                    <MapPin className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Endereço (opcional)
+                  </Label>
+                  <Input id="endereco" name="endereco" defaultValue={evento.endereco} maxLength={255} placeholder="Rua, número, bairro e cidade" className="h-10" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="linkMapa" className={rotulo}>
+                  <Link2 className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Link do mapa (opcional)
+                </Label>
+                <Input id="linkMapa" name="linkMapa" type="url" defaultValue={evento.linkMapa} maxLength={500} placeholder="https://maps.app.goo.gl/…" className="h-10" />
+                <p className="text-xs text-muted-foreground">
+                  Vira o botão “Como chegar”. Sem link, o botão usa o endereço (ou o nome do local) numa busca do Google Maps.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="traje" className={rotulo}>
+                    <Shirt className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Traje (opcional)
+                  </Label>
+                  <Input id="traje" name="traje" defaultValue={evento.traje} maxLength={100} placeholder="Ex.: Gala / Black tie" className="h-10" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="observacoesLocal">Observações do local (opcional)</Label>
+                  <Textarea
+                    id="observacoesLocal"
+                    name="observacoesLocal"
+                    defaultValue={evento.observacoesLocal}
+                    maxLength={500}
+                    rows={2}
+                    placeholder="Estacionamento, portaria, acessibilidade…"
+                  />
+                </div>
+              </div>
+            </FormAcao>
+          </div>
+        </PainelRecolhivel>
       </Card>
 
       <Card className="mt-4">
@@ -163,28 +179,14 @@ export default async function EventoPage() {
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <details className="group">
-                      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-                        <Pencil className="size-3.5" aria-hidden /> Editar
-                      </summary>
-                      <div className="mt-3 w-64">
-                        <FormAcao acao={atualizarItemProgramacao} rotulo="Salvar" rotuloPendente="Salvando…">
-                          <input type="hidden" name="id" value={item.id} />
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`horario-${item.id}`} className="text-xs">Data e hora</Label>
-                            <Input id={`horario-${item.id}`} name="horario" type="datetime-local" defaultValue={paraDatetimeLocal(item.horario)} className="h-9" required />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`titulo-${item.id}`} className="text-xs">Título</Label>
-                            <Input id={`titulo-${item.id}`} name="titulo" defaultValue={item.titulo} maxLength={255} className="h-9" required />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`descricao-${item.id}`} className="text-xs">Descrição</Label>
-                            <Textarea id={`descricao-${item.id}`} name="descricao" defaultValue={item.descricao ?? ""} maxLength={500} rows={2} />
-                          </div>
-                        </FormAcao>
-                      </div>
-                    </details>
+                    <BotaoEditarItem
+                      item={{
+                        id: item.id,
+                        titulo: item.titulo,
+                        descricao: item.descricao,
+                        horarioLocal: paraDatetimeLocal(item.horario),
+                      }}
+                    />
                     <form action={removerItemProgramacao}>
                       <input type="hidden" name="id" value={item.id} />
                       <Button type="submit" variant="destructive" size="sm">
@@ -217,8 +219,8 @@ export default async function EventoPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="descricao">Descrição (opcional)</Label>
-                  <Textarea id="descricao" name="descricao" rows={2} maxLength={500} />
+                  <Label htmlFor="descricao-item">Descrição (opcional)</Label>
+                  <Textarea id="descricao-item" name="descricao" rows={2} maxLength={500} />
                 </div>
               </FormAcao>
             </div>
