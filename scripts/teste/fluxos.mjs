@@ -165,6 +165,22 @@ await grupo("auth", async () => {
     await nav.foto(`${TMP}/vazio-dashboard.png`);
     sql(`update turmas set codigo_convite='TESTENOVA01' where nome='Turma Nova Teste'`);
   });
+  await passo("minha conta: corrigir o nome completo", async () => {
+    await nav.abrir("/conta");
+    await nav.esperarTexto("Dados");
+    // Espaços sobrando e das pontas não podem chegar no nome que a turma lê.
+    await nav.preencher("#nome", "  Novo   Teste  da Silva  ");
+    await nav.clicar("Salvar nome", { seletor: "button" });
+    await nav.esperarTexto("Nome atualizado");
+    igual(sql(`select name from usuarios where email='${NOVO}'`), "Novo Teste da Silva", "nome normalizado no banco");
+    await nav.abrir("/dashboard");
+    verdade(await nav.tem("Novo Teste da Silva"), "o menu lateral mostra o nome novo, não o do cadastro");
+    await nav.abrir("/conta");
+    await nav.preencher("#nome", "x");
+    await nav.clicar("Salvar nome", { seletor: "button" });
+    await nav.esperarTexto("pelo menos 2 caracteres");
+    igual(sql(`select name from usuarios where email='${NOVO}'`), "Novo Teste da Silva", "nome curto não é gravado");
+  });
   for (const [caminho, texto] of [
     ["/tarefas", "Nenhuma tarefa ainda"],
     ["/duvidas", "Nenhuma dúvida ainda"],

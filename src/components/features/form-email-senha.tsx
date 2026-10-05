@@ -120,8 +120,8 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
       <form onSubmit={enviar} className="flex flex-col gap-4">
         {criando && (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nome">Nome</Label>
-            <Input id="nome" name="nome" autoComplete="name" className="h-10" required />
+            <Label htmlFor="nome">Nome completo</Label>
+            <Input id="nome" name="nome" autoComplete="name" maxLength={120} className="h-10" required />
           </div>
         )}
         <div className="flex flex-col gap-1.5">

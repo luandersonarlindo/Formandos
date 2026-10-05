@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { TriangleAlert } from "lucide-react";
-import { excluirMinhaConta } from "@/actions/conta";
+import { excluirMinhaConta, atualizarMeuNome } from "@/actions/conta";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { FormAcao } from "@/components/features/form-acao";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,38 @@ export default async function ContaPage() {
           <p className="truncate text-sm text-muted-foreground">{user.email}</p>
         </div>
       </div>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-lg">Dados</CardTitle>
+          <CardDescription className="text-pretty">
+            É este nome que a sua turma lê em membros, presença, avisos e tarefas. Ele não precisa
+            ser igual ao seu email, e você pode corrigir quando quiser.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormAcao
+            acao={atualizarMeuNome}
+            rotulo="Salvar nome"
+            rotuloPendente="Salvando…"
+            className="max-w-md"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nome">Nome completo</Label>
+              <Input
+                id="nome"
+                name="nome"
+                defaultValue={user.name}
+                autoComplete="name"
+                maxLength={120}
+                className="h-10"
+                required
+              />
+              <p className="text-xs text-muted-foreground">Até 120 caracteres.</p>
+            </div>
+          </FormAcao>
+        </CardContent>
+      </Card>
 
       <Card className="mt-8 border-destructive/30">
         <CardHeader>
