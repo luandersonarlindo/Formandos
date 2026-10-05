@@ -6,16 +6,18 @@ import {
   emailRedefinirSenha,
   emailVerificacao,
   enviarEmail,
+  enviarEmailSilencioso,
+  urlDoSite,
 } from "./email";
 
 type UsuarioEmail = { name: string; email: string };
 
 function enviarBoasVindas(usuario: UsuarioEmail) {
-  const url = `${process.env.BETTER_AUTH_URL ?? ""}/dashboard`;
   // Falha no envio não pode derrubar o cadastro: só registra no log.
-  return enviarEmail({ para: usuario.email, ...emailBoasVindas(usuario.name, url) }).catch(
-    (e) => console.error("Falha ao enviar email de boas-vindas", e),
-  );
+  return enviarEmailSilencioso({
+    para: usuario.email,
+    ...emailBoasVindas(usuario.name, urlDoSite("/dashboard")),
+  });
 }
 
 // A Vercel publica cada preview num endereço novo (formandos-abc123.vercel.app).

@@ -4,10 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { exigirMaster } from "@/lib/dal";
-import { transacao } from "@/lib/db";
+import { pool, transacao } from "@/lib/db";
+import {
+  emailContaExcluida,
+  emailRemovidoDaTurma,
+  enviarEmailSilencioso,
+  urlDoSite,
+} from "@/lib/email";
 import { emailsMaster } from "@/lib/master";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
-import { apagarUsuario } from "@/lib/usuarios";
+import { apagarUsuario, dadosParaEmail } from "@/lib/usuarios";
 import type { EstadoForm } from "./tipos";
 
 // Toda action daqui exige o administrador master (exigirMaster) ANTES de
@@ -58,19 +64,37 @@ export async function removerMembroMaster(formData: FormData) {
   if (!dados.success) return;
   const { turmaId, usuarioId } = dados.data;
 
-  await transacao(async (db) => {
+  // Nome, email e nome da turma saem lidos aqui: a transação abaixo apaga o
+  // rastro do membro, e depois não há mais de onde tirar nada disso.
+  const [alvo, turmas] = await Promise.all([
+    dadosParaEmail(usuarioId),
+    pool.query("select nome from turmas where id = $1", [turmaId]),
+  ]);
+  const nomeTurma = turmas.rows[0]?.nome as string | undefined;
+
+  const removido = await transacao(async (db) => {
     const { rows } = await db.query(
       "select usuario_id, papel from membros where turma_id = $1 for update",
       [turmaId],
     );
-    const alvo = rows.find((r) => r.usuario_id === usuarioId);
-    if (!alvo) return;
+    const alvoMembro = rows.find((r) => r.usuario_id === usuarioId);
+    if (!alvoMembro) return false;
     const admins = rows.filter((r) => r.papel === "admin").length;
     // Não deixa a turma sem administrador. Para encerrá-la, exclua a turma.
-    if (alvo.papel === "admin" && admins === 1) return;
+    if (alvoMembro.papel === "admin" && admins === 1) return false;
     // Como sair da turma, remove também o rastro dela naquela turma.
     await removerMembroDaTurma(db, turmaId, usuarioId);
+    return true;
   });
+
+  // Só avisa quando saiu mesmo: os dois "false" são recusas do servidor, e
+  // mandar "você foi removido" para quem continua na turma seria mentira.
+  if (removido && alvo && nomeTurma) {
+    await enviarEmailSilencioso({
+      para: alvo.email,
+      ...emailRemovidoDaTurma(alvo.name, nomeTurma, urlDoSite("/dashboard")),
+    });
+  }
   revalidarTurma(turmaId);
 }
 
@@ -129,25 +153,34 @@ export async function excluirUsuario(
 
   const resultado = await transacao(async (db) => {
     const { rows } = await db.query(
-      "select email from usuarios where id = $1",
+      "select email, name from usuarios where id = $1",
       [usuarioId],
     );
-    if (rows.length === 0) return { erro: "Este usuário não existe mais." };
-    const email: string = rows[0].email;
+    if (rows.length === 0) return { ok: false as const, erro: "Este usuário não existe mais." };
+    const { email, name } = rows[0] as { email: string; name: string };
     if (emailsMaster().includes(email.toLowerCase())) {
-      return { erro: "Não é possível excluir um administrador master." };
+      return { ok: false as const, erro: "Não é possível excluir um administrador master." };
     }
     if (confirmacao.toLowerCase() !== email.toLowerCase()) {
-      return { erro: "O email digitado não confere com o do usuário." };
+      return { ok: false as const, erro: "O email digitado não confere com o do usuário." };
     }
 
-    const erro = await apagarUsuario(db, usuarioId);
-    if (erro) return { erro };
-    return { ok: "Usuário excluído." };
+    const apagado = await apagarUsuario(db, usuarioId);
+    if (!apagado.ok) return { ok: false as const, erro: apagado.erro };
+    return { ok: true as const, turmas: apagado.turmas, email, name };
+  });
+
+  if (!resultado.ok) return { erro: resultado.erro };
+
+  // A conta já era, mas o email ainda é a última prova de que a exclusão
+  // aconteceu — e cita as turmas que existiam enquanto ela estava de pé.
+  await enviarEmailSilencioso({
+    para: resultado.email,
+    ...emailContaExcluida(resultado.name, resultado.turmas, { porAdmin: true }),
   });
 
   revalidatePath("/master/usuarios");
   revalidatePath("/master/turmas");
   revalidatePath("/master");
-  return resultado;
+  return { ok: "Usuário excluído." };
 }
