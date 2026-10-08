@@ -18,7 +18,7 @@ const esquemaPapel = esquemaMembro.extend({
   papel: z.enum(["admin", "participante"]),
 });
 
-export async function regenerarConvite() {
+export async function regenerarConvite(): Promise<EstadoForm> {
   const admin = await exigirAdminEditavel();
   for (let tentativa = 0; tentativa < 5; tentativa++) {
     try {
@@ -32,14 +32,19 @@ export async function regenerarConvite() {
     }
   }
   revalidatePath("/admin/convite");
+  return { ok: "Novo código gerado." };
 }
 
-export async function alterarPapel(formData: FormData) {
+export async function alterarPapel(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
   const admin = await exigirAdminEditavel();
   const dados = esquemaPapel.safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
+  if (!dados.success) return { erro: "Dados inválidos." };
   const { usuarioId, papel } = dados.data;
 
+  let alterado = false;
   await transacao(async (db) => {
     const { rows } = await db.query(
       "select usuario_id, papel from membros where turma_id = $1 for update",
@@ -56,8 +61,11 @@ export async function alterarPapel(formData: FormData) {
       "update membros set papel = $1 where turma_id = $2 and usuario_id = $3",
       [papel, admin.turmaId, usuarioId],
     );
+    alterado = true;
   });
   revalidatePath("/admin/membros");
+  if (!alterado) return { erro: "A turma não pode ficar sem administrador." };
+  return { ok: "Papel atualizado." };
 }
 
 export async function removerMembro(formData: FormData) {
@@ -119,26 +127,36 @@ export async function responderDuvida(
   return { ok: resposta ? "Resposta salva." : "Resposta removida." };
 }
 
-export async function alternarDestaque(formData: FormData) {
+export async function alternarDestaque(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
   const admin = await exigirAdminEditavel();
   const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
-  await pool.query(
+  if (!dados.success) return { erro: "Dúvida não encontrada." };
+  const { rowCount } = await pool.query(
     "update duvidas set destaque = not destaque where id = $1 and turma_id = $2",
     [dados.data.duvidaId, admin.turmaId],
   );
+  if (!rowCount) return { erro: "Dúvida não encontrada." };
   revalidarDuvidas();
+  return { ok: "Destaque atualizado." };
 }
 
-export async function alternarRespondida(formData: FormData) {
+export async function alternarRespondida(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
   const admin = await exigirAdminEditavel();
   const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
-  await pool.query(
+  if (!dados.success) return { erro: "Dúvida não encontrada." };
+  const { rowCount } = await pool.query(
     "update duvidas set respondida = not respondida where id = $1 and turma_id = $2",
     [dados.data.duvidaId, admin.turmaId],
   );
+  if (!rowCount) return { erro: "Dúvida não encontrada." };
   revalidarDuvidas();
+  return { ok: "Situação atualizada." };
 }
 
 export async function apagarDuvida(formData: FormData) {

@@ -83,35 +83,47 @@ export async function criarTarefa(
 }
 
 // Administrador: muda título, descrição, status, responsável e prazo.
-export async function atualizarTarefa(formData: FormData) {
+export async function atualizarTarefa(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
   const admin = await exigirAdminEditavel();
   const dados = esquemaAtualizacao.safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
+  if (!dados.success) return { erro: dados.error.issues[0].message };
   const { tarefaId, titulo, descricao, status, responsavelId, prazo } = dados.data;
-  if (!(await responsavelValido(admin.turmaId, responsavelId))) return;
+  if (!(await responsavelValido(admin.turmaId, responsavelId))) {
+    return { erro: "O responsável precisa ser membro da turma." };
+  }
 
-  await pool.query(
+  const { rowCount } = await pool.query(
     `update tarefas set titulo = $1, descricao = $2, status = $3, responsavel_id = $4, prazo = $5
       where id = $6 and turma_id = $7`,
     [titulo, descricao, status, responsavelId, prazo, tarefaId, admin.turmaId],
   );
+  if (!rowCount) return { erro: "Tarefa não encontrada." };
   revalidatePath("/tarefas");
   revalidatePath("/dashboard");
+  return { ok: "Tarefa atualizada." };
 }
 
 // Responsável (mesmo sem ser admin) muda só o status da própria tarefa.
-export async function atualizarStatusTarefa(formData: FormData) {
+export async function atualizarStatusTarefa(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
   const membro = await exigirMembroEditavel();
   const dados = esquemaStatus.safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
+  if (!dados.success) return { erro: "Dados inválidos." };
 
-  await pool.query(
+  const { rowCount } = await pool.query(
     `update tarefas set status = $1
       where id = $2 and turma_id = $3 and responsavel_id = $4`,
     [dados.data.status, dados.data.tarefaId, membro.turmaId, membro.usuarioId],
   );
+  if (!rowCount) return { erro: "Tarefa não encontrada." };
   revalidatePath("/tarefas");
   revalidatePath("/dashboard");
+  return { ok: "Andamento atualizado." };
 }
 
 export async function excluirTarefa(formData: FormData) {

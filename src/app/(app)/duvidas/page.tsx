@@ -3,8 +3,9 @@ import Link from "next/link";
 import { CircleCheck, MessageSquareReply, Pencil, Star, Trash2 } from "lucide-react";
 import { editarDuvida, excluirDuvida } from "@/actions/duvidas";
 import { BotaoUpvote } from "@/components/features/botao-upvote";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { FormAcao } from "@/components/features/form-acao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovaDuvida } from "@/components/features/form-nova-duvida";
 import { Paginacao } from "@/components/features/paginacao";
 import { PerguntasAmico } from "@/components/ilustracoes/perguntas-amico";
@@ -126,37 +127,35 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                       {d.autor} · {formatarData.format(d.criadaEm)}
                     </p>
                     {d.autorId === membro.usuarioId && (
-                      <div className="mt-2 flex flex-wrap items-start gap-2">
-                        <details className="flex-1 basis-56">
-                          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-                            <Pencil className="size-3.5" aria-hidden /> Editar dúvida
-                          </summary>
-                          <div className="mt-2">
-                            <FormAcao acao={editarDuvida} rotulo="Salvar">
-                              <input type="hidden" name="duvidaId" value={d.id} />
-                              <Textarea name="conteudo" defaultValue={d.conteudo} maxLength={500} rows={2} required />
-                            </FormAcao>
-                          </div>
-                        </details>
-                        <details className="basis-56">
-                          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-destructive [&::-webkit-details-marker]:hidden">
-                            <Trash2 className="size-3.5" aria-hidden /> Excluir dúvida
-                          </summary>
-                          <div className="mt-2">
-                            <FormAcao
-                              acao={excluirDuvida}
-                              rotulo="Excluir para sempre"
-                              rotuloPendente="Excluindo…"
-                              variante="destructive"
-                              className="gap-2"
-                            >
-                              <input type="hidden" name="duvidaId" value={d.id} />
-                              <p className="text-xs text-muted-foreground">
-                                A dúvida e os votos que ela recebeu somem para todos. Não dá para desfazer.
-                              </p>
-                            </FormAcao>
-                          </div>
-                        </details>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <FormDialog
+                          rotulo="Editar dúvida"
+                          icone={<Pencil className="size-3.5" aria-hidden />}
+                          titulo="Editar dúvida"
+                          descricao="A resposta já dada pela comissão não muda."
+                          acao={editarDuvida}
+                          campos={{ duvidaId: d.id }}
+                          rotuloSubmit="Salvar"
+                          rotuloPendente="Salvando…"
+                        >
+                          <Textarea
+                            name="conteudo"
+                            defaultValue={d.conteudo}
+                            maxLength={500}
+                            rows={2}
+                            required
+                          />
+                        </FormDialog>
+                        <ConfirmarExclusao
+                          acao={excluirDuvida}
+                          campos={{ duvidaId: d.id }}
+                          alvo="a dúvida"
+                          nome={d.conteudo}
+                          aviso="A dúvida e os votos que ela recebeu somem para todos."
+                          rotulo="Excluir dúvida"
+                          descricao="Excluir dúvida"
+                          icone={<Trash2 className="size-3.5" aria-hidden />}
+                        />
                       </div>
                     )}
                     {d.resposta && (

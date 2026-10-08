@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   CircleCheck,
   CircleDot,
+  MessageSquareReply,
   RotateCcw,
   Star,
   StarOff,
@@ -13,16 +14,17 @@ import {
   alternarDestaque,
   alternarRespondida,
   apagarDuvida,
+  responderDuvida,
 } from "@/actions/admin";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { FormResposta } from "@/components/features/form-resposta";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Paginacao } from "@/components/features/paginacao";
 import { PerguntasAmico } from "@/components/ilustracoes/perguntas-amico";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { exigirAdmin } from "@/lib/dal";
 import { listarDuvidas } from "@/lib/duvidas";
 import { lerPagina } from "@/lib/paginacao";
@@ -33,25 +35,6 @@ const formatarData = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
   timeStyle: "short",
 });
-
-function AcaoSimples({
-  acao,
-  duvidaId,
-  children,
-}: {
-  acao: (formData: FormData) => Promise<void>;
-  duvidaId: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <form action={acao}>
-      <input type="hidden" name="duvidaId" value={duvidaId} />
-      <Button type="submit" variant="outline" size="sm">
-        {children}
-      </Button>
-    </form>
-  );
-}
 
 const FILTROS = [
   { valor: "todas", rotulo: "Todas" },
@@ -164,17 +147,68 @@ export default async function ModeracaoDuvidasPage({
                     </div>
                   </div>
 
-                  <FormResposta duvidaId={d.id} resposta={d.resposta} />
+                  <FormDialog
+                    rotulo={d.resposta ? "Editar resposta" : "Responder"}
+                    icone={<MessageSquareReply className="size-4" aria-hidden />}
+                    titulo="Resposta oficial"
+                    descricao="Deixe em branco para remover a resposta."
+                    acao={responderDuvida}
+                    campos={{ duvidaId: d.id }}
+                    rotuloSubmit="Salvar resposta"
+                    rotuloPendente="Salvando…"
+                  >
+                    <Textarea
+                      name="resposta"
+                      maxLength={1000}
+                      rows={3}
+                      defaultValue={d.resposta ?? ""}
+                      placeholder="Deixe em branco para remover a resposta."
+                    />
+                  </FormDialog>
 
                   <div className="flex flex-wrap gap-2 border-t pt-4">
-                    <AcaoSimples acao={alternarDestaque} duvidaId={d.id}>
-                      {d.destaque ? <StarOff aria-hidden /> : <Star aria-hidden />}
-                      {d.destaque ? "Tirar destaque" : "Destacar"}
-                    </AcaoSimples>
-                    <AcaoSimples acao={alternarRespondida} duvidaId={d.id}>
-                      {d.respondida ? <RotateCcw aria-hidden /> : <CircleCheck aria-hidden />}
-                      {d.respondida ? "Reabrir" : "Marcar como respondida"}
-                    </AcaoSimples>
+                    <FormDialog
+                      rotulo={d.destaque ? "Tirar destaque" : "Destacar"}
+                      icone={
+                        d.destaque ? (
+                          <StarOff className="size-3.5" aria-hidden />
+                        ) : (
+                          <Star className="size-3.5" aria-hidden />
+                        )
+                      }
+                      titulo={d.destaque ? "Tirar destaque" : "Destacar dúvida"}
+                      descricao={
+                        d.destaque
+                          ? "A dúvida deixa de aparecer em destaque para a turma."
+                          : "A dúvida passa a aparecer em destaque para a turma."
+                      }
+                      acao={alternarDestaque}
+                      campos={{ duvidaId: d.id }}
+                      rotuloSubmit={d.destaque ? "Tirar" : "Destacar"}
+                      rotuloPendente="Salvando…"
+                    />
+                    <FormDialog
+                      rotulo={d.respondida ? "Reabrir" : "Marcar como respondida"}
+                      icone={
+                        d.respondida ? (
+                          <RotateCcw className="size-3.5" aria-hidden />
+                        ) : (
+                          <CircleCheck className="size-3.5" aria-hidden />
+                        )
+                      }
+                      titulo={
+                        d.respondida ? "Reabrir dúvida" : "Marcar como respondida"
+                      }
+                      descricao={
+                        d.respondida
+                          ? "A dúvida volta a aparecer como aberta."
+                          : "A dúvida passa a aparecer como respondida, com ou sem resposta oficial."
+                      }
+                      acao={alternarRespondida}
+                      campos={{ duvidaId: d.id }}
+                      rotuloSubmit={d.respondida ? "Reabrir" : "Marcar respondida"}
+                      rotuloPendente="Salvando…"
+                    />
                     <ConfirmarExclusao
                       acao={apagarDuvida}
                       campos={{ duvidaId: d.id }}
@@ -183,7 +217,7 @@ export default async function ModeracaoDuvidasPage({
                       aviso="A dúvida e os votos que ela recebeu somem para todos."
                       rotulo="Apagar"
                       descricao={`Apagar a dúvida de ${d.autor}`}
-                      icone={<Trash2 aria-hidden />}
+                      icone={<Trash2 className="size-3.5" aria-hidden />}
                     />
                   </div>
                 </CardContent>

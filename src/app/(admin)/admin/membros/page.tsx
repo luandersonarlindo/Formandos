@@ -5,6 +5,7 @@ import { alterarPapel, removerMembro } from "@/actions/admin";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { EstadoVazio } from "@/components/features/estado-vazio";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Paginacao } from "@/components/features/paginacao";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
@@ -115,18 +116,31 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
                         {m.papel === "admin" ? "Administrador" : "Participante"}
                       </Badge>
                       {!ultimoAdmin && (
-                        <form action={alterarPapel}>
-                          <input type="hidden" name="usuarioId" value={m.id} />
-                          <input
-                            type="hidden"
-                            name="papel"
-                            value={m.papel === "admin" ? "participante" : "admin"}
-                          />
-                          <Button type="submit" variant="outline" size="sm">
-                            {m.papel === "admin" ? <ShieldOff aria-hidden /> : <ShieldCheck aria-hidden />}
-                            {m.papel === "admin" ? "Tornar participante" : "Promover"}
-                          </Button>
-                        </form>
+                        <FormDialog
+                          rotulo={
+                            m.papel === "admin" ? "Tornar participante" : "Promover"
+                          }
+                          icone={
+                            m.papel === "admin" ? (
+                              <ShieldOff aria-hidden />
+                            ) : (
+                              <ShieldCheck aria-hidden />
+                            )
+                          }
+                          titulo="Trocar papel"
+                          descricao={
+                            m.papel === "admin"
+                              ? `${m.name} deixa de ser administrador e vira participante.`
+                              : `Promover ${m.name} a administrador.`
+                          }
+                          acao={alterarPapel}
+                          campos={{
+                            usuarioId: m.id,
+                            papel: m.papel === "admin" ? "participante" : "admin",
+                          }}
+                          rotuloSubmit="Trocar papel"
+                          rotuloPendente="Salvando…"
+                        />
                       )}
                       {!ehVoce && (
                         <ConfirmarExclusao

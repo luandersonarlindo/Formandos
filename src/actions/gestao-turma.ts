@@ -12,19 +12,21 @@ import type { EstadoForm } from "./tipos";
 // versão "Editável"), porque precisam funcionar também com a turma arquivada.
 // A turma vem da sessão, nunca de um campo da tela.
 
-export async function arquivarTurma() {
+export async function arquivarTurma(): Promise<EstadoForm> {
   const admin = await exigirAdmin();
   await pool.query(
     "update turmas set arquivada_em = now() where id = $1 and arquivada_em is null",
     [admin.turmaId],
   );
   revalidatePath("/", "layout");
+  return { ok: "Turma arquivada." };
 }
 
-export async function desarquivarTurma() {
+export async function desarquivarTurma(): Promise<EstadoForm> {
   const admin = await exigirAdmin();
   await pool.query("update turmas set arquivada_em = null where id = $1", [admin.turmaId]);
   revalidatePath("/", "layout");
+  return { ok: "Turma desarquivada." };
 }
 
 const esquemaExcluir = z.object({ confirmacao: z.string().trim() });

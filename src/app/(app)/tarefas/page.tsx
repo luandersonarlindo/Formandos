@@ -18,11 +18,11 @@ import {
 } from "@/actions/tarefas";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
+import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovaTarefa } from "@/components/features/form-nova-tarefa";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -232,34 +232,35 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
                     </div>
 
                     {ehAdmin ? (
-                      <details className="group border-t pt-3">
-                        <summary className={`${resumoAberto} text-muted-foreground hover:text-foreground`}>
-                          <Settings2 className="size-4" aria-hidden /> Gerenciar tarefa
-                        </summary>
-                        <div className="mt-3 flex flex-col gap-2">
-                          <form
-                            action={atualizarTarefa}
-                            className="flex flex-col gap-2"
-                          >
-                            <input type="hidden" name="tarefaId" value={t.id} />
-                            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                              Título
-                              <Input
-                                name="titulo"
-                                defaultValue={t.titulo}
-                                maxLength={255}
-                                required
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                              Descrição
-                              <Input
-                                name="descricao"
-                                defaultValue={t.descricao ?? ""}
-                                maxLength={1000}
-                              />
-                            </label>
-                            <div className="flex flex-wrap items-end gap-2">
+                      <div className="flex flex-wrap gap-2 border-t pt-3">
+                        <FormDialog
+                          rotulo="Gerenciar tarefa"
+                          icone={<Settings2 className="size-4" aria-hidden />}
+                          titulo="Editar tarefa"
+                          descricao="Título, descrição, status, responsável e prazo."
+                          acao={atualizarTarefa}
+                          campos={{ tarefaId: t.id }}
+                          rotuloSubmit="Salvar"
+                          rotuloPendente="Salvando…"
+                        >
+                          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                            Título
+                            <Input
+                              name="titulo"
+                              defaultValue={t.titulo}
+                              maxLength={255}
+                              required
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                            Descrição
+                            <Input
+                              name="descricao"
+                              defaultValue={t.descricao ?? ""}
+                              maxLength={1000}
+                            />
+                          </label>
+                          <div className="flex flex-wrap items-end gap-2">
                             <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                               Status
                               <NativeSelect
@@ -294,28 +295,29 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
                                 className="w-40"
                               />
                             </label>
-                            <Button type="submit" variant="outline" size="sm">
-                              Salvar
-                            </Button>
-                            </div>
-                          </form>
-                          <ConfirmarExclusao
-                            acao={excluirTarefa}
-                            campos={{ tarefaId: t.id }}
-                            alvo="a tarefa"
-                            nome={t.titulo}
-                            rotulo="Excluir tarefa"
-                            descricao={`Excluir a tarefa ${t.titulo}`}
-                          />
-                        </div>
-                      </details>
+                          </div>
+                        </FormDialog>
+                        <ConfirmarExclusao
+                          acao={excluirTarefa}
+                          campos={{ tarefaId: t.id }}
+                          alvo="a tarefa"
+                          nome={t.titulo}
+                          rotulo="Excluir tarefa"
+                          descricao={`Excluir a tarefa ${t.titulo}`}
+                        />
+                      </div>
                     ) : (
                       ehResponsavel && (
-                        <form
-                          action={atualizarStatusTarefa}
-                          className="flex items-end gap-2 border-t pt-3"
+                        <FormDialog
+                          rotulo="Atualizar andamento"
+                          icone={<Settings2 className="size-4" aria-hidden />}
+                          titulo="Atualizar andamento"
+                          descricao={`Andamento da tarefa ${t.titulo}`}
+                          acao={atualizarStatusTarefa}
+                          campos={{ tarefaId: t.id }}
+                          rotuloSubmit="Atualizar"
+                          rotuloPendente="Atualizando…"
                         >
-                          <input type="hidden" name="tarefaId" value={t.id} />
                           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                             Andamento
                             <NativeSelect
@@ -326,10 +328,7 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
                               <OpcoesStatus />
                             </NativeSelect>
                           </label>
-                          <Button type="submit" variant="outline" size="sm">
-                            Atualizar
-                          </Button>
-                        </form>
+                        </FormDialog>
                       )
                     )}
                   </CardContent>

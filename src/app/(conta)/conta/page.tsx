@@ -41,12 +41,7 @@ export default async function ContaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <FormAcao
-            acao={atualizarMeuNome}
-            rotulo="Salvar nome"
-            rotuloPendente="Salvando…"
-            className="max-w-md"
-          >
+          <FormAcao acao={atualizarMeuNome} rotulo="Salvar nome" rotuloPendente="Salvando…">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nome">Nome completo</Label>
               <Input
@@ -99,6 +94,9 @@ export default async function ContaPage() {
               rotuloPendente="Excluindo…"
               variante="destructive"
             >
+              <p className="text-xs text-muted-foreground">
+                Apaga a sua conta e os seus dados. Não dá para desfazer.
+              </p>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="confirmacao" className="leading-normal">
                   Digite o seu email, <strong>{user.email}</strong>, para confirmar
