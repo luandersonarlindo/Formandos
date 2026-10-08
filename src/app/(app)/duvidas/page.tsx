@@ -1,6 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CircleCheck, MessageSquareReply, Pencil, Star, Trash2 } from "lucide-react";
+import {
+  CircleCheck,
+  CircleDot,
+  MessageSquareReply,
+  Pencil,
+  RotateCcw,
+  Star,
+  StarOff,
+  Trash2,
+} from "lucide-react";
+import {
+  alternarDestaque,
+  alternarRespondida,
+  apagarDuvida,
+  responderDuvida,
+} from "@/actions/admin";
 import { editarDuvida, excluirDuvida } from "@/actions/duvidas";
 import { BotaoUpvote } from "@/components/features/botao-upvote";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
@@ -32,9 +47,11 @@ const FILTROS = [
 
 export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas">) {
   const membro = await exigirMembro();
+  const ehAdmin = membro.papel === "admin";
   const { filtro: parametro, pagina: paginaParametro } = await searchParams;
   const filtro = FILTROS.find((f) => f.valor === parametro)?.valor ?? "todas";
   const { itens: visiveis, pagina, totalPaginas, contagens } = await listarDuvidas(membro, {
+    moderacao: ehAdmin,
     filtro,
     pagina: lerPagina(paginaParametro),
   });
@@ -47,6 +64,12 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
         Envie perguntas sobre o evento e vote nas dúvidas dos colegas. As mais
         votadas aparecem primeiro, e a comissão responde oficialmente.
       </p>
+      {ehAdmin && (
+        <p className="mt-2 max-w-2xl rounded-xl border bg-muted/50 p-3 text-sm text-muted-foreground">
+          Você é administrador: responda e destaque as dúvidas direto aqui, na
+          mesma lista com que a turma já interage.
+        </p>
+      )}
 
       <Card className="mt-6">
         <CardContent>
@@ -110,10 +133,16 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                             <Star aria-hidden /> Em destaque
                           </Badge>
                         )}
-                        {d.respondida && (
+                        {d.respondida ? (
                           <Badge variant="secondary" className="text-emerald-700 dark:text-emerald-400">
                             <CircleCheck aria-hidden /> Respondida
                           </Badge>
+                        ) : (
+                          ehAdmin && (
+                            <Badge variant="outline">
+                              <CircleDot aria-hidden /> Aberta
+                            </Badge>
+                          )
                         )}
                       </div>
                     )}
@@ -127,8 +156,8 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                       </span>
                       {d.autor} · {formatarData.format(d.criadaEm)}
                     </p>
-                    {d.autorId === membro.usuarioId && (
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {d.autorId === membro.usuarioId && (
                         <FormDialog
                           rotulo="Editar dúvida"
                           icone={<Pencil className="size-3.5" aria-hidden />}
@@ -147,6 +176,8 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                             required
                           />
                         </FormDialog>
+                      )}
+                      {!ehAdmin && d.autorId === membro.usuarioId && (
                         <ConfirmarExclusao
                           acao={excluirDuvida}
                           campos={{ duvidaId: d.id }}
@@ -157,8 +188,82 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                           descricao="Excluir dúvida"
                           icone={<Trash2 className="size-3.5" aria-hidden />}
                         />
-                      </div>
-                    )}
+                      )}
+                      {ehAdmin && (
+                        <>
+                          <FormDialog
+                            rotulo={d.resposta ? "Editar resposta" : "Responder"}
+                            icone={<MessageSquareReply className="size-4" aria-hidden />}
+                            titulo="Resposta oficial"
+                            descricao="Deixe em branco para remover a resposta."
+                            acao={responderDuvida}
+                            campos={{ duvidaId: d.id }}
+                            rotuloSubmit="Salvar resposta"
+                            rotuloPendente="Salvando…"
+                          >
+                            <Textarea
+                              name="resposta"
+                              maxLength={1000}
+                              rows={3}
+                              defaultValue={d.resposta ?? ""}
+                              placeholder="Deixe em branco para remover a resposta."
+                            />
+                          </FormDialog>
+                          <FormDialog
+                            rotulo={d.destaque ? "Tirar destaque" : "Destacar"}
+                            icone={
+                              d.destaque ? (
+                                <StarOff className="size-3.5" aria-hidden />
+                              ) : (
+                                <Star className="size-3.5" aria-hidden />
+                              )
+                            }
+                            titulo={d.destaque ? "Tirar destaque" : "Destacar dúvida"}
+                            descricao={
+                              d.destaque
+                                ? "A dúvida deixa de aparecer em destaque para a turma."
+                                : "A dúvida passa a aparecer em destaque para a turma."
+                            }
+                            acao={alternarDestaque}
+                            campos={{ duvidaId: d.id }}
+                            rotuloSubmit={d.destaque ? "Tirar" : "Destacar"}
+                            rotuloPendente="Salvando…"
+                          />
+                          <FormDialog
+                            rotulo={d.respondida ? "Reabrir" : "Marcar como respondida"}
+                            icone={
+                              d.respondida ? (
+                                <RotateCcw className="size-3.5" aria-hidden />
+                              ) : (
+                                <CircleCheck className="size-3.5" aria-hidden />
+                              )
+                            }
+                            titulo={
+                              d.respondida ? "Reabrir dúvida" : "Marcar como respondida"
+                            }
+                            descricao={
+                              d.respondida
+                                ? "A dúvida volta a aparecer como aberta."
+                                : "A dúvida passa a aparecer como respondida, com ou sem resposta oficial."
+                            }
+                            acao={alternarRespondida}
+                            campos={{ duvidaId: d.id }}
+                            rotuloSubmit={d.respondida ? "Reabrir" : "Marcar respondida"}
+                            rotuloPendente="Salvando…"
+                          />
+                          <ConfirmarExclusao
+                            acao={apagarDuvida}
+                            campos={{ duvidaId: d.id }}
+                            alvo="a dúvida"
+                            nome={d.autor}
+                            aviso="A dúvida e os votos que ela recebeu somem para todos."
+                            rotulo="Apagar"
+                            descricao={`Apagar a dúvida de ${d.autor}`}
+                            icone={<Trash2 className="size-3.5" aria-hidden />}
+                          />
+                        </>
+                      )}
+                    </div>
                     {d.resposta && (
                       <div className="mt-3 rounded-lg border-l-2 border-[var(--vitrine-a)] bg-muted/60 p-3 text-sm">
                         <p className="flex items-center gap-1.5 font-medium">

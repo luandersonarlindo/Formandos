@@ -82,15 +82,15 @@ As URLs **não** levam o identificador da turma: o servidor descobre a turma em 
 | `(conta)` | Autenticado (com ou sem turma) | `/conta` (ver e excluir a própria conta) |
 | `(app)` | Autenticado, com turma | `/dashboard`, `/avisos`, `/tarefas`, `/votacoes`, `/votacoes/[catalogoId]`, `/votacoes/relatorio`, `/duvidas`, `/terceiros` |
 | `(master)` | Administrador master (`ADMIN_MASTER_EMAILS`); para os demais a página não existe (404) | `/master`, `/master/turmas`, `/master/turmas/[turmaId]`, `/master/usuarios` |
-| `(admin)` | Administrador da turma | `/admin`, `/admin/membros`, `/admin/convite`, `/admin/evento`, `/admin/turma` (arquivar, desarquivar e excluir), `/admin/presenca`, `/admin/duvidas`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
+| `(admin)` | Administrador da turma | `/admin` (redireciona para `/dashboard`, onde ficam os indicadores e a edição do evento), `/admin/membros` (inclui o código de convite), `/admin/turma` (arquivar, desarquivar e excluir), `/admin/presenca`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
 | API | — | `/api/auth/[...all]` (único *Route Handler*, usado pelo Better Auth) |
 
-* `/dashboard` - Visão geral da turma, contagem decrescente e programação oficial da festa.
+* `/dashboard` - Visão geral da turma, contagem decrescente e programação oficial da festa. Para administradores, traz indicadores de gestão e edição dos dados e da programação do evento.
 * `/tarefas` - Lista e acompanhamento do progresso das tarefas organizacionais.
 * `/votacoes` - Catálogos de enquetes (padrão e personalizados), votação por categoria e relatórios automatizados.
-* `/duvidas` - Fórum de Perguntas & Respostas (estilo *Letmeask*) com envio de dúvidas e votação em perguntas da comunidade.
+* `/duvidas` - Fórum de Perguntas & Respostas (estilo *Letmeask*) com envio de dúvidas, votação, resposta, destaque e marcação como respondida.
 * `/terceiros` - Vitrine de fornecedores e prestadores de serviços.
-* `/admin` - Painel exclusivo para ADMs: gestão de membros e código de convite, resposta e moderação de dúvidas, catálogos personalizados, consulta de quem votou e edição dos dados do evento.
+* `/admin/membros` - Gestão de membros, promoção/rebaixamento, remoção e código de convite (copiar mensagem e gerar novo código).
 
 > As mutações (votar, dar upvote, responder, gerar convite…) são **Server Actions** e não têm URL própria.
 
@@ -125,7 +125,7 @@ Inspirado no projeto **Letmeask (NLW-06)**, a área `/duvidas` possui as seguint
 1. **Envio de Pergunta:** O aluno envia uma dúvida (ex: *"Quando será o prazo final para enviar as fotos do telão?"*).
 2. **Engajamento (Upvote):** Outros formandos que possuem a mesma dúvida clicam no ícone de *Like*. A lista reordena automaticamente colocando as perguntas mais votadas no topo.
 3. **Exclusão pelo autor:** quem enviou a dúvida pode apagá-la quando não faz mais sentido; a pergunta e os votos que ela tinha somem. Nem a comissão nem os outros formandos podem excluir a dúvida de outra pessoa.
-4. **Moderação ADM** (em `/admin/duvidas`): A comissão organizadora acessa com permissão administrativa para:
+4. **Moderação ADM** (na mesma tela `/duvidas`): A comissão organizadora, sendo administrador, responde e destaca dúvidas direto na lista, com:
    * **Fixar / Destacar:** Coloca perguntas cruciais no topo da tela.
    * **Responder:** Adiciona a resposta oficial da comissão.
    * **Marcar como Respondida:** Altera o status visual da pergunta para manter a organização.
