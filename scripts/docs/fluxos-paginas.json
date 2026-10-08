@@ -1,0 +1,242 @@
+{
+ "/": {
+  "arquivo": "src/app/(publico)/page.tsx:25",
+  "gate": "nenhum gate; getSessao() :26 só lê a flag \"logado\" para mudar o rótulo do botão",
+  "dados": "dal:getSessao",
+  "actions": "nenhuma — nada é gravado",
+  "tabelas": "nenhuma de domínio (só `session`, Better Auth)",
+  "saida": "/entrar · #recursos"
+ },
+ "/entrar": {
+  "arquivo": "src/app/(publico)/entrar/page.tsx:11",
+  "gate": "getSessao() :12 — não bloqueia, só desvia",
+  "dados": "dal:getSessao · auth:googleConfigurado",
+  "actions": "NENHUMA de src/actions — o cliente chama authClient.signUp.email / signIn.email src/components/features/form-email-senha.tsx linhas 42 e 48 authClient.signIn.social src/components/features/botao-google.tsx:26",
+  "tabelas": "usuarios · session · account (Better Auth)",
+  "saida": "/dashboard · /esqueci-senha · /"
+ },
+ "/esqueci-senha": {
+  "arquivo": "src/app/(publico)/esqueci-senha/page.tsx:7",
+  "gate": "nenhum gate — rota pública por desenho",
+  "dados": "nenhuma",
+  "actions": "nenhuma; cliente usa authClient .requestPasswordReset src/components/features/form-senha.tsx:39",
+  "tabelas": "verification (Better Auth)",
+  "saida": "/  · /redefinir-senha (pelo link do email)"
+ },
+ "/redefinir-senha": {
+  "arquivo": "src/app/(publico)/redefinir-senha/page.tsx:10",
+  "gate": "nenhum gate; sem token válido mostra \"link inválido ou expirado\"",
+  "dados": "nenhuma; token chega pela URL",
+  "actions": "nenhuma; cliente usa authClient .resetPassword src/components/features/form-senha.tsx:100",
+  "tabelas": "verification · session (Better Auth)",
+  "saida": "/esqueci-senha · /entrar"
+ },
+ "/convite": {
+  "arquivo": "src/app/(onboarding)/convite/page.tsx:10",
+  "gate": "getVinculos() :11",
+  "dados": "dal:getVinculos",
+  "actions": "via componente convite-forms.tsx: /turmas:{criarTurma, entrarPorConvite}",
+  "tabelas": "turmas · membros · tentativas_convite",
+  "saida": "/dashboard · /conta · /master"
+ },
+ "/conta": {
+  "arquivo": "src/app/(conta)/conta/page.tsx:18",
+  "gate": "exigirSessao() :19",
+  "dados": "usuarios:getImpactoExclusaoConta master:ehMaster",
+  "actions": "conta:{atualizarMeuNome, excluirMinhaConta}",
+  "tabelas": "usuarios · membros · turmas · votos · duvidas",
+  "saida": "/dashboard (se tem turma) · /convite (se não)"
+ },
+ "/dashboard": {
+  "arquivo": "src/app/(app)/dashboard/page.tsx:89",
+  "gate": "exigirMembro() :90",
+  "dados": "dashboard:{listarProgramacao, getResumoTurma, getDetalhesEvento, listarDecisoes} avisos:listarUltimosAvisos presenca:getMinhaPresenca evento:linkComoChegar lib/datas:{formatarDataHora, formatarDiaCurto, formatarHora}",
+  "actions": "presenca:responderPresenca (FormPresenca) turmas:sairDaTurma (FormSairTurma)",
+  "tabelas": "turmas · programacao · decisoes · avisos",
+  "saida": "/avisos /tarefas /votacoes /duvidas"
+ },
+ "/avisos": {
+  "arquivo": "src/app/(app)/avisos/page.tsx:22",
+  "gate": "exigirMembro() :23   ← FORA do matcher do proxy; esta linha é a única barreira inicial",
+  "dados": "avisos:listarAvisos · paginacao:lerPagina",
+  "actions": "avisos:{atualizarAviso, excluirAviso} + criarAviso (FormNovoAviso, só admin)",
+  "tabelas": "avisos · usuarios",
+  "saida": "menu lateral (nenhum link interno)"
+ },
+ "/tarefas": {
+  "arquivo": "src/app/(app)/tarefas/page.tsx:85",
+  "gate": "exigirMembro() :86",
+  "dados": "tarefas:{listarTarefas, listarMembros, STATUS_TAREFA, ROTULO_STATUS} datas:{formatarPrazo, hojeIso}",
+  "actions": "tarefas:{atualizarTarefa, atualizarStatusTarefa, excluirTarefa} + criarTarefa (FormNovaTarefa, só admin)",
+  "tabelas": "tarefas · membros · usuarios",
+  "saida": "menu lateral (nenhum link interno)"
+ },
+ "/votacoes": {
+  "arquivo": "src/app/(app)/votacoes/page.tsx:17",
+  "gate": "exigirMembro() :18",
+  "dados": "votacoes:listarCatalogos",
+  "actions": "nenhuma — só navega",
+  "tabelas": "catalogos · categorias · enquetes ·",
+  "saida": "/votacoes/[catalogoId] · /votacoes/relatorio"
+ },
+ "/votacoes/[catalogoId]": {
+  "arquivo": "",
+  "gate": "exigirMembro() :15 uuid inválido ou catálogo nulo → notFound()",
+  "dados": "votacoes:getCatalogoParaVotar",
+  "actions": "votos:votar (EnqueteCard)",
+  "tabelas": "catalogos · categorias · enquetes · opcoes",
+  "saida": "/votacoes (voltar)"
+ },
+ "/votacoes/relatorio": {
+  "arquivo": "src/app/(app)/votacoes/relatorio/page.tsx:21",
+  "gate": "exigirMembro() :24",
+  "dados": "votacoes:listarCatalogos relatorio:getRelatorio",
+  "actions": "nenhuma — só leitura",
+  "tabelas": "catalogos · categorias · enquetes · opcoes",
+  "saida": "/votacoes"
+ },
+ "/duvidas": {
+  "arquivo": "src/app/(app)/duvidas/page.tsx:31",
+  "gate": "exigirMembro() :32",
+  "dados": "duvidas:listarDuvidas · paginacao:lerPagina",
+  "actions": "duvidas:{editarDuvida, excluirDuvida} + enviarDuvida (FormNovaDuvida) + alternarUpvote (BotaoUpvote)",
+  "tabelas": "duvidas · duvida_upvotes · usuarios",
+  "saida": "/admin/duvidas (só admin, por link de resposta)"
+ },
+ "/terceiros": {
+  "arquivo": "src/app/(app)/terceiros/page.tsx:110",
+  "gate": "exigirMembro() :111 admin usa listarFornecedoresAdmin e getResumoOrcamento; participante não",
+  "dados": "terceiros:{listarFornecedores, listarFornecedoresAdmin, getResumoOrcamento, CATEGORIAS_FORNECEDOR} orcamento:{formatarReal, ROTULO_ORCAMENTO}",
+  "actions": "terceiros:{atualizarFornecedor, excluirFornecedor} + criarFornecedor (FormNovoFornecedor) + atualizarOrcamento (FormOrcamento)",
+  "tabelas": "fornecedores",
+  "saida": "menu lateral (nenhum link interno)"
+ },
+ "/admin": {
+  "arquivo": "src/app/(admin)/admin/page.tsx:18",
+  "gate": "exigirAdmin() :19",
+  "dados": "admin:getResumoAdmin",
+  "actions": "nenhuma — só exibição",
+  "tabelas": "catalogos · tarefas · duvidas · presencas",
+  "saida": "/admin/votacoes (atalho do evento) · menu"
+ },
+ "/admin/convite": {
+  "arquivo": "src/app/(admin)/admin/convite/page.tsx:13",
+  "gate": "exigirAdmin() :14",
+  "dados": "SQL direto com pool.query na linha 15 — lê turmas.codigo_convite fora de dal.ts ver 9.3",
+  "actions": "admin:regenerarConvite",
+  "tabelas": "turmas · membros · duvidas · tentativas_convite (via actions/turmas)",
+  "saida": "menu lateral"
+ },
+ "/admin/duvidas": {
+  "arquivo": "src/app/(admin)/admin/duvidas/page.tsx:62",
+  "gate": "exigirAdmin() :65",
+  "dados": "duvidas:listarDuvidas (com moderacao) paginacao:lerPagina",
+  "actions": "admin:{responderDuvida, alternarDestaque, alternarRespondida, apagarDuvida}",
+  "tabelas": "duvidas · duvida_upvotes · usuarios",
+  "saida": "/duvidas (fila de participantes)"
+ },
+ "/admin/evento": {
+  "arquivo": "src/app/(admin)/admin/evento/page.tsx:37",
+  "gate": "exigirAdmin() :38",
+  "dados": "admin:getEventoAdmin dashboard:listarProgramacao datas:{formatarDiaCurto, formatarHora, paraDatetimeLocal}",
+  "actions": "evento:{salvarEvento, adicionarItemProgramacao , removerItemProgramacao}",
+  "tabelas": "turmas · programacao",
+  "saida": "/dashboard (link \"ver no painel\")"
+ },
+ "/admin/membros": {
+  "arquivo": "src/app/(admin)/admin/membros/page.tsx:21",
+  "gate": "exigirAdmin() :22",
+  "dados": "admin:listarMembrosAdmin busca:lerBusca · paginacao:lerPagina",
+  "actions": "admin:{alterarPapel, removerMembro}",
+  "tabelas": "membros · usuarios",
+  "saida": "menu lateral"
+ },
+ "/admin/presenca": {
+  "arquivo": "src/app/(admin)/admin/presenca/page.tsx:29",
+  "gate": "exigirAdmin() :30",
+  "dados": "presenca:{getResumoPresenca, listarPresencas} presenca-regras:{ROTULO_PRESENCA, TETO_ACOMPANHANTES} paginacao:lerPagina",
+  "actions": "presenca:salvarLimiteAcompanhantes",
+  "tabelas": "presencas · membros · usuarios · turmas",
+  "saida": "menu lateral"
+ },
+ "/admin/turma": {
+  "arquivo": "src/app/(admin)/admin/turma/page.tsx:16",
+  "gate": "exigirAdmin() :17",
+  "dados": "admin:getResumoExclusao",
+  "actions": "gestao-turma:{arquivarTurma, desarquivarTurma, excluirTurmaDoAdmin}",
+  "tabelas": "turmas · membros · votos · catalogos ·",
+  "saida": "/dashboard (volta) exceção    único caminho de escrita liberado em turma arquivada — ver CONTEUDO_TURMA em 6.4"
+ },
+ "/admin/votacoes": {
+  "arquivo": "src/app/(admin)/admin/votacoes/page.tsx:23",
+  "gate": "exigirAdmin() :24",
+  "dados": "admin:{listarCatalogosAdmin, contarCatalogosPadrao}",
+  "actions": "catalogos:alternarCatalogoPadrao",
+  "tabelas": "catalogos · categorias · enquetes · turmas",
+  "saida": "/admin/votacoes/nova · /admin/votacoes/[catalogoId]"
+ },
+ "/admin/votacoes/nova": {
+  "arquivo": "",
+  "gate": "NENHUMA chamada de gate na página ← única do grupo; depende do layout  ver 9.4",
+  "dados": "modelos:listarModelos",
+  "actions": "",
+  "tabelas": "catalogos · categorias · enquetes · opcoes",
+  "saida": "/admin/votacoes (voltar)"
+ },
+ "/admin/votacoes/[catalogoId]": {
+  "arquivo": "src/app/(admin)/admin/votacoes/[catalogoId]/page.tsx:39",
+  "gate": "exigirAdmin() :42 uuid inválido → notFound() :44 catálogo nulo → notFound() :46",
+  "dados": "admin:getCatalogoAdmin",
+  "actions": "catalogos:{renomearCatalogo, excluirCatalogo, renomearCategoria, excluirCategoria, atualizarEnquete, excluirEnquete, adicionarCategoria, adicionarEnquete}",
+  "tabelas": "catalogos · categorias · enquetes · opcoes",
+  "saida": "/admin/votacoes (voltar)"
+ },
+ "/admin/votacoes/votos/[enqueteId]": {
+  "arquivo": "src/app/(admin)/admin/votacoes/votos/[enqueteId]/page.tsx:24",
+  "gate": "exigirAdmin() :27 uuid inválido → notFound() :29 enquete nula → notFound() :31",
+  "dados": "admin:getVotosEnquete",
+  "actions": "decisoes:{fixarDecisao, reabrirVotacao}",
+  "tabelas": "votos · enquetes · opcoes · decisoes ·",
+  "saida": "/admin/votacoes (voltar)"
+ },
+ "/master": {
+  "arquivo": "src/app/(master)/master/page.tsx:10",
+  "gate": "exigirMaster() :11  → 404 se não for",
+  "dados": "plataforma:getResumoPlataforma",
+  "actions": "nenhuma — só exibição",
+  "tabelas": "turmas · membros · usuarios · duvidas",
+  "saida": "/master/turmas · /master/usuarios · menu"
+ },
+ "/master/turmas": {
+  "arquivo": "src/app/(master)/master/turmas/page.tsx:17",
+  "gate": "exigirMaster() :18 → 404",
+  "dados": "plataforma:listarTurmas · paginacao:lerPagina",
+  "actions": "nenhuma — só listagem",
+  "tabelas": "turmas · membros · usuarios",
+  "saida": "/master/turmas/[turmaId]"
+ },
+ "/master/turmas/[turmaId]": {
+  "arquivo": "src/app/(master)/master/turmas/[turmaId]/page.tsx:32",
+  "gate": "exigirMaster() :35 → 404 uuid inválido → notFound() :37 turma nula → notFound() :39",
+  "dados": "plataforma:getTurma",
+  "actions": "master:{alterarPapelMaster, removerMembroMaster, excluirTurma}",
+  "tabelas": "turmas · membros · usuarios",
+  "saida": "/master/turmas (voltar)"
+ },
+ "/master/usuarios": {
+  "arquivo": "src/app/(master)/master/usuarios/page.tsx:19",
+  "gate": "exigirMaster() :20 → 404",
+  "dados": "plataforma:listarUsuarios · master:emailsMaster paginacao:lerPagina",
+  "actions": "master:excluirUsuario",
+  "tabelas": "usuarios · turmas · membros",
+  "saida": "menu lateral"
+ },
+ "/api/auth/[...all]": {
+  "arquivo": "src/app/api/auth/[...all]/route.ts",
+  "gate": "nenhum próprio; a sessão é emitida e validada por Better Auth",
+  "dados": "usuarios · session · account · verification",
+  "actions": "nenhuma de src/actions — endpoint herdado",
+  "tabelas": "",
+  "saida": "chamado por authClient e pelo servidor"
+ }
+}
