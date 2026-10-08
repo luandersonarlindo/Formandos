@@ -31,7 +31,7 @@ import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
-import { FormOrcamento } from "@/components/features/form-orcamento";
+import { CamposOrcamento } from "@/components/features/form-orcamento";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
 import { Badge } from "@/components/ui/badge";
@@ -203,7 +203,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
           titulo="Nenhum fornecedor por aqui"
         />
       ) : (
-        <ul data-grupo className="mt-4 grid gap-4 md:grid-cols-2">
+        <ul data-grupo className="mt-4 grid gap-4 md:grid-cols-3">
           {visiveis.map((f) => {
             const Icone = ICONE_CATEGORIA[f.categoria] ?? Store;
             return (
@@ -235,17 +235,12 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                       </p>
                     )}
                     {ehAdmin && (
-                      <div className="mt-auto flex flex-col gap-3 border-t pt-3">
-                        <FormOrcamento
-                          fornecedorId={f.id}
-                          status={(f as Fornecedor).status}
-                          valorOrcado={(f as Fornecedor).valorOrcado}
-                        />
+                      <div className="mt-auto flex gap-3 border-t pt-3">
                         <FormDialog
                           rotulo="Editar dados"
                           icone={<Pencil className="size-3.5" aria-hidden />}
                           titulo="Editar fornecedor"
-                          descricao="Nome, categoria e contatos."
+                          descricao="Dados do fornecedor e orçamento."
                           acao={atualizarFornecedor}
                           campos={{ id: f.id }}
                           rotuloSubmit="Salvar"
@@ -271,6 +266,11 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                             <Label htmlFor={`contato-${f.id}`} className="text-xs">Contato</Label>
                             <Input id={`contato-${f.id}`} name="contato" defaultValue={f.contato ?? ""} maxLength={255} />
                           </div>
+                          <CamposOrcamento
+                            fornecedorId={f.id}
+                            status={(f as Fornecedor).status}
+                            valorOrcado={(f as Fornecedor).valorOrcado}
+                          />
                         </FormDialog>
                         <ConfirmarExclusao
                           acao={excluirFornecedor}
