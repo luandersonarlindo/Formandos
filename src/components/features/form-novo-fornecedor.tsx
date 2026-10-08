@@ -38,13 +38,23 @@ export function FormNovoFornecedor({ categorias }: { categorias: readonly string
         <Label htmlFor="descricao">Descrição (opcional)</Label>
         <Textarea id="descricao" name="descricao" rows={2} maxLength={1000} />
       </div>
-      <div className="flex flex-col gap-1.5 md:col-span-2">
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="contato">Contato (opcional)</Label>
         <Input
           id="contato"
           name="contato"
           maxLength={255}
           placeholder="Telefone, e-mail ou endereço do site"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="valorOrcado">Valor orçado (opcional)</Label>
+        <Input
+          id="valorOrcado"
+          name="valorOrcado"
+          inputMode="decimal"
+          maxLength={20}
+          placeholder="Ex.: 1500,00"
         />
       </div>
       <div className="flex items-center gap-3 md:col-span-2">
