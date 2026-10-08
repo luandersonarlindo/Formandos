@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { EnqueteCard } from "@/components/features/enquete-card";
+import { FormVotacaoCatalogo } from "@/components/features/form-votacao-catalogo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -78,16 +78,7 @@ export default async function CatalogoPage(
         </nav>
       )}
 
-      {catalogo.categorias.map((categoria) => (
-        <section key={categoria.id} id={`cat-${categoria.id}`} className="mt-8 scroll-mt-16">
-          <h2 className="text-lg font-semibold">{categoria.nome}</h2>
-          <div data-grupo className="mt-3 grid gap-4">
-            {categoria.enquetes.map((enquete) => (
-              <EnqueteCard key={enquete.id} enquete={enquete} />
-            ))}
-          </div>
-        </section>
-      ))}
+      <FormVotacaoCatalogo catalogo={catalogo} />
     </div>
   );
 }
