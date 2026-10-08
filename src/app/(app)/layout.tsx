@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}
       rodape={[
         ...(membro.papel === "admin"
-          ? [{ href: "/admin", rotulo: "Painel do administrador" }]
+          ? [{ href: "/admin/membros", rotulo: "Administrar a turma" }]
           : []),
         ...(ehMaster(user)
           ? [{ href: "/master", rotulo: "Gestão da plataforma" }]

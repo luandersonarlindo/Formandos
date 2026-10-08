@@ -1,9 +1,6 @@
 import {
-  CircleHelp,
   Settings,
   UserCheck,
-  KeyRound,
-  LayoutDashboard,
   Users,
   Vote,
 } from "lucide-react";
@@ -12,11 +9,8 @@ import { exigirAdmin, exigirSessao, getSeletorTurmas } from "@/lib/dal";
 import { ehMaster } from "@/lib/master";
 
 const itens: ItemMenu[] = [
-  { href: "/admin", rotulo: "Resumo", icone: LayoutDashboard, exato: true },
   { href: "/admin/membros", rotulo: "Membros", icone: Users },
-  { href: "/admin/convite", rotulo: "Convite", icone: KeyRound },
   { href: "/admin/presenca", rotulo: "Presença", icone: UserCheck },
-  { href: "/admin/duvidas", rotulo: "Dúvidas", icone: CircleHelp },
   { href: "/admin/votacoes", rotulo: "Votações", icone: Vote },
   { href: "/admin/turma", rotulo: "Turma", icone: Settings },
 ];

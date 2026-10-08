@@ -48,12 +48,12 @@
   "saida": "/dashboard (se tem turma) · /convite (se não)"
  },
  "/dashboard": {
-  "arquivo": "src/app/(app)/dashboard/page.tsx:89",
-  "gate": "exigirMembro() :90",
-  "dados": "dashboard:{listarProgramacao, getResumoTurma, getDetalhesEvento, listarDecisoes} avisos:listarUltimosAvisos presenca:getMinhaPresenca evento:linkComoChegar lib/datas:{formatarDataHora, formatarDiaCurto, formatarHora}",
-  "actions": "presenca:responderPresenca (FormPresenca) turmas:sairDaTurma (FormSairTurma)",
-  "tabelas": "turmas · programacao · decisoes · avisos",
-  "saida": "/avisos /tarefas /votacoes /duvidas"
+  "arquivo": "src/app/(app)/dashboard/page.tsx:93",
+  "gate": "exigirMembro() :94",
+  "dados": "dashboard:{listarProgramacao, getResumoTurma, getDetalhesEvento, listarDecisoes} avisos:listarUltimosAvisos presenca:getMinhaPresenca evento:linkComoChegar admin:getResumoAdmin (só admin) lib/datas:{formatarDataHora, formatarDiaCurto, formatarHora}",
+  "actions": "presenca:responderPresenca (FormPresenca) turmas:sairDaTurma (FormSairTurma) + evento-admin.tsx (só admin): salvarEvento + adicionarItemProgramacao + removerItemProgramacao",
+  "tabelas": "turmas · programacao · decisoes · avisos · membros · votos · duvidas · catalogos · presencas",
+  "saida": "/avisos /tarefas /votacoes /duvidas /admin/membros /admin/presenca /admin/votacoes (indicadores admin)"
  },
  "/avisos": {
   "arquivo": "src/app/(app)/avisos/page.tsx:22",
@@ -96,12 +96,12 @@
   "saida": "/votacoes"
  },
  "/duvidas": {
-  "arquivo": "src/app/(app)/duvidas/page.tsx:31",
-  "gate": "exigirMembro() :32",
-  "dados": "duvidas:listarDuvidas · paginacao:lerPagina",
-  "actions": "duvidas:{editarDuvida, excluirDuvida} + enviarDuvida (FormNovaDuvida) + alternarUpvote (BotaoUpvote)",
+  "arquivo": "src/app/(app)/duvidas/page.tsx:48",
+  "gate": "exigirMembro() :49",
+  "dados": "duvidas:listarDuvidas (moderacao no papel admin) paginacao:lerPagina",
+  "actions": "duvidas:{editarDuvida, excluirDuvida} + enviarDuvida (FormNovaDuvida) + alternarUpvote (BotaoUpvote) + admin:{responderDuvida, alternarDestaque, alternarRespondida, apagarDuvida} (só admin)",
   "tabelas": "duvidas · duvida_upvotes · usuarios",
-  "saida": "/admin/duvidas (só admin, por link de resposta)"
+  "saida": "menu lateral"
  },
  "/terceiros": {
   "arquivo": "src/app/(app)/terceiros/page.tsx:110",
@@ -112,43 +112,19 @@
   "saida": "menu lateral (nenhum link interno)"
  },
  "/admin": {
-  "arquivo": "src/app/(admin)/admin/page.tsx:18",
-  "gate": "exigirAdmin() :19",
-  "dados": "admin:getResumoAdmin",
-  "actions": "nenhuma — só exibição",
-  "tabelas": "catalogos · tarefas · duvidas · presencas",
-  "saida": "/admin/votacoes (atalho do evento) · menu"
- },
- "/admin/convite": {
-  "arquivo": "src/app/(admin)/admin/convite/page.tsx:13",
-  "gate": "exigirAdmin() :14",
-  "dados": "SQL direto com pool.query na linha 15 — lê turmas.codigo_convite fora de dal.ts ver 9.3",
-  "actions": "admin:regenerarConvite",
-  "tabelas": "turmas · membros · duvidas · tentativas_convite (via actions/turmas)",
-  "saida": "menu lateral"
- },
- "/admin/duvidas": {
-  "arquivo": "src/app/(admin)/admin/duvidas/page.tsx:62",
-  "gate": "exigirAdmin() :65",
-  "dados": "duvidas:listarDuvidas (com moderacao) paginacao:lerPagina",
-  "actions": "admin:{responderDuvida, alternarDestaque, alternarRespondida, apagarDuvida}",
-  "tabelas": "duvidas · duvida_upvotes · usuarios",
-  "saida": "/duvidas (fila de participantes)"
- },
- "/admin/evento": {
-  "arquivo": "src/app/(admin)/admin/evento/page.tsx:37",
-  "gate": "exigirAdmin() :38",
-  "dados": "admin:getEventoAdmin dashboard:listarProgramacao datas:{formatarDiaCurto, formatarHora, paraDatetimeLocal}",
-  "actions": "evento:{salvarEvento, adicionarItemProgramacao , removerItemProgramacao}",
-  "tabelas": "turmas · programacao",
-  "saida": "/dashboard (link \"ver no painel\")"
+  "arquivo": "src/app/(admin)/admin/page.tsx:8",
+  "gate": "nenhuma — redireciona para /dashboard onde o admin vê os indicadores de gestão",
+  "dados": "nenhum",
+  "actions": "nenhuma",
+  "tabelas": "nenhuma",
+  "saida": "/dashboard"
  },
  "/admin/membros": {
-  "arquivo": "src/app/(admin)/admin/membros/page.tsx:21",
-  "gate": "exigirAdmin() :22",
-  "dados": "admin:listarMembrosAdmin busca:lerBusca · paginacao:lerPagina",
-  "actions": "admin:{alterarPapel, removerMembro}",
-  "tabelas": "membros · usuarios",
+  "arquivo": "src/app/(admin)/admin/membros/page.tsx:25",
+  "gate": "exigirAdmin() :26",
+  "dados": "admin:listarMembrosAdmin busca:lerBusca · paginacao:lerPagina · SQL direto (turmas.codigo_convite)",
+  "actions": "admin:{alterarPapel, removerMembro, regenerarConvite}",
+  "tabelas": "membros · usuarios · turmas",
   "saida": "menu lateral"
  },
  "/admin/presenca": {
