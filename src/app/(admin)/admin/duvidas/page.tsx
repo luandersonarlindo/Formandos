@@ -34,6 +34,7 @@ export const metadata: Metadata = { title: "Moderação de dúvidas" };
 const formatarData = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
   timeStyle: "short",
+  timeZone: "America/Sao_Paulo",
 });
 
 const FILTROS = [

@@ -17,7 +17,7 @@ import { lerPagina } from "@/lib/paginacao";
 
 export const metadata: Metadata = { title: "Avisos" };
 
-const formatarData = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
+const formatarData = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
 export default async function AvisosPage({ searchParams }: PageProps<"/avisos">) {
   const membro = await exigirMembro();
