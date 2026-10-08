@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -11,7 +10,12 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { adicionarItemProgramacao, atualizarItemProgramacao, removerItemProgramacao, salvarEvento } from "@/actions/evento";
+import {
+  adicionarItemProgramacao,
+  atualizarItemProgramacao,
+  removerItemProgramacao,
+  salvarEvento,
+} from "@/actions/evento";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { FormDialog } from "@/components/features/form-dialog";
 import { FormAcao } from "@/components/features/form-acao";
@@ -31,9 +35,9 @@ import { exigirAdmin } from "@/lib/dal";
 import { listarProgramacao } from "@/lib/dashboard";
 import { formatarDiaCurto, formatarHora, paraDatetimeLocal } from "@/lib/datas";
 
-export const metadata: Metadata = { title: "Evento" };
-
-export default async function EventoPage() {
+// A área de evento do administrador, embutida no dashboard: edita os dados do
+// evento e gerencia a programação da festa, que todos os membros veem abaixo.
+export async function EventoAdmin() {
   const admin = await exigirAdmin();
   const [evento, programacao] = await Promise.all([
     getEventoAdmin(admin.turmaId),
@@ -43,26 +47,15 @@ export default async function EventoPage() {
   const rotulo = "flex items-center gap-1.5";
 
   return (
-    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Evento</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
-        Estes dados aparecem no dashboard de todos os membros. Os horários são
-        os de Brasília.{" "}
-        <Link href="/dashboard" className="whitespace-nowrap underline underline-offset-4 hover:text-foreground">
-          Ver como aparece
-        </Link>
-      </p>
-
-      <Card className="mt-6">
+    <>
+      <Card className="mt-4">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Settings2 className="size-4.5 text-[var(--vitrine-a)]" aria-hidden /> Dados do evento
           </CardTitle>
           <CardDescription>
             Nome da turma, descrição, data, local e o que os convidados precisam saber.{" "}
-            {evento.nome
-              ? `Atual: ${evento.nome}.`
-              : "Nada preenchido ainda."}
+            {evento.nome ? `Atual: ${evento.nome}.` : "Nada preenchido ainda."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -156,10 +149,15 @@ export default async function EventoPage() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="text-lg">Programação da festa</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-lg">Programação da festa</CardTitle>
+            <Link href="/admin" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+              Ver como os membros veem
+            </Link>
+          </div>
           <CardDescription>
             {programacao.length === 0
-              ? "Nenhum item ainda."
+              ? "Nenhum item ainda. Horários no fuso de Brasília."
               : `${programacao.length} ${programacao.length === 1 ? "item" : "itens"}, em ordem de horário.`}
           </CardDescription>
         </CardHeader>
@@ -270,6 +268,6 @@ export default async function EventoPage() {
           </PainelRecolhivel>
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

@@ -1,5 +1,4 @@
 import {
-  CalendarDays,
   CircleHelp,
   Settings,
   UserCheck,
@@ -16,7 +15,6 @@ const itens: ItemMenu[] = [
   { href: "/admin", rotulo: "Resumo", icone: LayoutDashboard, exato: true },
   { href: "/admin/membros", rotulo: "Membros", icone: Users },
   { href: "/admin/convite", rotulo: "Convite", icone: KeyRound },
-  { href: "/admin/evento", rotulo: "Evento", icone: CalendarDays },
   { href: "/admin/presenca", rotulo: "Presença", icone: UserCheck },
   { href: "/admin/duvidas", rotulo: "Dúvidas", icone: CircleHelp },
   { href: "/admin/votacoes", rotulo: "Votações", icone: Vote },
