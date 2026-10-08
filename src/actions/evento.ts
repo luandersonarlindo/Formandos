@@ -60,7 +60,6 @@ const esquemaItem = z.object({
 const MAX_ITENS_PROGRAMACAO = 100;
 
 function revalidarEvento() {
-  revalidatePath("/admin/evento");
   revalidatePath("/dashboard");
 }
 

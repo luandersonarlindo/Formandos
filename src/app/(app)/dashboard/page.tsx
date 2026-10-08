@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ContagemRegressiva } from "@/components/features/contagem-regressiva";
+import { EventoAdmin } from "@/components/features/evento-admin";
 import { FormPresenca } from "@/components/features/form-presenca";
 import { FormSairTurma } from "@/components/features/form-sair-turma";
 import { Badge } from "@/components/ui/badge";
@@ -289,42 +290,46 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="text-lg">Programação da festa</CardTitle>
-          <CardDescription>
-            {programacao.length === 0
-              ? "A programação ainda não foi divulgada pelo administrador."
-              : "Horários no fuso de Brasília."}
-          </CardDescription>
-        </CardHeader>
-        {programacao.length > 0 && (
-          <CardContent>
-            <ol className="mt-1 ml-1.5 border-l">
-              {programacao.map((item) => (
-                <li key={item.id} className="relative pb-6 pl-6 last:pb-0">
-                  <span
-                    aria-hidden
-                    className="absolute top-1.5 -left-[5px] size-2.5 rounded-full bg-[var(--vitrine-a)] ring-4 ring-card"
-                  />
-                  <p className="text-sm font-semibold text-[var(--vitrine-a)]">
-                    {formatarHora.format(item.horario)}{" "}
-                    <span className="font-normal text-muted-foreground">
-                      · {formatarDiaCurto.format(item.horario)}
-                    </span>
-                  </p>
-                  <p className="mt-0.5 font-medium">{item.titulo}</p>
-                  {item.descricao && (
-                    <p className="mt-0.5 wrap-break-word text-sm text-muted-foreground">
-                      {item.descricao}
+      {membro.papel === "admin" ? (
+        <EventoAdmin />
+      ) : (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-lg">Programação da festa</CardTitle>
+            <CardDescription>
+              {programacao.length === 0
+                ? "A programação ainda não foi divulgada pelo administrador."
+                : "Horários no fuso de Brasília."}
+            </CardDescription>
+          </CardHeader>
+          {programacao.length > 0 && (
+            <CardContent>
+              <ol className="mt-1 ml-1.5 border-l">
+                {programacao.map((item) => (
+                  <li key={item.id} className="relative pb-6 pl-6 last:pb-0">
+                    <span
+                      aria-hidden
+                      className="absolute top-1.5 -left-[5px] size-2.5 rounded-full bg-[var(--vitrine-a)] ring-4 ring-card"
+                    />
+                    <p className="text-sm font-semibold text-[var(--vitrine-a)]">
+                      {formatarHora.format(item.horario)}{" "}
+                      <span className="font-normal text-muted-foreground">
+                        · {formatarDiaCurto.format(item.horario)}
+                      </span>
                     </p>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        )}
-      </Card>
+                    <p className="mt-0.5 font-medium">{item.titulo}</p>
+                    {item.descricao && (
+                      <p className="mt-0.5 wrap-break-word text-sm text-muted-foreground">
+                        {item.descricao}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       <Card className="mt-4 border-dashed bg-transparent ring-0 border">
         <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
