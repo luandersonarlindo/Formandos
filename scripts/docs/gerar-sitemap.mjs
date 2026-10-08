@@ -52,12 +52,9 @@ const GRUPOS = [
     nome: "Administração",
     cor: "#2563eb",
     rotas: [
-      { p: "/admin" },
+      { p: "/admin", flag: "?" },
       { p: "/admin/membros" },
-      { p: "/admin/convite", flag: "?" },
-      { p: "/admin/evento" },
       { p: "/admin/presenca" },
-      { p: "/admin/duvidas" },
       { p: "/admin/turma" },
       { p: "/admin/votacoes" },
       { p: "/admin/votacoes/nova", flag: "!" },

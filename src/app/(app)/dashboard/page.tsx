@@ -4,9 +4,11 @@ import {
   CalendarDays,
   CircleHelp,
   ClipboardCheck,
+  ClipboardList,
   CalendarClock,
   MapPin,
   Gavel,
+  LayoutList,
   Megaphone,
   Navigation,
   Shirt,
@@ -29,6 +31,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { getResumoAdmin } from "@/lib/admin";
 import { exigirMembro } from "@/lib/dal";
 import { getDetalhesEvento, getResumoTurma, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
 import { listarUltimosAvisos } from "@/lib/avisos";
@@ -89,14 +92,18 @@ function Indicador({
 
 export default async function DashboardPage() {
   const membro = await exigirMembro();
-  const [programacao, resumo, detalhes, decisoes, presenca, avisos] = await Promise.all([
-    listarProgramacao(membro),
-    getResumoTurma(membro),
-    getDetalhesEvento(membro),
-    listarDecisoes(membro),
-    getMinhaPresenca(membro),
-    listarUltimosAvisos(membro),
-  ]);
+  const [programacao, resumo, detalhes, decisoes, presenca, avisos, resumoAdmin] =
+    await Promise.all([
+      listarProgramacao(membro),
+      getResumoTurma(membro),
+      getDetalhesEvento(membro),
+      listarDecisoes(membro),
+      getMinhaPresenca(membro),
+      listarUltimosAvisos(membro),
+      membro.papel === "admin"
+        ? getResumoAdmin(membro.turmaId)
+        : Promise.resolve(null),
+    ]);
   const comoChegar = linkComoChegar({
     linkMapa: detalhes.linkMapa,
     endereco: detalhes.endereco,
@@ -220,28 +227,75 @@ export default async function DashboardPage() {
       </Card>
 
       <div data-grupo className="mt-4 grid gap-4 md:grid-cols-3">
-        <Indicador
-          titulo="Tarefas concluídas"
-          valor={resumo.tarefasConcluidas}
-          total={resumo.tarefasTotal}
-          href="/tarefas"
-          rotulo="Progresso das tarefas"
-          icone={ClipboardCheck}
-        />
-        <Indicador
-          titulo="Enquetes respondidas por você"
-          valor={resumo.enquetesRespondidas}
-          total={resumo.enquetesTotal}
-          href="/votacoes"
-          rotulo="Seu progresso nas votações"
-          icone={Vote}
-        />
-        <Indicador
-          titulo="Dúvidas sem resposta"
-          valor={resumo.duvidasAbertas}
-          href="/duvidas"
-          icone={CircleHelp}
-        />
+        {membro.papel === "admin" && resumoAdmin ? (
+          <>
+            <Indicador
+              titulo="Membros"
+              valor={resumoAdmin.membros}
+              href="/admin/membros"
+              icone={Users}
+            />
+            <Indicador
+              titulo="Participação nas votações"
+              valor={resumoAdmin.votantes}
+              total={resumoAdmin.membros}
+              href="/admin/votacoes"
+              rotulo="Membros que já votaram"
+              icone={Vote}
+            />
+            <Indicador
+              titulo="Dúvidas sem resposta"
+              valor={resumoAdmin.duvidasAbertas}
+              href="/duvidas"
+              icone={CircleHelp}
+            />
+            <Indicador
+              titulo="Tarefas em aberto"
+              valor={resumoAdmin.tarefasAbertas}
+              href="/tarefas"
+              icone={ClipboardList}
+            />
+            <Indicador
+              titulo="Presença confirmada"
+              valor={resumoAdmin.confirmados}
+              total={resumoAdmin.membros}
+              href="/admin/presenca"
+              rotulo="Membros que confirmaram"
+              icone={UserCheck}
+            />
+            <Indicador
+              titulo="Catálogos personalizados"
+              valor={resumoAdmin.personalizados}
+              href="/admin/votacoes"
+              icone={LayoutList}
+            />
+          </>
+        ) : (
+          <>
+            <Indicador
+              titulo="Tarefas concluídas"
+              valor={resumo.tarefasConcluidas}
+              total={resumo.tarefasTotal}
+              href="/tarefas"
+              rotulo="Progresso das tarefas"
+              icone={ClipboardCheck}
+            />
+            <Indicador
+              titulo="Enquetes respondidas por você"
+              valor={resumo.enquetesRespondidas}
+              total={resumo.enquetesTotal}
+              href="/votacoes"
+              rotulo="Seu progresso nas votações"
+              icone={Vote}
+            />
+            <Indicador
+              titulo="Dúvidas sem resposta"
+              valor={resumo.duvidasAbertas}
+              href="/duvidas"
+              icone={CircleHelp}
+            />
+          </>
+        )}
       </div>
 
       {avisos.length > 0 && (

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Crown, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
-import { alterarPapel, removerMembro } from "@/actions/admin";
+import { Crown, RefreshCw, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
+import { alterarPapel, regenerarConvite, removerMembro } from "@/actions/admin";
+import { BotaoConvite } from "@/components/features/botao-convite";
+import { BotaoCopiar } from "@/components/features/botao-copiar";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { EstadoVazio } from "@/components/features/estado-vazio";
@@ -10,11 +12,12 @@ import { Paginacao } from "@/components/features/paginacao";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { listarMembrosAdmin } from "@/lib/admin";
 import { lerBusca } from "@/lib/busca";
 import { exigirAdmin } from "@/lib/dal";
+import { pool } from "@/lib/db";
 import { lerPagina } from "@/lib/paginacao";
 
 export const metadata: Metadata = { title: "Membros" };
@@ -23,10 +26,15 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
   const admin = await exigirAdmin();
   const { busca: buscaParametro, pagina: paginaParametro } = await searchParams;
   const busca = lerBusca(buscaParametro);
-  const { itens: rows, pagina, totalPaginas, totais, encontrados } = await listarMembrosAdmin(
-    admin.turmaId,
-    { busca, pagina: lerPagina(paginaParametro) },
-  );
+  const [{ rows: membros }, { itens: rows, pagina, totalPaginas, totais, encontrados }] =
+    await Promise.all([
+      pool.query("select codigo_convite from turmas where id = $1", [admin.turmaId]),
+      listarMembrosAdmin(admin.turmaId, {
+        busca,
+        pagina: lerPagina(paginaParametro),
+      }),
+    ]);
+  const codigo: string = membros[0].codigo_convite;
   const totalAdmins = totais.admins;
   const participantes = totais.membros - totalAdmins;
 
@@ -46,6 +54,44 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
           {participantes} {participantes === 1 ? "participante" : "participantes"}
         </span>
       </p>
+
+      <Card className="vitrine-fundo-hero mt-6">
+        <CardHeader>
+          <CardDescription>
+            Código de convite de {admin.turmaNome}: quem tiver este código entra
+            como participante.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          <p
+            aria-label={`Código de convite: ${codigo}`}
+            className="flex flex-wrap gap-2"
+          >
+            {[...codigo].map((letra, i) => (
+              <span
+                key={i}
+                aria-hidden
+                className="vitrine-texto-gradiente flex h-14 w-11 items-center justify-center rounded-xl border bg-background/80 font-mono text-3xl font-semibold sm:h-16 sm:w-13 sm:text-4xl"
+              >
+                {letra}
+              </span>
+            ))}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <BotaoCopiar texto={codigo} rotulo="Copiar código" />
+            <BotaoConvite nomeTurma={admin.turmaNome} codigo={codigo} />
+            <FormDialog
+              rotulo="Gerar novo código"
+              icone={<RefreshCw aria-hidden />}
+              titulo="Gerar um novo código"
+              descricao="O código anterior deixa de funcionar. Quem já entrou continua na turma."
+              acao={regenerarConvite}
+              rotuloSubmit="Gerar novo código"
+              rotuloPendente="Gerando…"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <form action="/admin/membros" role="search" className="mt-6 flex gap-2">
         <div className="relative flex-1">

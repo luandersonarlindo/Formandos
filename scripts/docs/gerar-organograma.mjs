@@ -128,8 +128,8 @@ SHELL["/convite"] = "onboarding";
 SHELL["/conta"] = "conta";
 for (const r of ["/dashboard", "/avisos", "/tarefas", "/duvidas", "/terceiros",
   "/votacoes", "/votacoes/[catalogoId]", "/votacoes/relatorio"]) SHELL[r] = "membro";
-for (const r of ["/admin", "/admin/membros", "/admin/convite", "/admin/evento",
-  "/admin/presenca", "/admin/duvidas", "/admin/turma", "/admin/votacoes",
+for (const r of ["/admin", "/admin/membros",
+  "/admin/presenca", "/admin/turma", "/admin/votacoes",
   "/admin/votacoes/nova", "/admin/votacoes/[catalogoId]",
   "/admin/votacoes/votos/[enqueteId]"]) SHELL[r] = "administração";
 for (const r of ["/master", "/master/turmas", "/master/turmas/[turmaId]", "/master/usuarios"])
@@ -157,8 +157,8 @@ const TINTA = {
 
 const MENU = {
   membro: ["/dashboard", "/avisos", "/tarefas", "/votacoes", "/votacoes/relatorio", "/duvidas", "/terceiros"],
-  administração: ["/admin", "/admin/membros", "/admin/convite", "/admin/evento",
-    "/admin/presenca", "/admin/duvidas", "/admin/turma", "/admin/votacoes"],
+  administração: ["/admin", "/admin/membros",
+    "/admin/presenca", "/admin/turma", "/admin/votacoes"],
   master: ["/master", "/master/turmas", "/master/usuarios"],
 };
 const RODAPE = {
@@ -278,12 +278,9 @@ function apelido(rota) {
     "/votacoes": "Lista de catálogos",
     "/votacoes/[catalogoId]": "Votação",
     "/votacoes/relatorio": "Resultados agregados",
-    "/admin": "Resumo da turma",
-    "/admin/membros": "Gestão de membros",
-    "/admin/convite": "Código de convite",
-    "/admin/evento": "Dados do evento e programação",
+    "/admin": "Redireciona para o dashboard",
+    "/admin/membros": "Gestão de membros e código de convite",
     "/admin/presenca": "Painel de presença",
-    "/admin/duvidas": "Moderação de dúvidas",
     "/admin/turma": "Arquivar e excluir",
     "/admin/votacoes": "Catálogos",
     "/admin/votacoes/nova": "Criar catálogo",
@@ -493,7 +490,7 @@ function svgRodapeAreas() {
     g.caminho(`M${a.cx},171 V212`);
   }
 
-  const menuAdmin = "/admin · /admin/membros · /admin/convite · /admin/evento · /admin/presenca · /admin/duvidas · /admin/turma · /admin/votacoes";
+  const menuAdmin = "/admin · /admin/membros · /admin/presenca · /admin/votacoes · /admin/turma";
   const menuMaster = "/master · /master/turmas · /master/usuarios";
   const carteira = (x, w, titulo, menu) => g.caixa({
     x, y: 216, w, h: 78, cor: "#cbd5e1", fill: "#f8fafc", anchor: "start",
@@ -509,7 +506,7 @@ function svgRodapeAreas() {
       { t: "exclui a própria conta", fonte: 11, peso: 500, fill: "#334155" },
       { t: "volta ao /dashboard", fonte: 11, peso: 500, fill: "#64748b" },
     ] });
-  carteira(250, 250, "administração · 11 telas", menuAdmin);
+  carteira(250, 205, "administração · 5 telas", menuAdmin);
   carteira(530, 195, "master · 4 telas", menuMaster);
 
   g.texto(35, 316, "todas voltam ao /dashboard pelo mesmo rodapé");
@@ -523,7 +520,7 @@ function sitemapSVG() {
     { nome: "Onboarding", cor: "#d97706", rotas: ["/convite"] },
     { nome: "Conta", cor: "#ca8a04", rotas: ["/conta"] },
     { nome: "Membro", cor: "#16a34a", rotas: ["/dashboard", "/avisos", "/tarefas", "/duvidas", "/terceiros", "/votacoes", "/votacoes/[catalogoId]", "/votacoes/relatorio"] },
-    { nome: "Administração", cor: "#2563eb", rotas: ["/admin", "/admin/membros", "/admin/convite", "/admin/evento", "/admin/presenca", "/admin/duvidas", "/admin/turma", "/admin/votacoes", "/admin/votacoes/nova", "/admin/votacoes/[catalogoId]", "/admin/votacoes/votos/[enqueteId]"] },
+    { nome: "Administração", cor: "#2563eb", rotas: ["/admin", "/admin/membros", "/admin/presenca", "/admin/turma", "/admin/votacoes", "/admin/votacoes/nova", "/admin/votacoes/[catalogoId]", "/admin/votacoes/votos/[enqueteId]"] },
     { nome: "Master", cor: "#7c3aed", rotas: ["/master", "/master/turmas", "/master/turmas/[turmaId]", "/master/usuarios"] },
     { nome: "API", cor: "#334155", rotas: ["/api/auth/[...all]"] },
   ];

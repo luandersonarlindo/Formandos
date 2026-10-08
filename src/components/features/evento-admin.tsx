@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   CalendarDays,
   CalendarClock,
@@ -149,12 +148,7 @@ export async function EventoAdmin() {
 
       <Card className="mt-4">
         <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-lg">Programação da festa</CardTitle>
-            <Link href="/admin" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
-              Ver como os membros veem
-            </Link>
-          </div>
+          <CardTitle className="text-lg">Programação da festa</CardTitle>
           <CardDescription>
             {programacao.length === 0
               ? "Nenhum item ainda. Horários no fuso de Brasília."

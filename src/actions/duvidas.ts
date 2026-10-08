@@ -54,8 +54,8 @@ export async function editarDuvida(
   return { ok: "Dúvida atualizada." };
 }
 
-// O autor pode apagar a própria dúvida. A comissão tem a moderação em
-// /admin/duvidas, que apaga a dúvida de qualquer membro da turma.
+// O autor pode apagar a própria dúvida. O administrador apaga a de qualquer
+// membro da turma direto na mesma página.
 export async function excluirDuvida(formData: FormData): Promise<EstadoForm> {
   const membro = await exigirMembroEditavel();
   const dados = z.object({ duvidaId: z.uuid() }).safeParse(Object.fromEntries(formData));
@@ -67,7 +67,6 @@ export async function excluirDuvida(formData: FormData): Promise<EstadoForm> {
   );
   if (!rowCount) return { erro: "Dúvida não encontrada." };
   revalidatePath("/duvidas");
-  revalidatePath("/admin/duvidas");
   return { ok: "Dúvida excluída." };
 }
 
