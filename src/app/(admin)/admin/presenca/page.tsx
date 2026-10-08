@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SlidersHorizontal, UsersRound } from "lucide-react";
+import { Settings2, SlidersHorizontal, UsersRound } from "lucide-react";
 import { salvarLimiteAcompanhantes } from "@/actions/presenca";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { FormAcao } from "@/components/features/form-acao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Paginacao } from "@/components/features/paginacao";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
@@ -85,11 +85,15 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <FormAcao
+          <FormDialog
+            rotulo="Editar limite de acompanhantes"
+            icone={<Settings2 aria-hidden />}
+            titulo="Acompanhantes por pessoa"
+            descricao="Baixar o limite corta as respostas que ficaram acima dele."
             acao={salvarLimiteAcompanhantes}
-            rotulo="Salvar limite"
+            rotuloSubmit="Salvar limite"
             rotuloPendente="Salvando…"
-            className="max-w-md"
+            dialogClassName="sm:max-w-md"
           >
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="maxAcompanhantes">Acompanhantes por pessoa</Label>
@@ -107,7 +111,7 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
                 De 0 (sem acompanhantes) a {TETO_ACOMPANHANTES}.
               </p>
             </div>
-          </FormAcao>
+          </FormDialog>
         </CardContent>
       </Card>
 

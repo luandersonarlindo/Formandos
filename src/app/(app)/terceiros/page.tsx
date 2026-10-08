@@ -29,7 +29,7 @@ import {
 import { atualizarFornecedor, excluirFornecedor } from "@/actions/terceiros";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { FormAcao } from "@/components/features/form-acao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
 import { FormOrcamento } from "@/components/features/form-orcamento";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
@@ -241,36 +241,37 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                           status={(f as Fornecedor).status}
                           valorOrcado={(f as Fornecedor).valorOrcado}
                         />
-                        <details>
-                          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-                            <Pencil className="size-3.5" aria-hidden /> Editar dados
-                          </summary>
-                          <div className="mt-3">
-                            <FormAcao acao={atualizarFornecedor} rotulo="Salvar" className="grid gap-2">
-                              <input type="hidden" name="id" value={f.id} />
-                              <div className="flex flex-col gap-1">
-                                <Label htmlFor={`nome-${f.id}`} className="text-xs">Nome</Label>
-                                <Input id={`nome-${f.id}`} name="nome" defaultValue={f.nome} maxLength={255} required />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <Label htmlFor={`categoria-${f.id}`} className="text-xs">Categoria</Label>
-                                <NativeSelect id={`categoria-${f.id}`} name="categoria" defaultValue={f.categoria} required>
-                                  {CATEGORIAS_FORNECEDOR.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                  ))}
-                                </NativeSelect>
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <Label htmlFor={`descricao-${f.id}`} className="text-xs">Descrição</Label>
-                                <Textarea id={`descricao-${f.id}`} name="descricao" defaultValue={f.descricao ?? ""} maxLength={1000} rows={2} />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <Label htmlFor={`contato-${f.id}`} className="text-xs">Contato</Label>
-                                <Input id={`contato-${f.id}`} name="contato" defaultValue={f.contato ?? ""} maxLength={255} />
-                              </div>
-                            </FormAcao>
+                        <FormDialog
+                          rotulo="Editar dados"
+                          icone={<Pencil className="size-3.5" aria-hidden />}
+                          titulo="Editar fornecedor"
+                          descricao="Nome, categoria e contatos."
+                          acao={atualizarFornecedor}
+                          campos={{ id: f.id }}
+                          rotuloSubmit="Salvar"
+                          rotuloPendente="Salvando…"
+                        >
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`nome-${f.id}`} className="text-xs">Nome</Label>
+                            <Input id={`nome-${f.id}`} name="nome" defaultValue={f.nome} maxLength={255} required />
                           </div>
-                        </details>
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`categoria-${f.id}`} className="text-xs">Categoria</Label>
+                            <NativeSelect id={`categoria-${f.id}`} name="categoria" defaultValue={f.categoria} required>
+                              {CATEGORIAS_FORNECEDOR.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                            </NativeSelect>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`descricao-${f.id}`} className="text-xs">Descrição</Label>
+                            <Textarea id={`descricao-${f.id}`} name="descricao" defaultValue={f.descricao ?? ""} maxLength={1000} rows={2} />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`contato-${f.id}`} className="text-xs">Contato</Label>
+                            <Input id={`contato-${f.id}`} name="contato" defaultValue={f.contato ?? ""} maxLength={255} />
+                          </div>
+                        </FormDialog>
                         <ConfirmarExclusao
                           acao={excluirFornecedor}
                           campos={{ id: f.id }}

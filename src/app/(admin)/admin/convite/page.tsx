@@ -3,7 +3,7 @@ import { regenerarConvite } from "@/actions/admin";
 import { LogIn, RefreshCw, Share2, UserPlus } from "lucide-react";
 import { BotaoConvite } from "@/components/features/botao-convite";
 import { BotaoCopiar } from "@/components/features/botao-copiar";
-import { Button } from "@/components/ui/button";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { exigirAdmin } from "@/lib/dal";
 import { pool } from "@/lib/db";
@@ -82,11 +82,15 @@ export default async function ConviteAdminPage() {
               O código anterior deixa de funcionar. Quem já entrou continua na turma.
             </p>
           </div>
-          <form action={regenerarConvite}>
-            <Button type="submit" variant="outline">
-              <RefreshCw aria-hidden /> Gerar novo código
-            </Button>
-          </form>
+          <FormDialog
+            rotulo="Gerar novo código"
+            icone={<RefreshCw aria-hidden />}
+            titulo="Gerar um novo código"
+            descricao="O código anterior deixa de funcionar. Quem já entrou continua na turma."
+            acao={regenerarConvite}
+            rotuloSubmit="Gerar novo código"
+            rotuloPendente="Gerando…"
+          />
         </CardContent>
       </Card>
     </div>

@@ -32,12 +32,16 @@ function revalidarTurma(turmaId: string) {
   revalidatePath("/master");
 }
 
-export async function alterarPapelMaster(formData: FormData) {
+export async function alterarPapelMaster(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
   await exigirMaster();
   const dados = esquemaPapel.safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
+  if (!dados.success) return { erro: "Dados inválidos." };
   const { turmaId, usuarioId, papel } = dados.data;
 
+  let alterado = false;
   await transacao(async (db) => {
     const { rows } = await db.query(
       "select usuario_id, papel from membros where turma_id = $1 for update",
@@ -54,14 +58,17 @@ export async function alterarPapelMaster(formData: FormData) {
       "update membros set papel = $1 where turma_id = $2 and usuario_id = $3",
       [papel, turmaId, usuarioId],
     );
+    alterado = true;
   });
   revalidarTurma(turmaId);
+  if (!alterado) return { erro: "A turma não pode ficar sem administrador." };
+  return { ok: "Papel atualizado." };
 }
 
-export async function removerMembroMaster(formData: FormData) {
+export async function removerMembroMaster(formData: FormData): Promise<EstadoForm> {
   await exigirMaster();
   const dados = esquemaMembro.safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
+  if (!dados.success) return { erro: "Dados inválidos." };
   const { turmaId, usuarioId } = dados.data;
 
   // Nome, email e nome da turma saem lidos aqui: a transação abaixo apaga o
@@ -96,6 +103,8 @@ export async function removerMembroMaster(formData: FormData) {
     });
   }
   revalidarTurma(turmaId);
+  if (!removido) return { erro: "A turma não pode ficar sem administrador." };
+  return { ok: "Membro removido." };
 }
 
 // Exclusões exigem digitar uma confirmação (o nome da turma ou o email do
@@ -106,10 +115,7 @@ const esquemaExcluirTurma = z.object({
   confirmacao: z.string().trim(),
 });
 
-export async function excluirTurma(
-  _estado: EstadoForm,
-  formData: FormData,
-): Promise<EstadoForm> {
+export async function excluirTurma(formData: FormData): Promise<EstadoForm> {
   await exigirMaster();
   const dados = esquemaExcluirTurma.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dados inválidos." };
@@ -139,10 +145,7 @@ const esquemaExcluirUsuario = z.object({
   confirmacao: z.string().trim(),
 });
 
-export async function excluirUsuario(
-  _estado: EstadoForm,
-  formData: FormData,
-): Promise<EstadoForm> {
+export async function excluirUsuario(formData: FormData): Promise<EstadoForm> {
   const master = await exigirMaster();
   const dados = esquemaExcluirUsuario.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dados inválidos." };

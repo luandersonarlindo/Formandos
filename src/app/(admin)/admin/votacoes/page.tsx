@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, LayoutList, Library, Lock, Plus } from "lucide-react";
+import { ArrowRight, LayoutList, Library, Lock, Plus, SlidersHorizontal } from "lucide-react";
 import { alternarCatalogoPadrao } from "@/actions/catalogos";
-import { FormAcao } from "@/components/features/form-acao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -57,11 +57,15 @@ export default async function VotacoesAdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <FormAcao
+            <FormDialog
+              rotulo="Editar uso do catálogo padrão"
+              icone={<SlidersHorizontal aria-hidden />}
+              titulo="Uso na minha turma"
+              descricao="Mudar não apaga nada: os votos já dados ficam guardados e voltam a aparecer se você ligar de novo."
               acao={alternarCatalogoPadrao}
-              rotulo="Salvar"
+              rotuloSubmit="Salvar"
               rotuloPendente="Salvando…"
-              className="max-w-md"
+              dialogClassName="sm:max-w-md"
             >
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="usar">Uso na minha turma</Label>
@@ -80,7 +84,7 @@ export default async function VotacoesAdminPage() {
                     : "Agora os membros veem só os catálogos personalizados da turma."}
                 </p>
               </div>
-            </FormAcao>
+            </FormDialog>
           </CardContent>
         </Card>
       )}

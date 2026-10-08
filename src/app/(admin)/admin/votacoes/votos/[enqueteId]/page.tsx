@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { ArrowLeft, CircleCheck, Gavel, Trophy } from "lucide-react";
+import { ArrowLeft, CircleCheck, Gavel, Pencil, Pin, RotateCcw, Trophy } from "lucide-react";
 import { fixarDecisao, reabrirVotacao } from "@/actions/decisoes";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
-import { FormAcao } from "@/components/features/form-acao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getVotosEnquete, type Votante } from "@/lib/admin";
@@ -85,8 +84,16 @@ export default async function VotosEnquetePage(
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <FormAcao acao={fixarDecisao} rotulo={decidida ? "Trocar decisão" : "Fixar decisão"} rotuloPendente="Salvando…">
-            <input type="hidden" name="enqueteId" value={enqueteId} />
+          <FormDialog
+            rotulo={decidida ? "Trocar decisão" : "Fixar decisão"}
+            icone={decidida ? <Pencil aria-hidden /> : <Pin aria-hidden />}
+            titulo={decidida ? "Trocar a decisão" : "Fixar decisão"}
+            descricao="A opção escolhida vai para o dashboard de todos e a votação desta pergunta é encerrada."
+            acao={fixarDecisao}
+            campos={{ enqueteId }}
+            rotuloSubmit={decidida ? "Trocar decisão" : "Fixar decisão"}
+            rotuloPendente="Salvando…"
+          >
             <fieldset className="grid gap-2">
               <legend className="sr-only">Opção escolhida</legend>
               {dados.opcoes.map((o) => (
@@ -109,14 +116,18 @@ export default async function VotosEnquetePage(
                 </label>
               ))}
             </fieldset>
-          </FormAcao>
+          </FormDialog>
           {decidida && (
-            <form action={reabrirVotacao}>
-              <input type="hidden" name="enqueteId" value={enqueteId} />
-              <Button type="submit" variant="outline" size="sm">
-                Reabrir votação
-              </Button>
-            </form>
+            <FormDialog
+              rotulo="Reabrir votação"
+              icone={<RotateCcw aria-hidden />}
+              titulo="Reabrir votação"
+              descricao="Todos voltam a poder votar. As decisões fixadas no dashboard continuam lá até você trocá-las."
+              acao={reabrirVotacao}
+              campos={{ enqueteId }}
+              rotuloSubmit="Reabrir votação"
+              rotuloPendente="Salvando…"
+            />
           )}
         </CardContent>
       </Card>

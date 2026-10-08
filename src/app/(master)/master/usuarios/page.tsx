@@ -3,12 +3,10 @@ import Link from "next/link";
 import { MailWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { excluirUsuario } from "@/actions/master";
-import { FormAcao } from "@/components/features/form-acao";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { Paginacao } from "@/components/features/paginacao";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { exigirMaster } from "@/lib/dal";
 import { emailsMaster } from "@/lib/master";
 import { lerPagina } from "@/lib/paginacao";
@@ -80,25 +78,26 @@ export default async function UsuariosMasterPage({ searchParams }: PageProps<"/m
                   </div>
 
                   {podeExcluir && (
-                    <details className="group border-t pt-3">
-                      <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 text-sm text-destructive [&::-webkit-details-marker]:hidden">
-                        <Trash2 className="size-4" aria-hidden /> Excluir usuário
-                      </summary>
-                      <FormAcao
+                    <div className="flex flex-wrap gap-2 border-t pt-3">
+                      <ConfirmarExclusao
                         acao={excluirUsuario}
+                        campos={{ usuarioId: u.id }}
+                        alvo="o usuário"
+                        nome={u.name}
+                        aviso="Apaga a conta, a participação e os votos e dúvidas dessa pessoa."
                         rotulo="Excluir usuário"
-                        rotuloPendente="Excluindo…"
-                        variante="destructive"
-                        className="mt-3"
-                      >
-                        <input type="hidden" name="usuarioId" value={u.id} />
-                        <p className="text-xs text-muted-foreground">
-                          Apaga a conta, a participação e os votos e dúvidas dessa pessoa. Não dá para desfazer.
-                        </p>
-                        <Label htmlFor={`conf-${u.id}`} className="block leading-normal">Digite o email <strong>{u.email}</strong> para confirmar</Label>
-                        <Input id={`conf-${u.id}`} name="confirmacao" autoComplete="off" className="h-10" required />
-                      </FormAcao>
-                    </details>
+                        descricao={`Excluir o usuário ${u.name}`}
+                        icone={<Trash2 aria-hidden />}
+                        confirmacao={{
+                          rotulo: (
+                            <>
+                              Digite o email, <strong>{u.email}</strong>, para confirmar
+                            </>
+                          ),
+                          esperado: u.email,
+                        }}
+                      />
+                    </div>
                   )}
                 </CardContent>
               </Card>

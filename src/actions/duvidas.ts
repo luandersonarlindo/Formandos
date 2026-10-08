@@ -56,10 +56,7 @@ export async function editarDuvida(
 
 // O autor pode apagar a própria dúvida. A comissão tem a moderação em
 // /admin/duvidas, que apaga a dúvida de qualquer membro da turma.
-export async function excluirDuvida(
-  _estado: EstadoForm,
-  formData: FormData,
-): Promise<EstadoForm> {
+export async function excluirDuvida(formData: FormData): Promise<EstadoForm> {
   const membro = await exigirMembroEditavel();
   const dados = z.object({ duvidaId: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dúvida não encontrada." };

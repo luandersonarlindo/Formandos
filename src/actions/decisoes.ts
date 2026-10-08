@@ -77,13 +77,17 @@ export async function fixarDecisao(
   return { ok: "Decisão fixada. A votação desta pergunta foi encerrada." };
 }
 
-export async function reabrirVotacao(formData: FormData) {
+export async function reabrirVotacao(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
   const admin = await exigirAdminEditavel();
   const dados = z.object({ enqueteId: z.uuid() }).safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
+  if (!dados.success) return { erro: "Enquete não encontrada." };
   await pool.query("delete from decisoes where turma_id = $1 and enquete_id = $2", [
     admin.turmaId,
     dados.data.enqueteId,
   ]);
   revalidarDecisoes();
+  return { ok: "Votação reaberta." };
 }

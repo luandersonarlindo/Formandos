@@ -18,12 +18,10 @@ import {
   removerMembroMaster,
 } from "@/actions/master";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
-import { FormAcao } from "@/components/features/form-acao";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { exigirMaster } from "@/lib/dal";
 import { getTurma } from "@/lib/plataforma";
 
@@ -86,22 +84,44 @@ export default async function TurmaMasterPage(
                     </Badge>
                     {!ultimoAdmin && (
                       <>
-                        <form action={alterarPapelMaster}>
-                          <input type="hidden" name="turmaId" value={turma.id} />
-                          <input type="hidden" name="usuarioId" value={m.id} />
-                          <input type="hidden" name="papel" value={m.papel === "admin" ? "participante" : "admin"} />
-                          <Button type="submit" variant="outline" size="sm">
-                            {m.papel === "admin" ? <ShieldOff aria-hidden /> : <ShieldCheck aria-hidden />}
-                            {m.papel === "admin" ? "Tornar participante" : "Promover"}
-                          </Button>
-                        </form>
-                        <form action={removerMembroMaster}>
-                          <input type="hidden" name="turmaId" value={turma.id} />
-                          <input type="hidden" name="usuarioId" value={m.id} />
-                          <Button type="submit" variant="destructive" size="sm">
-                            <UserMinus aria-hidden /> Remover
-                          </Button>
-                        </form>
+                        <FormDialog
+                          rotulo={
+                            m.papel === "admin" ? "Tornar participante" : "Promover"
+                          }
+                          icone={
+                            m.papel === "admin" ? (
+                              <ShieldOff aria-hidden />
+                            ) : (
+                              <ShieldCheck aria-hidden />
+                            )
+                          }
+                          titulo="Trocar papel"
+                          descricao={
+                            m.papel === "admin"
+                              ? `${m.name} deixa de ser administrador e vira participante.`
+                              : `Promover ${m.name} a administrador.`
+                          }
+                          acao={alterarPapelMaster}
+                          campos={{
+                            turmaId: turma.id,
+                            usuarioId: m.id,
+                            papel: m.papel === "admin" ? "participante" : "admin",
+                          }}
+                          rotuloSubmit="Trocar papel"
+                          rotuloPendente="Salvando…"
+                        />
+                        <ConfirmarExclusao
+                          acao={removerMembroMaster}
+                          campos={{ turmaId: turma.id, usuarioId: m.id }}
+                          alvo="o membro"
+                          verb="Remover"
+                          nome={m.name}
+                          aviso={m.papel === "admin" ? "" : "Ele perde o acesso à turma."}
+                          rotulo="Remover"
+                          descricao={`Remover ${m.name} da turma`}
+                          icone={<UserMinus aria-hidden />}
+                          confirmar="Sim, remover"
+                        />
                       </>
                     )}
                   </div>
@@ -128,13 +148,23 @@ export default async function TurmaMasterPage(
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <FormAcao acao={excluirTurma} rotulo="Excluir turma" rotuloPendente="Excluindo…" variante="destructive">
-            <input type="hidden" name="turmaId" value={turma.id} />
-            <Label htmlFor="confirmacao" className="block leading-normal">
-              Digite o nome da turma (<strong>{turma.nome}</strong>) para confirmar
-            </Label>
-            <Input id="confirmacao" name="confirmacao" autoComplete="off" className="h-10" required />
-          </FormAcao>
+          <ConfirmarExclusao
+            acao={excluirTurma}
+            campos={{ turmaId: turma.id }}
+            alvo="a turma"
+            nome={turma.nome}
+            aviso="Apaga a turma e tudo o que é dela: membros, catálogos, votos, dúvidas, tarefas e fornecedores. Não dá para desfazer. As contas dos usuários continuam existindo."
+            rotulo="Excluir turma"
+            descricao="Excluir a turma"
+            confirmacao={{
+              rotulo: (
+                <>
+                  Digite o nome da turma (<strong>{turma.nome}</strong>) para confirmar
+                </>
+              ),
+              esperado: turma.nome,
+            }}
+          />
         </CardContent>
       </Card>
     </div>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Archive, ArchiveRestore, TriangleAlert } from "lucide-react";
 import { arquivarTurma, desarquivarTurma, excluirTurmaDoAdmin } from "@/actions/gestao-turma";
 import { FormAcao } from "@/components/features/form-acao";
-import { Button } from "@/components/ui/button";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,12 +38,25 @@ export default async function GestaoTurmaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={arquivada ? desarquivarTurma : arquivarTurma}>
-            <Button type="submit" variant="outline" size="sm">
-              {arquivada ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
-              {arquivada ? "Desarquivar turma" : "Arquivar turma"}
-            </Button>
-          </form>
+          <FormDialog
+            rotulo={arquivada ? "Desarquivar turma" : "Arquivar turma"}
+            icone={
+              arquivada ? (
+                <ArchiveRestore aria-hidden />
+              ) : (
+                <Archive aria-hidden />
+              )
+            }
+            titulo={arquivada ? "Desarquivar turma" : "Arquivar turma"}
+            descricao={
+              arquivada
+                ? "A turma volta a permitir alterações e convites."
+                : "A turma passa a ser só de leitura: o registro continua disponível, mas ninguém altera nada nem entra por convite. Dá para desarquivar depois."
+            }
+            acao={arquivada ? desarquivarTurma : arquivarTurma}
+            rotuloSubmit={arquivada ? "Desarquivar" : "Arquivar"}
+            rotuloPendente="Salvando…"
+          />
         </CardContent>
       </Card>
 

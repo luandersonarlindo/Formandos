@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { UserCheck } from "lucide-react";
 import { responderPresenca } from "@/actions/presenca";
-import { FormAcao } from "@/components/features/form-acao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,14 +12,40 @@ import {
   type StatusPresenca,
 } from "@/lib/presenca-regras";
 
-// Campos controlados: o React limpa formulários depois da ação, e assim a
-// resposta salva continua na tela.
 export function FormPresenca({
   inicial,
   limite,
 }: {
   inicial: { status: StatusPresenca | null; acompanhantes: number; observacao: string };
   // Quantos acompanhantes a turma permite (escolha do administrador).
+  limite: number;
+}) {
+  return (
+    <FormDialog
+      rotulo={inicial.status ? "Mudar resposta" : "Responder"}
+      icone={<UserCheck aria-hidden />}
+      titulo="Você vai ao evento?"
+      descricao={
+        inicial.status
+          ? "Você pode mudar a resposta quando quiser."
+          : "A comissão precisa saber quantas pessoas vêm para fechar o espaço e a comida."
+      }
+      acao={responderPresenca}
+      rotuloSubmit="Salvar resposta"
+      rotuloPendente="Salvando…"
+    >
+      <CamposPresenca inicial={inicial} limite={limite} />
+    </FormDialog>
+  );
+}
+
+// Campos controlados: o React limpa formulários depois da ação, e assim a
+// resposta salva continua na tela.
+function CamposPresenca({
+  inicial,
+  limite,
+}: {
+  inicial: { status: StatusPresenca | null; acompanhantes: number; observacao: string };
   limite: number;
 }) {
   const [status, setStatus] = useState<StatusPresenca | null>(inicial.status);
@@ -28,7 +55,7 @@ export function FormPresenca({
   const [observacao, setObservacao] = useState(inicial.observacao);
 
   return (
-    <FormAcao acao={responderPresenca} rotulo="Salvar resposta" rotuloPendente="Salvando…">
+    <>
       <fieldset className="grid gap-2 sm:grid-cols-3">
         <legend className="sr-only">Você vai ao evento?</legend>
         {STATUS_PRESENCA.map((s) => (
@@ -84,6 +111,6 @@ export function FormPresenca({
           />
         </div>
       )}
-    </FormAcao>
+    </>
   );
 }

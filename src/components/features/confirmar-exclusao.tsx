@@ -11,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type ConfirmarExclusaoProps = {
   acao: (formData: FormData) => Promise<EstadoForm | void>;
@@ -30,6 +32,15 @@ type ConfirmarExclusaoProps = {
   descricao?: string;
   /** Texto do botão de confirmação. */
   confirmar?: string;
+  /** Verbo do título, para ações que não são exclusão: "Sair", "Remover". */
+  verb?: string;
+  /** Exige digitar um texto (email, nome da turma) antes de poder excluir. */
+  confirmacao?: {
+    /** Rótulo do campo, orientando o que digitar. Pode ter <strong>. */
+    rotulo: React.ReactNode;
+    /** Texto esperado; botão só libera quando coincide. */
+    esperado: string;
+  };
   className?: string;
 };
 
@@ -52,9 +63,12 @@ export function ConfirmarExclusao({
   icone,
   descricao,
   confirmar = "Sim, excluir",
+  verb = "Excluir",
+  confirmacao,
   className,
 }: ConfirmarExclusaoProps) {
   const [aberto, setAberto] = useState(false);
+  const [digitado, setDigitado] = useState("");
   const [estado, formAcao, pendente] = useActionState(
     // A maioria das ações de exclusão não devolve nada quando dá certo; as que
     // devolvem devolvem {ok} ou {erro}. Normaliza os dois jeitos para o diálogo
@@ -68,6 +82,9 @@ export function ConfirmarExclusao({
     },
     inicial,
   );
+  const confere =
+    !confirmacao ||
+    digitado.trim().toLowerCase() === confirmacao.esperado.trim().toLowerCase();
 
   useEffect(() => {
     if (estado.ok) setAberto(false);
@@ -90,7 +107,9 @@ export function ConfirmarExclusao({
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Excluir {alvo}?</DialogTitle>
+            <DialogTitle>
+              {verb} {alvo}?
+            </DialogTitle>
             <DialogDescription>
               {nome ? (
                 <>
@@ -106,11 +125,24 @@ export function ConfirmarExclusao({
             <Button variant="outline" disabled={pendente} onClick={() => setAberto(false)}>
               Cancelar
             </Button>
-            <form action={formAcao}>
+            <form action={formAcao} className="flex flex-col gap-2 sm:items-end">
               {Object.entries(campos).map(([nomeCampo, valor]) => (
                 <input key={nomeCampo} type="hidden" name={nomeCampo} value={valor} />
               ))}
-              <Button type="submit" variant="destructive" disabled={pendente}>
+              {confirmacao && (
+                <div className="flex flex-col gap-1.5">
+                  <Label className="leading-normal">{confirmacao.rotulo}</Label>
+                  <Input
+                    name="confirmacao"
+                    autoComplete="off"
+                    className="h-10 w-full sm:w-72"
+                    value={digitado}
+                    onChange={(e) => setDigitado(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+              <Button type="submit" variant="destructive" disabled={pendente || !confere}>
                 {pendente ? "Excluindo…" : confirmar}
               </Button>
             </form>

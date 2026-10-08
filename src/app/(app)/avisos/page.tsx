@@ -3,7 +3,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { atualizarAviso, excluirAviso } from "@/actions/avisos";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { FormAcao } from "@/components/features/form-acao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovoAviso } from "@/components/features/form-novo-aviso";
 import { Paginacao } from "@/components/features/paginacao";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
@@ -61,33 +61,36 @@ export default async function AvisosPage({ searchParams }: PageProps<"/avisos">)
                     {a.autor} · {formatarData.format(a.criadoEm)}
                   </p>
                   {ehAdmin && (
-                    <details className="mt-1 border-t pt-3">
-                      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-                        <Pencil className="size-3.5" aria-hidden /> Editar ou remover
-                      </summary>
-                      <div className="mt-3 flex flex-col gap-3">
-                        <FormAcao acao={atualizarAviso} rotulo="Salvar">
-                          <input type="hidden" name="id" value={a.id} />
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor={`titulo-${a.id}`} className="text-xs">Título</Label>
-                            <Input id={`titulo-${a.id}`} name="titulo" defaultValue={a.titulo} maxLength={200} required />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor={`conteudo-${a.id}`} className="text-xs">Recado</Label>
-                            <Textarea id={`conteudo-${a.id}`} name="conteudo" defaultValue={a.conteudo} maxLength={2000} rows={3} required />
-                          </div>
-                        </FormAcao>
-                        <ConfirmarExclusao
-                          acao={excluirAviso}
-                          campos={{ id: a.id }}
-                          alvo="o aviso"
-                          nome={a.titulo}
-                          rotulo="Remover"
-                          descricao={`Remover o aviso ${a.titulo}`}
-                          icone={<Trash2 aria-hidden />}
-                        />
-                      </div>
-                    </details>
+                    <div className="mt-1 flex flex-wrap gap-2 border-t pt-3">
+                      <FormDialog
+                        rotulo="Editar aviso"
+                        icone={<Pencil className="size-3.5" aria-hidden />}
+                        titulo="Editar aviso"
+                        descricao="Título e recado para a turma."
+                        acao={atualizarAviso}
+                        campos={{ id: a.id }}
+                        rotuloSubmit="Salvar"
+                        rotuloPendente="Salvando…"
+                      >
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor={`titulo-${a.id}`} className="text-xs">Título</Label>
+                          <Input id={`titulo-${a.id}`} name="titulo" defaultValue={a.titulo} maxLength={200} required />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor={`conteudo-${a.id}`} className="text-xs">Recado</Label>
+                          <Textarea id={`conteudo-${a.id}`} name="conteudo" defaultValue={a.conteudo} maxLength={2000} rows={3} required />
+                        </div>
+                      </FormDialog>
+                      <ConfirmarExclusao
+                        acao={excluirAviso}
+                        campos={{ id: a.id }}
+                        alvo="o aviso"
+                        nome={a.titulo}
+                        rotulo="Remover"
+                        descricao={`Remover o aviso ${a.titulo}`}
+                        icone={<Trash2 aria-hidden />}
+                      />
+                    </div>
                   )}
                 </CardContent>
               </Card>
