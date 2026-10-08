@@ -217,8 +217,6 @@ await grupo("auth", async () => {
     ["/tarefas", "Nenhuma tarefa ainda"],
     ["/duvidas", "Nenhuma dúvida ainda"],
     ["/terceiros", "Nenhum fornecedor por aqui"],
-    ["/admin/duvidas", "Nenhuma dúvida enviada ainda"],
-    ["/admin/evento", "Nenhum item ainda"],
   ]) {
     await passo(`estado vazio em ${caminho}`, async () => {
       await nav.abrir(caminho);
@@ -482,8 +480,9 @@ await grupo("app", async () => {
       await nav.esperarTexto("Página 2 de 2");
       await nav.abrir("/duvidas?pagina=abc");
       await nav.esperarTexto("Página 1 de 2");
-      await nav.abrir("/admin/duvidas?pagina=2");
+      await nav.abrir("/duvidas?pagina=2");
       await nav.esperarTexto("Página 2 de 2");
+      igual(await proximo(), null, "paginação admin sem próxima na última");
     } finally {
       sql("delete from duvidas where conteudo like 'Paginação E2E%'");
     }
@@ -572,7 +571,7 @@ await grupo("app", async () => {
 await grupo("admin", async () => {
   await nav.cookie(lerCookie("cookie-admin.txt"));
   await passo("copiar código de convite e a mensagem", async () => {
-    await nav.abrir("/admin/convite");
+    await nav.abrir("/admin/membros");
     await nav.cdp("Emulation.setFocusEmulationEnabled", { enabled: true });
     await nav.clicar("Copiar código", { seletor: "button" });
     await nav.esperarTexto("Copiado!");
@@ -630,7 +629,7 @@ await grupo("admin", async () => {
     verdade(!botoes.includes("Remover") && !botoes.includes("Tornar participante"), botoes);
   });
   await passo("salvar dados do evento", async () => {
-    await nav.abrir("/admin/evento");
+    await nav.abrir("/dashboard");
     await abrirDadosDoEvento();
     await nav.preencher("#localEvento", "Salão Novo E2E");
     await nav.clicar("Salvar", { seletor: "button", contem: false });
@@ -639,7 +638,7 @@ await grupo("admin", async () => {
     igual(sql(`select local_evento from turmas where id='${turmaTeste()}'`), "Salão Novo E2E", "local no banco");
   });
   await passo("detalhes do evento: descrição, endereço, mapa e traje aparecem no dashboard", async () => {
-    await nav.abrir("/admin/evento");
+    await nav.abrir("/dashboard");
     await abrirDadosDoEvento();
     await nav.preencher("#descricao", "Descrição E2E da festa");
     await nav.preencher("#endereco", "Rua E2E, 100 - Recife");
@@ -663,14 +662,14 @@ await grupo("admin", async () => {
       "botão Como chegar",
     );
     // Término antes do início é recusado.
-    await nav.abrir("/admin/evento");
+    await nav.abrir("/dashboard");
     await abrirDadosDoEvento();
     await nav.preencher("#dataEvento", "2030-05-10T20:00");
     await nav.preencher("#dataFimEvento", "2030-05-10T19:00");
     await nav.clicar("Salvar", { seletor: "button", contem: false });
     await nav.esperarTexto("O término precisa ser depois do início");
     // Limpa os campos de teste para os passos seguintes.
-    await nav.abrir("/admin/evento");
+    await nav.abrir("/dashboard");
     await abrirDadosDoEvento();
     for (const id of ["#descricao", "#endereco", "#traje", "#observacoesLocal", "#linkMapa", "#dataFimEvento"]) {
       await nav.preencher(id, "");
@@ -681,7 +680,7 @@ await grupo("admin", async () => {
     verdade(!(await nav.tem("Descrição E2E da festa")), "descrição removida");
   });
   await passo("adicionar e remover item da programação", async () => {
-    await nav.abrir("/admin/evento");
+    await nav.abrir("/dashboard");
     await nav.clicar("Adicionar item", { seletor: "summary" });
     await nav.preencher("#horario", "2026-12-05T20:00");
     await nav.preencher("#titulo", "Item E2E");
@@ -693,7 +692,7 @@ await grupo("admin", async () => {
     igual(sql("select count(*) from programacao where titulo='Item E2E'"), "0", "removido");
   });
   await passo("editar item da programação em diálogo", async () => {
-    await nav.abrir("/admin/evento");
+    await nav.abrir("/dashboard");
     await nav.clicar("Adicionar item", { seletor: "summary" });
     await nav.preencher("#horario", "2026-12-05T21:00");
     await nav.preencher("#titulo", "Item E2E Editar");
@@ -724,20 +723,20 @@ await grupo("admin", async () => {
     igual(sql("select count(*) from programacao where titulo like 'Item E2E%'"), "0", "removido");
   });
   await passo("moderação: responder, destacar, reabrir e apagar dúvida", async () => {
-    await nav.abrir("/admin/duvidas");
+    await nav.abrir("/duvidas");
     await preencherEm("Posso levar acompanhante", "textarea", "Sim, até 2 pessoas.");
     await nav.clicar("Salvar resposta", { escopo: "Posso levar acompanhante", seletor: "button" });
     await dormir(1800);
     igual(sql("select respondida from duvidas where conteudo like 'Posso levar%'"), "t", "respondida");
-    await nav.abrir("/admin/duvidas");
+    await nav.abrir("/duvidas");
     await nav.clicar("Destacar", { escopo: "Posso levar acompanhante", seletor: "button", contem: true });
     await dormir(1800);
     igual(sql("select destaque from duvidas where conteudo like 'Posso levar%'"), "t", "destaque");
-    await nav.abrir("/admin/duvidas");
+    await nav.abrir("/duvidas");
     await nav.clicar("Reabrir", { escopo: "Posso levar acompanhante", seletor: "button" });
     await dormir(1800);
     igual(sql("select respondida from duvidas where conteudo like 'Posso levar%'"), "f", "reaberta");
-    await nav.abrir("/admin/duvidas");
+    await nav.abrir("/duvidas");
     await excluir("Apagar", { escopo: "Posso levar acompanhante" });
     await dormir(1800);
     igual(sql("select count(*) from duvidas where conteudo like 'Posso levar%'"), "0", "apagada");
@@ -1016,7 +1015,7 @@ await grupo("admin", async () => {
     await nav.abrir("/admin/presenca?filtro=pendente");
     await nav.esperarTexto("Maria Souza");
     verdade(!(await nav.tem("João Lima")), "quem respondeu não aparece em Sem resposta");
-    await nav.abrir("/admin");
+    await nav.abrir("/dashboard");
     await nav.esperarTexto("Presença confirmada");
   });
   await passo("limite de acompanhantes escolhido pelo admin corta as respostas acima", async () => {

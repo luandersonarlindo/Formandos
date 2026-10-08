@@ -31,7 +31,7 @@ export async function regenerarConvite(): Promise<EstadoForm> {
       if ((erro as { code?: string }).code !== "23505") throw erro;
     }
   }
-  revalidatePath("/admin/convite");
+  revalidatePath("/admin/membros");
   return { ok: "Novo código gerado." };
 }
 
@@ -101,7 +101,6 @@ const esquemaResposta = esquemaDuvidaId.extend({
 });
 
 function revalidarDuvidas() {
-  revalidatePath("/admin/duvidas");
   revalidatePath("/duvidas");
 }
 
