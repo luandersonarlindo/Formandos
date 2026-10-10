@@ -81,8 +81,9 @@ export default async function GestaoTurmaPage() {
             variante="destructive"
           >
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirmacao" className="leading-normal">
-                Digite o nome da turma, <strong>{admin.turmaNome}</strong>, para confirmar
+              <Label htmlFor="confirmacao" className="block leading-normal">
+                Digite o nome da turma, <strong className="wrap-break-word">{admin.turmaNome}</strong>,
+                para confirmar
               </Label>
               <Input id="confirmacao" name="confirmacao" autoComplete="off" className="h-10" required />
             </div>

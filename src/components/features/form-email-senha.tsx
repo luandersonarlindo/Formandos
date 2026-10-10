@@ -168,10 +168,10 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
               name="aceite"
               type="checkbox"
               required
-              className="mt-0.5 size-4 shrink-0"
+              className="mt-0.5 size-5 shrink-0 sm:size-4"
               aria-describedby="aceite-texto"
             />
-            <Label htmlFor="aceite" id="aceite-texto" className="text-xs leading-relaxed font-normal">
+            <Label htmlFor="aceite" id="aceite-texto" className="block text-xs leading-relaxed font-normal">
               Li e aceito os{" "}
               <Link href="/termos" className="underline underline-offset-4 hover:text-foreground">
                 Termos de Uso

@@ -113,7 +113,7 @@ export function ConfirmarExclusao({
             <DialogDescription>
               {nome ? (
                 <>
-                  <span className="font-medium text-foreground">{nome}</span>
+                  <span className="font-medium text-foreground wrap-break-word">{nome}</span>
                   {aviso ? `. ${aviso}` : ". Não dá para desfazer."}
                 </>
               ) : (
@@ -131,7 +131,7 @@ export function ConfirmarExclusao({
               ))}
               {confirmacao && (
                 <div className="flex flex-col gap-1.5">
-                  <Label className="leading-normal">{confirmacao.rotulo}</Label>
+                  <Label className="block leading-normal wrap-break-word">{confirmacao.rotulo}</Label>
                   <Input
                     name="confirmacao"
                     autoComplete="off"

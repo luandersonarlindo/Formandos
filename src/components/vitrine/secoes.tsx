@@ -502,23 +502,23 @@ export function ChamadaFinal({ logado }: Sessao) {
 export function Rodape() {
   return (
     <footer className="border-t">
-      <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground">
+      <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-col gap-4 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <p>Formandos 🎓 · Gestão administrativa de formaturas e eventos</p>
-        <nav aria-label="Links do projeto" className="flex flex-wrap gap-5">
-          <Link href="/privacidade" className="hover:text-foreground">
+        <nav aria-label="Links do projeto" className="flex flex-wrap items-center gap-x-5 gap-y-1">
+          <Link href="/privacidade" className="py-1 hover:text-foreground pointer-coarse:py-2">
             Privacidade
           </Link>
-          <Link href="/termos" className="hover:text-foreground">
+          <Link href="/termos" className="py-1 hover:text-foreground pointer-coarse:py-2">
             Termos
           </Link>
-          <a href={REPOSITORIO} className="hover:text-foreground" rel="noreferrer" target="_blank">
+          <a href={REPOSITORIO} className="py-1 hover:text-foreground pointer-coarse:py-2" rel="noreferrer" target="_blank">
             Código no GitHub
           </a>
-          <a href={`${REPOSITORIO}/blob/main/docs/guia-de-estudo.md`} className="hover:text-foreground" rel="noreferrer" target="_blank">
+          <a href={`${REPOSITORIO}/blob/main/docs/guia-de-estudo.md`} className="py-1 hover:text-foreground pointer-coarse:py-2" rel="noreferrer" target="_blank">
             Guia do projeto
           </a>
           {/* Atribuição exigida pelos termos da Freepik para a ilustração Amico. */}
-          <a href="https://storyset.com/amico" className="hover:text-foreground" rel="noreferrer" target="_blank">
+          <a href="https://storyset.com/amico" className="py-1 hover:text-foreground pointer-coarse:py-2" rel="noreferrer" target="_blank">
             Ilustração Amico por Storyset
           </a>
         </nav>
