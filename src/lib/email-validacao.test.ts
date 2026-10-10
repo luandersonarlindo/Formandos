@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import listaDescartavel from "disposable-domains";
 import {
   ehDescartavel,
+  ehDescartavelEmLista,
   extrairDominio,
   normalizarEmail,
   sugerirDominio,
@@ -49,6 +51,38 @@ describe("ehDescartavel", () => {
 
   it("não confunde sufixo parecido (evita falso positivo)", () => {
     expect(ehDescartavel("maria@notmailinator.com")).toBe(false);
+  });
+});
+
+describe("ehDescartavelEmLista", () => {
+  const lista = new Set(["mailinator.com", "yopmail.com"]);
+
+  it("barra exato e subdomínio, libera o resto", () => {
+    expect(ehDescartavelEmLista("a@mailinator.com", lista)).toBe(true);
+    expect(ehDescartavelEmLista("a@mail.yopmail.com", lista)).toBe(true);
+    expect(ehDescartavelEmLista("a@gmail.com", lista)).toBe(false);
+    expect(ehDescartavelEmLista("a@notmailinator.com", lista)).toBe(false);
+  });
+});
+
+describe("lista completa (disposable-domains)", () => {
+  const completos = new Set<string>(listaDescartavel);
+
+  it("contém os temporários conhecidos", () => {
+    for (const d of ["mailinator.com", "yopmail.com", "guerrillamail.com", "10minutemail.com"]) {
+      expect(completos.has(d)).toBe(true);
+    }
+  });
+
+  it("não contém provedor real nem domínio de teste dos E2E", () => {
+    for (const d of ["gmail.com", "outlook.com", "example.invalid"]) {
+      expect(completos.has(d)).toBe(false);
+    }
+  });
+
+  it("barra via função um domínio só existente na lista completa", () => {
+    expect(ehDescartavelEmLista("a@0-180.com", completos)).toBe(true);
+    expect(ehDescartavelEmLista("teste-jl@example.invalid", completos)).toBe(false);
   });
 });
 
