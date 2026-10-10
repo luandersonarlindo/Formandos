@@ -9,6 +9,7 @@ import {
   enviarEmailSilencioso,
   urlDoSite,
 } from "./email";
+import { validarEmailCadastro } from "./email-validacao";
 
 type UsuarioEmail = { name: string; email: string };
 
@@ -88,6 +89,13 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // Barreira de servidor: retorna false e o usuário nem é criado.
+        // O cliente já valida antes (mensagem específica); aqui o erro que
+        // sobe é genérico. Google não cai aqui na prática (Google nunca
+        // emite domínio descartável nem com erro de digitação).
+        before: async (user) => {
+          if (!validarEmailCadastro(user.email).ok) return false;
+        },
         // Cadastro pelo Google: o email já nasce verificado.
         after: async (user) => {
           if (user.emailVerified) await enviarBoasVindas(user);
