@@ -11,6 +11,7 @@ import {
   enviarEmailSilencioso,
   urlDoSite,
 } from "@/lib/email";
+import { registrarAuditoria } from "@/lib/auditoria";
 import { emailsMaster } from "@/lib/master";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
 import { apagarUsuario, dadosParaEmail } from "@/lib/usuarios";
@@ -36,7 +37,7 @@ export async function alterarPapelMaster(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  await exigirMaster();
+  const master = await exigirMaster();
   const dados = esquemaPapel.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dados inválidos." };
   const { turmaId, usuarioId, papel } = dados.data;
@@ -58,6 +59,14 @@ export async function alterarPapelMaster(
       "update membros set papel = $1 where turma_id = $2 and usuario_id = $3",
       [papel, turmaId, usuarioId],
     );
+    await registrarAuditoria(db, {
+      usuarioId: master.id,
+      turmaId,
+      acao: "papel.trocado",
+      entidade: "membro",
+      entidadeId: usuarioId,
+      detalhe: { de: alvo.papel, para: papel, por: "master" },
+    });
     alterado = true;
   });
   revalidarTurma(turmaId);
@@ -66,7 +75,7 @@ export async function alterarPapelMaster(
 }
 
 export async function removerMembroMaster(formData: FormData): Promise<EstadoForm> {
-  await exigirMaster();
+  const master = await exigirMaster();
   const dados = esquemaMembro.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dados inválidos." };
   const { turmaId, usuarioId } = dados.data;
@@ -91,6 +100,14 @@ export async function removerMembroMaster(formData: FormData): Promise<EstadoFor
     if (alvoMembro.papel === "admin" && admins === 1) return false;
     // Como sair da turma, remove também o rastro dela naquela turma.
     await removerMembroDaTurma(db, turmaId, usuarioId);
+    await registrarAuditoria(db, {
+      usuarioId: master.id,
+      turmaId,
+      acao: "membro.removido",
+      entidade: "membro",
+      entidadeId: usuarioId,
+      detalhe: { por: "master" },
+    });
     return true;
   });
 
@@ -116,7 +133,7 @@ const esquemaExcluirTurma = z.object({
 });
 
 export async function excluirTurma(formData: FormData): Promise<EstadoForm> {
-  await exigirMaster();
+  const master = await exigirMaster();
   const dados = esquemaExcluirTurma.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dados inválidos." };
   const { turmaId, confirmacao } = dados.data;
@@ -127,6 +144,15 @@ export async function excluirTurma(formData: FormData): Promise<EstadoForm> {
     ]);
     if (rows.length === 0) return "inexistente" as const;
     if (confirmacao !== rows[0].nome) return "confirmacao" as const;
+    const nomeTurma = rows[0].nome as string;
+    await registrarAuditoria(db, {
+      usuarioId: master.id,
+      turmaId,
+      acao: "turma.excluida",
+      entidade: "turma",
+      entidadeId: turmaId,
+      detalhe: { nome: nomeTurma, por: "master" },
+    });
     // Apaga em cascata membros, catálogos, votos, dúvidas, tarefas e terceiros.
     await db.query("delete from turmas where id = $1", [turmaId]);
     return "ok" as const;
@@ -168,6 +194,14 @@ export async function excluirUsuario(formData: FormData): Promise<EstadoForm> {
       return { ok: false as const, erro: "O email digitado não confere com o do usuário." };
     }
 
+    await registrarAuditoria(db, {
+      usuarioId: master.id,
+      turmaId: null,
+      acao: "conta.excluida",
+      entidade: "usuario",
+      entidadeId: usuarioId,
+      detalhe: { email, nome: name, por: "master" },
+    });
     const apagado = await apagarUsuario(db, usuarioId);
     if (!apagado.ok) return { ok: false as const, erro: apagado.erro };
     return { ok: true as const, turmas: apagado.turmas, email, name };

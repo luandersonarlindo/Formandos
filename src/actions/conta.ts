@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { COOKIE_TURMA, exigirSessao } from "@/lib/dal";
 import { transacao } from "@/lib/db";
+import { registrarAuditoria } from "@/lib/auditoria";
 import { emailContaExcluida, enviarEmailSilencioso } from "@/lib/email";
 import { ehMaster } from "@/lib/master";
 import { apagarUsuario } from "@/lib/usuarios";
@@ -68,7 +69,19 @@ export async function excluirMinhaConta(
     return { erro: "O email digitado não confere com o da sua conta." };
   }
 
-  const resultado = await transacao((db) => apagarUsuario(db, user.id));
+  // Trilha antes de apagar: depois do delete o id some (FK vira null) e o
+  // detalhe guarda email/nome para o relatório.
+  const resultado = await transacao(async (db) => {
+    await registrarAuditoria(db, {
+      usuarioId: user.id,
+      turmaId: null,
+      acao: "conta.excluida",
+      entidade: "usuario",
+      entidadeId: user.id,
+      detalhe: { email: user.email, nome: user.name, por: "propria" },
+    });
+    return apagarUsuario(db, user.id);
+  });
   if (!resultado.ok) return { erro: resultado.erro };
 
   // O email sai depois da transação e antes do redirect: ele cita as turmas que

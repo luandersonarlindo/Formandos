@@ -161,6 +161,29 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
             <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
           )}
         </div>
+        {criando && (
+          <div className="flex items-start gap-2.5 rounded-lg border bg-muted/50 p-3">
+            <Input
+              id="aceite"
+              name="aceite"
+              type="checkbox"
+              required
+              className="mt-0.5 size-4 shrink-0"
+              aria-describedby="aceite-texto"
+            />
+            <Label htmlFor="aceite" id="aceite-texto" className="text-xs leading-relaxed font-normal">
+              Li e aceito os{" "}
+              <Link href="/termos" className="underline underline-offset-4 hover:text-foreground">
+                Termos de Uso
+              </Link>{" "}
+              e a{" "}
+              <Link href="/privacidade" className="underline underline-offset-4 hover:text-foreground">
+                Política de Privacidade
+              </Link>
+              .
+            </Label>
+          </div>
+        )}
         {aviso && (
           <p role="status" className="rounded-lg border bg-muted/50 p-3 text-sm">
             {aviso}

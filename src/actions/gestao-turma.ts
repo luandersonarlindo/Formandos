@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { registrarAuditoria } from "@/lib/auditoria";
 import { COOKIE_TURMA, exigirAdmin } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import type { EstadoForm } from "./tipos";
@@ -18,6 +19,14 @@ export async function arquivarTurma(): Promise<EstadoForm> {
     "update turmas set arquivada_em = now() where id = $1 and arquivada_em is null",
     [admin.turmaId],
   );
+  await registrarAuditoria(pool, {
+    usuarioId: admin.usuarioId,
+    turmaId: admin.turmaId,
+    acao: "turma.arquivada",
+    entidade: "turma",
+    entidadeId: admin.turmaId,
+    detalhe: { nome: admin.turmaNome },
+  });
   revalidatePath("/", "layout");
   return { ok: "Turma arquivada." };
 }
@@ -25,6 +34,14 @@ export async function arquivarTurma(): Promise<EstadoForm> {
 export async function desarquivarTurma(): Promise<EstadoForm> {
   const admin = await exigirAdmin();
   await pool.query("update turmas set arquivada_em = null where id = $1", [admin.turmaId]);
+  await registrarAuditoria(pool, {
+    usuarioId: admin.usuarioId,
+    turmaId: admin.turmaId,
+    acao: "turma.desarquivada",
+    entidade: "turma",
+    entidadeId: admin.turmaId,
+    detalhe: { nome: admin.turmaNome },
+  });
   revalidatePath("/", "layout");
   return { ok: "Turma desarquivada." };
 }
@@ -45,6 +62,14 @@ export async function excluirTurmaDoAdmin(
     ]);
     if (rows.length === 0) return "inexistente" as const;
     if (dados.data.confirmacao !== rows[0].nome) return "confirmacao" as const;
+    await registrarAuditoria(db, {
+      usuarioId: admin.usuarioId,
+      turmaId: admin.turmaId,
+      acao: "turma.excluida",
+      entidade: "turma",
+      entidadeId: admin.turmaId,
+      detalhe: { nome: rows[0].nome, por: "admin" },
+    });
     // Apaga em cascata membros, catálogos, votos, dúvidas, tarefas e terceiros.
     await db.query("delete from turmas where id = $1", [admin.turmaId]);
     return "ok" as const;

@@ -233,3 +233,25 @@ create table if not exists tentativas_convite (
 );
 create index if not exists idx_tentativas_convite_usuario
   on tentativas_convite (usuario_id, created_at);
+
+-- Consentimento LGPD: quando a pessoa aceitou Termos + Privacidade no cadastro
+-- por email/senha (checkbox obrigatório). Nulo em contas Google (consentimento
+-- via OAuth) e em contas criadas antes desta coluna.
+alter table usuarios add column if not exists consentimento_em timestamptz;
+
+-- Trilha de auditoria: quem fez o quê, em qual turma, quando. Só escrita pelo
+-- servidor (src/lib/auditoria.ts), nunca editada nem apagada pela aplicação.
+-- Retenção: 5 anos (documentada em docs/legislacao.md); sem purge automático
+-- (sem agendador no projeto) — a limpeza é manual, com registro no relatório.
+create table if not exists auditoria (
+  id          bigserial primary key,
+  created_at  timestamptz not null default now(),
+  usuario_id  uuid references usuarios(id) on delete set null,
+  turma_id    uuid references turmas(id) on delete set null,
+  acao        varchar(60) not null,
+  entidade    varchar(60) not null,
+  entidade_id uuid,
+  detalhe     jsonb not null default '{}'
+);
+create index if not exists idx_auditoria_turma on auditoria (turma_id, created_at desc);
+create index if not exists idx_auditoria_usuario on auditoria (usuario_id, created_at desc);

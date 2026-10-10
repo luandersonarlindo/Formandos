@@ -505,6 +505,12 @@ export function Rodape() {
       <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground">
         <p>Formandos 🎓 · Gestão administrativa de formaturas e eventos</p>
         <nav aria-label="Links do projeto" className="flex flex-wrap gap-5">
+          <Link href="/privacidade" className="hover:text-foreground">
+            Privacidade
+          </Link>
+          <Link href="/termos" className="hover:text-foreground">
+            Termos
+          </Link>
           <a href={REPOSITORIO} className="hover:text-foreground" rel="noreferrer" target="_blank">
             Código no GitHub
           </a>

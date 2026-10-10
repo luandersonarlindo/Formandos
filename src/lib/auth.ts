@@ -104,8 +104,16 @@ export const auth = betterAuth({
           if (ehDescartavelEmLista(user.email, descartaveisCompletos)) return false;
         },
         // Cadastro pelo Google: o email já nasce verificado.
+        // Consentimento LGPD: quem chega sem email verificado veio do
+        // cadastro por email/senha (checkbox obrigatório no formulário), e o
+        // aceite fica carimbado aqui. Google consente via OAuth.
         after: async (user) => {
           if (user.emailVerified) await enviarBoasVindas(user);
+          else {
+            await pool.query("update usuarios set consentimento_em = now() where id = $1", [
+              user.id,
+            ]);
+          }
         },
       },
     },
