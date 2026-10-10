@@ -9,7 +9,11 @@ import {
   enviarEmailSilencioso,
   urlDoSite,
 } from "./email";
-import { validarEmailCadastro } from "./email-validacao";
+import listaDescartavel from "disposable-domains";
+import { ehDescartavelEmLista, validarEmailCadastro } from "./email-validacao";
+
+// Conjunto montado uma vez: 130 mil+ domínios, checagem O(1) por cadastro.
+const descartaveisCompletos = new Set<string>(listaDescartavel);
 
 type UsuarioEmail = { name: string; email: string };
 
@@ -91,10 +95,13 @@ export const auth = betterAuth({
       create: {
         // Barreira de servidor: retorna false e o usuário nem é criado.
         // O cliente já valida antes (mensagem específica); aqui o erro que
-        // sobe é genérico. Google não cai aqui na prática (Google nunca
-        // emite domínio descartável nem com erro de digitação).
+        // sobe é genérico. A lista curta cobre o óbvio e a completa
+        // (`disposable-domains`) pega o resto. Google não cai aqui na
+        // prática (Google nunca emite domínio descartável nem com erro de
+        // digitação).
         before: async (user) => {
           if (!validarEmailCadastro(user.email).ok) return false;
+          if (ehDescartavelEmLista(user.email, descartaveisCompletos)) return false;
         },
         // Cadastro pelo Google: o email já nasce verificado.
         after: async (user) => {

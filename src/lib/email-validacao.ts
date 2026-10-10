@@ -5,6 +5,12 @@
 // módulo roda no formulário (resposta imediata) e no hook de criação do
 // Better Auth (`auth.ts`), que barra quem pula o cliente.
 //
+// Duas listas, dois papéis: a curta (`DOMINIOS_DESCARTAVEIS`) vai no cliente
+// (bundle pequeno, resposta imediata); a completa (pacote
+// `disposable-domains`, 130 mil+ domínios) roda só no servidor, no hook.
+// O servidor é superconjunto do cliente: tudo que o cliente barra, o
+// servidor também barra.
+//
 // Sem "fuzzy matching" (Levenshtein) de propósito: `mail.com` é um provedor
 // real a 1 edição de `gmail.com`, então distância bloquearia gente legítima.
 // Só entra no mapa o erro com causa conhecida (letra trocada, transposição,
@@ -63,15 +69,21 @@ const DOMINIOS_DESCARTAVEIS = new Set([
   "owlymail.com",
 ]);
 
-export function ehDescartavel(email: string): boolean {
+// Checagem genérica contra qualquer conjunto (lista curta do cliente ou
+// lista completa do pacote no servidor). Cobre subdomínios:
+// `alguem@mail.yopmail.com` cai no `yopmail.com`.
+export function ehDescartavelEmLista(email: string, dominios: ReadonlySet<string>): boolean {
   const dominio = extrairDominio(email);
   if (!dominio) return false;
   const partes = dominio.split(".");
-  // Checa o domínio e os sufixos (`mail.yopmail.com` → `yopmail.com`).
   for (let i = 0; i <= partes.length - 2; i++) {
-    if (DOMINIOS_DESCARTAVEIS.has(partes.slice(i).join("."))) return true;
+    if (dominios.has(partes.slice(i).join("."))) return true;
   }
   return false;
+}
+
+export function ehDescartavel(email: string): boolean {
+  return ehDescartavelEmLista(email, DOMINIOS_DESCARTAVEIS);
 }
 
 // Erro de digitação → domínio certo. Só erro atestado (tecla vizinha,
