@@ -67,6 +67,11 @@ const DOMINIOS_DESCARTAVEIS = new Set([
   "deadaddress.com",
   "e4ward.com",
   "owlymail.com",
+  // Confirmados em teste manual (fora da lista do pacote):
+  "hidesit.net",
+  "18lover.com",
+  "darkemail.school",
+  "emailnox.live",
 ]);
 
 // Checagem genérica contra qualquer conjunto (lista curta do cliente ou

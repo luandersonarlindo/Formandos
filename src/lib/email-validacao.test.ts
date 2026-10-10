@@ -52,6 +52,13 @@ describe("ehDescartavel", () => {
   it("não confunde sufixo parecido (evita falso positivo)", () => {
     expect(ehDescartavel("maria@notmailinator.com")).toBe(false);
   });
+
+  it("barra temporários confirmados em teste manual", () => {
+    expect(ehDescartavel("decent.goldfish.cgrp@hidesit.net")).toBe(true);
+    expect(ehDescartavel("raseva2628@18lover.com")).toBe(true);
+    expect(ehDescartavel("swift-panda769-7a4fb948@darkemail.school")).toBe(true);
+    expect(ehDescartavel("9dbcecad4f@emailnox.live")).toBe(true);
+  });
 });
 
 describe("ehDescartavelEmLista", () => {
