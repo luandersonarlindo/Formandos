@@ -73,11 +73,11 @@ const turmaTeste = () => sql("select id from turmas where criado_por = (select i
 
 // Aponta para outro servidor com BASE_URL (ex.: testes em porta paralela).
 const nav = await iniciar({ base: process.env.BASE_URL ?? "http://localhost:3000" });
-// "Dados do evento" é um painel recolhido sempre que a turma já tem nome, então
-// os passos que preenchem esses campos precisam abri-lo antes. Clicar no resumo
-// alterna, e cada nav.abrir recarrega a página, devolvendo o estado inicial.
+// "Dados do evento" agora é um diálogo ("Editar dados do evento"), não mais
+// um painel <details>. Cada nav.abrir recarrega a página, então cada passo que
+// preenche esses campos abre o diálogo de novo.
 const abrirDadosDoEvento = async () => {
-  await nav.clicar("Dados do evento", { seletor: "summary" });
+  await nav.clicar("Editar dados do evento", { seletor: "button" });
 };
 // O formulario de pergunta e um unico painel no fim da pagina, e ele continua
 // aberto depois do envio. Cada clique no resumo alterna, entao so abre quando
@@ -299,6 +299,7 @@ await grupo("participante", async () => {
   await passo("participante entra por código já existente após sair da turma", async () => {
     await nav.abrir("/dashboard");
     await nav.clicar("Sair da turma", { seletor: "button" });
+    await nav.clicar("Sim, sair", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await nav.esperarUrl("/convite");
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "sem turma");
     verdade(
@@ -342,39 +343,53 @@ await grupo("participante", async () => {
   });
   await passo("presença: vou com acompanhantes, e talvez zera os acompanhantes", async () => {
     const resposta = () => sql("select status || ':' || acompanhantes || ':' || coalesce(observacao,'') from presencas p join usuarios u on u.id=p.usuario_id where u.email='teste-jl@example.invalid'");
-    await nav.abrir("/dashboard");
-    await nav.esperarTexto("Você vai ao evento?");
-    await nav.clicar("Vou", { escopo: "Você vai ao evento?", seletor: "label", contem: false });
-    await nav.preencher("#acompanhantes", "2");
-    await nav.preencher("#observacao", "Minha mãe e meu irmão");
-    await nav.clicar("Salvar resposta", { seletor: "button" });
-    await nav.esperarTexto("Resposta salva");
+    // A resposta agora mora num diálogo ("Responder"/"Mudar resposta"); cada
+    // envio fecha o diálogo, então cada interação reabre.
+    const abrirResposta = async () => {
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Você vai ao evento?");
+      if (await nav.tem("Mudar resposta")) await nav.clicar("Mudar resposta", { seletor: "button" });
+      else await nav.clicar("Responder", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo de presença");
+    };
+    const salvarResposta = async () => {
+      await nav.clicar("Salvar resposta", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperar("!document.querySelector('[role=dialog]')", 10000, "diálogo fecha ao salvar");
+    };
+    await abrirResposta();
+    await nav.clicar("Vou", { escopo: "@[role=dialog]", seletor: "label", contem: false });
+    await preencherEm("@[role=dialog]", "#acompanhantes", "2");
+    await preencherEm("@[role=dialog]", "#observacao", "Minha mãe e meu irmão");
+    await salvarResposta();
+    await dormir(800);
     igual(resposta(), "vou:2:Minha mãe e meu irmão", "vou com acompanhantes");
-    await nav.clicar("Talvez", { escopo: "Você vai ao evento?", seletor: "label", contem: false });
-    verdade(!(await nav.tem("Quantos acompanhantes")), "campo de acompanhantes some com Talvez");
-    await nav.clicar("Salvar resposta", { seletor: "button" });
+    await abrirResposta();
+    await nav.clicar("Talvez", { escopo: "@[role=dialog]", seletor: "label", contem: false });
+    verdade(!(await nav.ev("!!document.querySelector('[role=dialog] #acompanhantes')")), "campo de acompanhantes some com Talvez");
+    await salvarResposta();
     await dormir(1800);
     igual(resposta(), "talvez:0:Minha mãe e meu irmão", "talvez zera os acompanhantes");
     // Deixa como "vou" com 2 acompanhantes para o painel do administrador conferir.
-    await nav.clicar("Vou", { escopo: "Você vai ao evento?", seletor: "label", contem: false });
+    await abrirResposta();
+    await nav.clicar("Vou", { escopo: "@[role=dialog]", seletor: "label", contem: false });
     // O navegador já barra valores acima do máximo; tira o limite da tela para provar o do servidor.
-    await nav.ev("document.querySelector('#acompanhantes').removeAttribute('max')");
-    await nav.preencher("#acompanhantes", "99");
-    await nav.clicar("Salvar resposta", { seletor: "button" });
+    await nav.ev("document.querySelector('[role=dialog] #acompanhantes').removeAttribute('max')");
+    await preencherEm("@[role=dialog]", "#acompanhantes", "99");
+    await salvarResposta();
     await dormir(1800);
     igual(sql("select acompanhantes from presencas p join usuarios u on u.id=p.usuario_id where u.email='teste-jl@example.invalid'"), "5", "limite de acompanhantes");
     // Recarrega para partir de um estado conhecido, sem depender do que sobrou na tela.
-    await nav.abrir("/dashboard");
-    await nav.esperarTexto("Você vai ao evento?");
-    await nav.preencher("#acompanhantes", "2");
-    await nav.clicar("Salvar resposta", { seletor: "button" });
+    await abrirResposta();
+    await preencherEm("@[role=dialog]", "#acompanhantes", "2");
+    await salvarResposta();
     await dormir(1800);
     igual(resposta().split(":").slice(0, 2).join(":"), "vou:2", "vou de novo com 2");
   });
   await passo("participante responsável atualiza o andamento da própria tarefa", async () => {
     await nav.abrir("/tarefas");
-    await preencherEm("Fechar o buffet", "select[name=status]", "em_andamento");
-    await nav.clicar("Atualizar", { escopo: "Fechar o buffet", seletor: "button" });
+    await nav.clicar("Atualizar andamento", { escopo: "Fechar o buffet", seletor: "button" });
+    await preencherEm("@[role=dialog]", "select[name=status]", "em_andamento");
+    await nav.clicar("Atualizar", { escopo: "@[role=dialog]", seletor: "button" });
     await nav.esperar(`document.querySelector('main')?.innerText.includes('Em andamento')`, 8000);
     await dormir(600);
     igual(sql("select status from tarefas where titulo='Fechar o buffet'"), "em_andamento", "status no banco");
@@ -394,9 +409,9 @@ await grupo("app", async () => {
     igual(sql("select count(*) from tarefas where titulo='Tarefa E2E'"), "1", "no banco");
   });
   await passo("gerenciar tarefa muda o status e o filtro conta", async () => {
-    await nav.clicar("Gerenciar tarefa", { escopo: "Tarefa E2E", seletor: "summary" });
-    await preencherEm("Tarefa E2E", "select[name=status]", "concluida");
-    await nav.clicar("Salvar", { escopo: "Tarefa E2E", seletor: "button", contem: false });
+    await nav.clicar("Gerenciar tarefa", { escopo: "Tarefa E2E", seletor: "button" });
+    await preencherEm("@[role=dialog]", "select[name=status]", "concluida");
+    await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1500);
     igual(sql("select status from tarefas where titulo='Tarefa E2E'"), "concluida", "status no banco");
     await nav.abrir("/tarefas?status=concluida");
@@ -405,7 +420,6 @@ await grupo("app", async () => {
   });
   await passo("excluir tarefa", async () => {
     await nav.abrir("/tarefas");
-    await nav.clicar("Gerenciar tarefa", { escopo: "Tarefa E2E", seletor: "summary" });
     await excluir("Excluir tarefa", { escopo: "Tarefa E2E" });
     await dormir(1500);
     igual(sql("select count(*) from tarefas where titulo='Tarefa E2E'"), "0", "apagada");
@@ -413,7 +427,7 @@ await grupo("app", async () => {
   await passo("salvar voto marca a enquete como respondida", async () => {
     await nav.abrir(`/votacoes/${idPadrao()}`);
     await nav.clicar("Espaço ao Ar Livre / Chácara", { escopo: "Onde vai ser o nosso evento?", seletor: "label" });
-    await nav.clicar("Salvar voto", { escopo: "Onde vai ser o nosso evento?", seletor: "button" });
+    await nav.clicar("Salvar tudo", { seletor: "button" });
     await dormir(1500);
     igual(sql("select o.texto from votos v join opcoes o on o.id=v.opcao_id join usuarios u on u.id=v.usuario_id join enquetes e on e.id=o.enquete_id where u.email='teste-sh@example.invalid' and e.titulo='Onde vai ser o nosso evento?'"), "Espaço ao Ar Livre / Chácara", "voto no banco");
     await nav.esperarTexto("Respondida");
@@ -448,8 +462,8 @@ await grupo("app", async () => {
     await nav.esperarTexto("Dúvida Excluir E2E");
     const id = sql("select id from duvidas where conteudo like 'Dúvida Excluir E2E%'");
     const escopo = `@li[data-duvida='${id}']`;
-    await nav.clicar("Excluir dúvida", { escopo, seletor: "summary" });
-    await nav.clicar("Excluir para sempre", { escopo, seletor: "button" });
+    // Quem roda aqui é admin (moderação): apaga qualquer dúvida.
+    await excluir("Apagar", { escopo });
     await dormir(1800);
     igual(sql("select count(*) from duvidas where conteudo like 'Dúvida Excluir E2E%'"), "0", "excluída");
     await nav.esperarTexto("Dúvida enviada.");
@@ -511,9 +525,10 @@ await grupo("app", async () => {
     await nav.clicar("Adicionar fornecedor", { seletor: "button" });
     await nav.esperarTexto("Espaço Orçamento E2E");
     try {
-      await preencherEm("Espaço Orçamento E2E", "select[name=status]", "contratado");
-      await preencherEm("Espaço Orçamento E2E", "input[name=valorOrcado]", "1500,50");
-      await nav.clicar("Salvar", { escopo: "Espaço Orçamento E2E", seletor: "button" });
+      await nav.clicar("Editar dados", { escopo: "Espaço Orçamento E2E", seletor: "button" });
+      await preencherEm("@[role=dialog]", "select[name=status]", "contratado");
+      await preencherEm("@[role=dialog]", "input[name=valorOrcado]", "1500,50");
+      await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button" });
       await dormir(1800);
       igual(sql("select status || ':' || valor_orcado from fornecedores where nome='Espaço Orçamento E2E'"), "contratado:1500.50", "salvo no banco");
       await nav.abrir("/terceiros");
@@ -584,6 +599,7 @@ await grupo("admin", async () => {
   await passo("gerar novo código troca o código", async () => {
     const antes = sql(`select codigo_convite from turmas where id='${turmaTeste()}'`);
     await nav.clicar("Gerar novo código", { seletor: "button" });
+    await nav.clicar("Gerar novo código", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     const depois = sql(`select codigo_convite from turmas where id='${turmaTeste()}'`);
     verdade(depois !== antes, "o código não mudou");
@@ -619,10 +635,12 @@ await grupo("admin", async () => {
   await passo("promover e rebaixar um membro", async () => {
     await nav.abrir("/admin/membros");
     await nav.clicar("Promover", { escopo: "João Lima", seletor: "button" });
+    await nav.clicar("Trocar papel", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "admin", "promovido");
     await nav.abrir("/admin/membros");
     await nav.clicar("Tornar participante", { escopo: "João Lima", seletor: "button" });
+    await nav.clicar("Trocar papel", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "participante", "rebaixado");
   });
@@ -727,16 +745,19 @@ await grupo("admin", async () => {
   });
   await passo("moderação: responder, destacar, reabrir e apagar dúvida", async () => {
     await nav.abrir("/duvidas");
-    await preencherEm("Posso levar acompanhante", "textarea", "Sim, até 2 pessoas.");
-    await nav.clicar("Salvar resposta", { escopo: "Posso levar acompanhante", seletor: "button" });
+    await nav.clicar("Responder", { escopo: "Posso levar acompanhante", seletor: "button" });
+    await preencherEm("@[role=dialog]", "textarea", "Sim, até 2 pessoas.");
+    await nav.clicar("Salvar resposta", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select respondida from duvidas where conteudo like 'Posso levar%'"), "t", "respondida");
     await nav.abrir("/duvidas");
     await nav.clicar("Destacar", { escopo: "Posso levar acompanhante", seletor: "button", contem: true });
+    await nav.clicar("Destacar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select destaque from duvidas where conteudo like 'Posso levar%'"), "t", "destaque");
     await nav.abrir("/duvidas");
     await nav.clicar("Reabrir", { escopo: "Posso levar acompanhante", seletor: "button" });
+    await nav.clicar("Reabrir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select respondida from duvidas where conteudo like 'Posso levar%'"), "f", "reaberta");
     await nav.abrir("/duvidas");
@@ -751,8 +772,9 @@ await grupo("admin", async () => {
     await nav.esperarUrl("/admin/votacoes/");
     await nav.assentar();
     await nav.esperarTexto("Catálogo E2E");
-    await nav.preencher("input[aria-label='Nome do catálogo']", "Catálogo E2E Renomeado");
     await nav.clicar("Renomear", { seletor: "button" });
+    await preencherEm("@[role=dialog]", "input[aria-label='Nome do catálogo']", "Catálogo E2E Renomeado");
+    await nav.clicar("Renomear", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select count(*) from catalogos where nome='Catálogo E2E Renomeado'"), "1", "renomeado");
     await nav.preencher("#nome-categoria", "Categoria E2E");
@@ -815,8 +837,9 @@ await grupo("admin", async () => {
   await passo("decisão da turma: fixar, aparecer no dashboard, encerrar a votação e reabrir", async () => {
     await nav.abrir(`/admin/votacoes/votos/${enqueteLocal()}`);
     await nav.esperarTexto("Decisão da turma");
-    await nav.clicar("Espaço ao Ar Livre / Chácara", { seletor: "label", escopo: "Opção escolhida" });
     await nav.clicar("Fixar decisão", { seletor: "button" });
+    await nav.clicar("Espaço ao Ar Livre / Chácara", { escopo: "@[role=dialog]", seletor: "label" });
+    await nav.clicar("Fixar decisão", { escopo: "@[role=dialog]", seletor: "button" });
     await nav.esperarTexto("Decisão fixada");
     igual(sql(`select o.texto from decisoes d join opcoes o on o.id=d.opcao_id where d.turma_id='${turmaTeste()}' and d.enquete_id='${enqueteLocal()}'`), "Espaço ao Ar Livre / Chácara", "decisão no banco");
     await nav.abrir("/dashboard");
@@ -827,6 +850,7 @@ await grupo("admin", async () => {
     igual(await nav.ev("[...document.querySelectorAll('label')].find((l) => l.textContent.includes('Escolha da turma')).querySelector('input').matches(':disabled')"), true, "opções desativadas");
     await nav.abrir(`/admin/votacoes/votos/${enqueteLocal()}`);
     await nav.clicar("Reabrir votação", { seletor: "button" });
+    await nav.clicar("Reabrir votação", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     igual(sql(`select count(*) from decisoes where turma_id='${turmaTeste()}'`), "0", "votação reaberta");
   });
@@ -840,7 +864,7 @@ await grupo("admin", async () => {
        where e.titulo='Onde vai ser o nosso evento?' and o.texto='Rooftop Urbano'`);
     try {
       await nav.clicar("Rooftop Urbano", { escopo: "Onde vai ser o nosso evento?", seletor: "label" });
-      await nav.clicar("Salvar voto", { escopo: "Onde vai ser o nosso evento?", seletor: "button" });
+      await nav.clicar("Salvar tudo", { seletor: "button" });
       await nav.esperarTexto("já decidiu");
       igual(sql("select o.texto from votos v join opcoes o on o.id=v.opcao_id join usuarios u on u.id=v.usuario_id join enquetes e on e.id=o.enquete_id where u.email='teste-sh@example.invalid' and e.titulo='Onde vai ser o nosso evento?'"), antes, "o voto não mudou");
     } finally {
@@ -899,8 +923,9 @@ await grupo("admin", async () => {
     const votos = sql(`select count(*) from votos where turma_id='${turmaTeste()}'`);
     await nav.abrir("/admin/votacoes");
     await nav.esperarTexto("Catálogo padrão");
-    await nav.preencher("#usar", "nao");
-    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await nav.clicar("Editar uso do catálogo padrão", { seletor: "button" });
+    await preencherEm("@[role=dialog]", "#usar", "nao");
+    await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(2000);
     igual(sql(`select usar_catalogo_padrao from turmas where id='${turmaTeste()}'`), "f", "desligado no banco");
     await nav.abrir("/votacoes");
@@ -913,8 +938,9 @@ await grupo("admin", async () => {
     // Nada foi apagado: os votos continuam guardados para quando a turma religar.
     igual(sql(`select count(*) from votos where turma_id='${turmaTeste()}'`), votos, "votos intactos");
     await nav.abrir("/admin/votacoes");
-    await nav.preencher("#usar", "sim");
-    await nav.clicar("Salvar", { seletor: "button", contem: false });
+    await nav.clicar("Editar uso do catálogo padrão", { seletor: "button" });
+    await preencherEm("@[role=dialog]", "#usar", "sim");
+    await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(2000);
     igual(sql(`select usar_catalogo_padrao from turmas where id='${turmaTeste()}'`), "t", "religado");
     await nav.abrir("/votacoes");
@@ -961,6 +987,7 @@ await grupo("admin", async () => {
   await passo("arquivar turma: faixa, campos desativados e o servidor recusa alterações", async () => {
     await nav.abrir("/admin/turma");
     await nav.clicar("Arquivar turma", { seletor: "button" });
+    await nav.clicar("Arquivar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql(`select arquivada_em is not null from turmas where id='${turmaTeste()}'`), "t", "arquivada");
     await nav.abrir("/duvidas");
@@ -979,6 +1006,7 @@ await grupo("admin", async () => {
   await passo("desarquivar volta a permitir alterações", async () => {
     await nav.abrir("/admin/turma");
     await nav.clicar("Desarquivar turma", { seletor: "button" });
+    await nav.clicar("Desarquivar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql(`select arquivada_em is null from turmas where id='${turmaTeste()}'`), "t", "desarquivada");
     await nav.abrir("/duvidas");
@@ -1024,8 +1052,9 @@ await grupo("admin", async () => {
   await passo("limite de acompanhantes escolhido pelo admin corta as respostas acima", async () => {
     await nav.abrir("/admin/presenca");
     await nav.esperarTexto("Limite de acompanhantes");
-    await nav.preencher("#maxAcompanhantes", "1");
-    await nav.clicar("Salvar limite", { seletor: "button" });
+    await nav.clicar("Editar limite de acompanhantes", { seletor: "button" });
+    await preencherEm("@[role=dialog]", "#maxAcompanhantes", "1");
+    await nav.clicar("Salvar limite", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(2000);
     igual(sql(`select max_acompanhantes from turmas where id='${turmaTeste()}'`), "1", "limite no banco");
     igual(
@@ -1035,14 +1064,16 @@ await grupo("admin", async () => {
       "1",
       "resposta cortada para o novo limite",
     );
-    // O participante vê o limite novo na hora.
+    // O participante vê o limite novo na hora (dentro do diálogo de resposta).
     await nav.cookie(lerCookie("cookie-participante.txt"));
     await nav.abrir("/dashboard");
+    await nav.clicar("Mudar resposta", { seletor: "button" });
     await nav.esperarTexto("De 0 a 1, sem contar você.");
     await nav.cookie(lerCookie("cookie-admin.txt"));
     await nav.abrir("/admin/presenca");
-    await nav.preencher("#maxAcompanhantes", "5");
-    await nav.clicar("Salvar limite", { seletor: "button" });
+    await nav.clicar("Editar limite de acompanhantes", { seletor: "button" });
+    await preencherEm("@[role=dialog]", "#maxAcompanhantes", "5");
+    await nav.clicar("Salvar limite", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(2000);
     igual(sql(`select max_acompanhantes from turmas where id='${turmaTeste()}'`), "5", "limite restaurado");
   });
@@ -1118,23 +1149,25 @@ await grupo("master", async () => {
   await passo("alterar papel de um membro pela turma", async () => {
     await nav.abrir(`/master/turmas/${turmaTeste()}`);
     await nav.clicar("Promover", { escopo: "João Lima", seletor: "button" });
+    await nav.clicar("Trocar papel", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "admin", "promovido");
     await nav.abrir(`/master/turmas/${turmaTeste()}`);
     await nav.clicar("Tornar participante", { escopo: "João Lima", seletor: "button" });
+    await nav.clicar("Trocar papel", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "participante", "rebaixado");
   });
   await passo("excluir usuário exige o email de confirmação", async () => {
     sql(`insert into usuarios (name,email,"emailVerified") values ('Apagar Teste','teste-del@example.invalid',true) on conflict do nothing`);
     await nav.abrir("/master/usuarios");
-    await nav.clicar("Excluir usuário", { escopo: "Apagar Teste", seletor: "summary" });
-    await preencherEm("Apagar Teste", "input[name=confirmacao]", "errado@example.invalid");
     await nav.clicar("Excluir usuário", { escopo: "Apagar Teste", seletor: "button" });
+    await preencherEm("@[role=dialog]", "input[name=confirmacao]", "errado@example.invalid");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select count(*) from usuarios where email='teste-del@example.invalid'"), "1", "confirmação errada não apaga");
-    await preencherEm("Apagar Teste", "input[name=confirmacao]", "teste-del@example.invalid");
-    await nav.clicar("Excluir usuário", { escopo: "Apagar Teste", seletor: "button" });
+    await preencherEm("@[role=dialog]", "input[name=confirmacao]", "teste-del@example.invalid");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select count(*) from usuarios where email='teste-del@example.invalid'"), "0", "apagado");
     // Mesmo assunto da exclusão pedida pela própria pessoa; o corpo é que diz
@@ -1148,12 +1181,13 @@ await grupo("master", async () => {
     sql(`insert into turmas (nome,codigo_convite) values ('Turma Apagar Teste','TESTEDEL001')`);
     const id = sql("select id from turmas where codigo_convite='TESTEDEL001'");
     await nav.abrir(`/master/turmas/${id}`);
-    await nav.preencher("#confirmacao", "nome errado");
     await nav.clicar("Excluir turma", { seletor: "button" });
+    await preencherEm("@[role=dialog]", "input[name=confirmacao]", "nome errado");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "1", "confirmação errada não apaga");
-    await nav.preencher("#confirmacao", "Turma Apagar Teste");
-    await nav.clicar("Excluir turma", { seletor: "button" });
+    await preencherEm("@[role=dialog]", "input[name=confirmacao]", "Turma Apagar Teste");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await nav.esperar("location.pathname === '/master/turmas'", 10000, "voltar à lista de turmas");
     igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "0", "apagada");
   });
@@ -1162,6 +1196,7 @@ await grupo("master", async () => {
   await passo("master remove membro da turma e avisa por email", async () => {
     await nav.abrir(`/master/turmas/${turmaTeste()}`);
     await nav.clicar("Remover", { escopo: "João Lima", seletor: "button" });
+    await nav.clicar("Sim, remover", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(
       sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"),

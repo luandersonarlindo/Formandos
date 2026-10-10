@@ -22,7 +22,7 @@ Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação e
 | Dúvidas com upvote e moderação | Pronto (`/duvidas`, `/admin/duvidas`) |
 | Dashboard, tarefas e terceiros | Pronto |
 | Painel do administrador | Pronto: membros, convite, evento, programação, catálogos personalizados e quem votou |
-| Acabamento | Telas de erro, carregamento e 404; cabeçalhos de segurança; limite de tentativas de convite; testes unitários (`npm test`, 10 arquivos: convite, datas, busca, evento, master, modelos, orçamento, paginação, presença, vínculos) |
+| Acabamento | Telas de erro, carregamento e 404; cabeçalhos de segurança (HSTS, CSP); limite de tentativas de convite; testes unitários (`npm test`, 14 arquivos e 157 testes); E2E com 73 passos (`scripts/teste/fluxos.mjs`) |
 | ESLint, testes de ponta a ponta, alternância de tema escuro | **Não existem** |
 | `.mcp.json` do `next-devtools-mcp` | **Não criado** |
 
@@ -114,29 +114,30 @@ src/
    ├─ (onboarding)/                  Logado, mas sem turma
    │  └─ convite/page.tsx            /convite         Digitar código de convite OU criar turma
    ├─ (app)/                         Logado e com turma. layout.tsx = menu/barra lateral
-   │  ├─ dashboard/page.tsx          /dashboard       Contagem regressiva, data/local, programação
+   │  ├─ dashboard/page.tsx          /dashboard       Contagem, dados do evento, programação, indicadores (admin: gestão e edição do evento)
    │  ├─ tarefas/page.tsx            /tarefas         Lista e progresso de tarefas
    │  ├─ votacoes/
    │  │  ├─ page.tsx                 /votacoes                       Catálogos (padrão + personalizados) e progresso do aluno
    │  │  ├─ [catalogoId]/page.tsx    /votacoes/[catalogoId]          Categorias e enquetes do catálogo, para votar
    │  │  └─ relatorio/page.tsx       /votacoes/relatorio             Relatório consolidado (gráficos)
-   │  ├─ duvidas/page.tsx            /duvidas         Enviar dúvida, upvote, ver respostas
+   │  ├─ duvidas/page.tsx            /duvidas         Enviar, votar, autor edita/apaga; admin responde, destaca, reabre e apaga
    │  └─ terceiros/page.tsx          /terceiros       Vitrine de fornecedores
    ├─ (admin)/admin/                 Só papel admin. layout.tsx próprio + checagem de admin
-   │  ├─ page.tsx                    /admin                          Resumo do painel
-   │  ├─ membros/page.tsx            /admin/membros                  Listar, remover, promover a admin
-   │  ├─ convite/page.tsx            /admin/convite                  Ver e regenerar o código de convite
-   │  ├─ evento/page.tsx             /admin/evento                   Editar descrição, data, local, endereço, mapa, traje e programação
+   │  ├─ page.tsx                    /admin                          Redireciona para /dashboard
+   │  ├─ membros/page.tsx            /admin/membros                  Listar, remover, promover a admin e gerenciar código de convite
    │  ├─ turma/page.tsx              /admin/turma                    Arquivar, desarquivar e excluir a turma
    │  ├─ presenca/page.tsx           /admin/presenca                 Quem confirmou presença e quantos acompanhantes
-   │  ├─ duvidas/page.tsx            /admin/duvidas                  Responder, destacar, marcar como respondida
    │  └─ votacoes/
    │     ├─ page.tsx                 /admin/votacoes                 Catálogos personalizados da turma
    │     ├─ nova/page.tsx            /admin/votacoes/nova            Criar catálogo personalizado
    │     ├─ [catalogoId]/page.tsx    /admin/votacoes/[catalogoId]    Editar catálogo, categorias, perguntas
    │     └─ votos/[enqueteId]/page.tsx  /admin/votacoes/votos/[enqueteId]   Ver quem votou em cada opção
-   ├─ (conta)/conta/page.tsx        /conta           Ver e excluir a própria conta (só exige login)
-   └─ api/auth/[...all]/route.ts    /api/auth/*      Único Route Handler (Better Auth: login, cadastro, confirmação de e-mail)
+   ├─ (conta)/conta/                Só exige login
+   │  ├─ page.tsx                    /conta                          Nome, baixar dados (JSON), DPO, excluir a conta
+   │  └─ exportar/route.ts           /conta/exportar                 Download dos dados (LGPD)
+   ├─ (publico)/privacidade/page.tsx /privacidade    Política de Privacidade (pública)
+   ├─ (publico)/termos/page.tsx      /termos         Termos de Uso (públicos)
+   └─ rotas de API: api/auth/[...all] (Better Auth) e conta/exportar (JSON)
 ```
 
 Parênteses como `(app)` são *route groups*: organizam pastas e layouts **sem** aparecer na URL.
@@ -313,7 +314,7 @@ Pontos-chave:
 - Git com branches por funcionalidade e Pull Requests, já que são 4 pessoas.
 - Commits pequenos e com mensagem clara (padrão *Conventional Commits*: `feat:`, `fix:`).
 - ESLint e Prettier. **O projeto ainda não tem ESLint** (o `package.json` não tem script `lint`). Considere adicionar.
-- Testes: existe `npm test` (Vitest) para as funções puras de `src/lib` (`busca.test.ts`, `convite.test.ts`, `datas.test.ts`, `evento.test.ts`, `master.test.ts`, `modelos.test.ts`, `orcamento.test.ts`, `paginacao.test.ts`, `presenca-regras.test.ts`, `vinculos.test.ts`). O restante foi verificado à mão contra o servidor; testes de ponta a ponta (Playwright) ficam para depois.
+- Testes: existe `npm test` (Vitest, 157 testes em 14 arquivos) para `src/lib` (`auth-config`, `busca`, `convite`, `datas`, `email`, `email-validacao`, `evento`, `master`, `modelos`, `orcamento`, `paginacao`, `presenca-regras`, `tema`, `vinculos`). Fluxos de ponta a ponta no Chrome real: `scripts/teste/fluxos.mjs` (73 passos, ver `scripts/teste/README.md`).
 - Variáveis de ambiente: nunca comite `.env.local`. Crie um `.env.example` sem segredos para o grupo.
 
 

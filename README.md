@@ -77,13 +77,13 @@ As URLs **não** levam o identificador da turma: o servidor descobre a turma em 
 
 | Grupo | Acesso | Rotas |
 |---|---|---|
-| `(publico)` | Qualquer pessoa | `/` (vitrine do projeto, com animações), `/entrar` (login com Google ou email e senha), `/esqueci-senha`, `/redefinir-senha` |
+| `(publico)` | Qualquer pessoa | `/` (vitrine do projeto, com animações), `/entrar` (login com Google ou email e senha), `/esqueci-senha`, `/redefinir-senha`, `/privacidade`, `/termos` |
 | `(onboarding)` | Autenticado, sem turma | `/convite` (informar código de convite ou criar turma) |
-| `(conta)` | Autenticado (com ou sem turma) | `/conta` (ver e excluir a própria conta) |
+| `(conta)` | Autenticado (com ou sem turma) | `/conta` (ver e corrigir nome, baixar os dados em JSON, falar com o DPO, excluir a própria conta), `/conta/exportar` (download dos dados, LGPD) |
 | `(app)` | Autenticado, com turma | `/dashboard`, `/avisos`, `/tarefas`, `/votacoes`, `/votacoes/[catalogoId]`, `/votacoes/relatorio`, `/duvidas`, `/terceiros` |
 | `(master)` | Administrador master (`ADMIN_MASTER_EMAILS`); para os demais a página não existe (404) | `/master`, `/master/turmas`, `/master/turmas/[turmaId]`, `/master/usuarios` |
 | `(admin)` | Administrador da turma | `/admin` (redireciona para `/dashboard`, onde ficam os indicadores e a edição do evento), `/admin/membros` (inclui o código de convite), `/admin/turma` (arquivar, desarquivar e excluir), `/admin/presenca`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
-| API | — | `/api/auth/[...all]` (único *Route Handler*, usado pelo Better Auth) |
+| API | — | `/api/auth/[...all]` (Better Auth) e `/conta/exportar` (download dos dados em JSON) |
 
 * `/dashboard` - Visão geral da turma, contagem decrescente e programação oficial da festa. Para administradores, traz indicadores de gestão e edição dos dados e da programação do evento.
 * `/tarefas` - Lista e acompanhamento do progresso das tarefas organizacionais.
@@ -211,7 +211,7 @@ As 10 categorias do catálogo padrão:
    ```bash
    npm test
    ```
-   Os testes unitários cobrem as funções puras de `src/lib`: convite, datas, busca (sem acento), evento, master, modelos de catálogo, orçamento, paginação, presença e vínculos (uma turma por aluno).
+   Os testes unitários (157, em 14 arquivos) cobrem as funções puras de `src/lib`: autenticação/config, busca (sem acento), convite, datas, email (aparência e contraste), validação de email (descartável e erro de digitação), evento, master, modelos de catálogo, orçamento, paginação, presença, tema e vínculos (uma turma por aluno).
 
 7. **Executar o ambiente de desenvolvimento:**
    ```bash
@@ -331,9 +331,13 @@ Substituir a lista em vez de somar é o que quebrava o login: a origem pública 
 * O login por email e senha exige confirmar o email pelo link enviado. Um Google já verificado não se junta a uma conta local não verificada.
 * Entradas validadas com Zod; consultas SQL sempre parametrizadas.
 * Sair da turma, ser removido pelo administrador ou pelo master apaga o rastro daquela pessoa naquela turma (votos, presença, dúvidas próprias e os votos que deu nas dúvidas dos outros), em transação. Tarefas, avisos, decisões e as dúvidas dos outros ficam sem autor em vez de sumirem. Ver `src/lib/saida-turma.ts`.
-* O autor é o único que exclui a própria dúvida; nem a comissão nem os demais formandos podem excluir a dúvida de outra pessoa.
+* O autor edita e exclui a própria dúvida; o administrador modera (responde, destaca, reabre e apaga qualquer dúvida da turma) direto em `/duvidas`. Demais formandos não tocam na dúvida alheia.
 * Tentativas de código de convite inválido são limitadas (10 a cada 15 minutos por utilizador). Não há limite de envio de dúvidas nem de votos por utilizador.
-* Cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) configurados em `next.config.ts`.
+* Cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS e CSP com `frame-ancestors 'none'`) configurados em `next.config.ts`.
+* Cadastro com aceite explícito de Termos e Privacidade (carimbo `consentimento_em`); email descartável e erro de digitação barrados no cliente e no servidor (`src/lib/email-validacao.ts` + pacote `disposable-domains` no hook do Better Auth).
+* LGPD na prática: `/privacidade` e `/termos` públicos, download dos dados em `/conta/exportar`, canal do DPO em `/conta`, eliminação em transação. Ver `docs/legislacao.md`.
+* Trilha de auditoria persistente (tabela `auditoria`, escrita em `src/lib/auditoria.ts`): troca de papel, remoção de membro, exclusão de conta e arquivar/desarquivar/excluir turma. Retenção de 5 anos. Ver `docs/auditoria.md`.
+* SGSI documentado: `docs/PSI.md`, `docs/SoA.md` (93 controles), `docs/riscos.md` (matriz P×I) e `docs/auditoria.md`.
 * Link "Pular para o conteúdo", títulos por página, tabela alternativa nos gráficos e mensagens de erro anunciadas para leitores de ecrã.
 * Telas de carregamento (`loading.tsx`), erro (`error.tsx`, `global-error.tsx`) e página não encontrada em português.
 

@@ -273,7 +273,7 @@ Prioridade MoSCoW: **M** = MVP obrigatório, **S** = desejável, **C** = possív
 | RF-04 | O sistema DEVE permitir, a quem não tem turma, entrar em uma turma por código de convite ou criar uma turma. | M | `/convite` | E2E `auth` e `participante` | Atendido |
 | RF-05 | O sistema DEVE permitir ao administrador participar de mais de uma turma e escolher qual está em uso. | S | barra lateral | E2E `admin` | Atendido |
 | RF-14 | O sistema DEVE exibir contagem regressiva, data, local e programação do evento. | M | `/dashboard` | E2E `app` | Atendido |
-| RF-15 | O sistema DEVE permitir ao administrador editar os dados do evento e adicionar, editar e remover itens da programação. | M | `/admin/evento` | E2E `admin` | Atendido |
+| RF-15 | O sistema DEVE permitir ao administrador editar os dados do evento e adicionar, editar e remover itens da programação. | M | `/dashboard` (seção do admin) | E2E `admin` | Atendido |
 | RF-25 | O sistema DEVE permitir ao administrador **arquivar** e **desarquivar** a turma, com turma arquivada somente leitura. | S | `/admin/turma` | E2E `admin` | Atendido |
 | RF-26 | O sistema DEVE permitir registrar presença com os valores `vou`, `talvez` e `nao`, e informar acompanhantes apenas quando o valor for `vou`. | M | `/admin/presenca` | `presenca-regras.test.ts`; E2E `admin` | Atendido |
 
@@ -293,7 +293,7 @@ Prioridade MoSCoW: **M** = MVP obrigatório, **S** = desejável, **C** = possív
 |---|---|---|---|---|---|
 | RF-11 | O sistema DEVE permitir enviar dúvida de 5 a 500 caracteres. | M | `/duvidas` | E2E `participante` | Atendido |
 | RF-12 | O sistema DEVE permitir votar nas dúvidas dos colegas e DEVE ordenar a lista por destaque, votos e data decrescente. | S | `/duvidas` | E2E `participante` | Atendido |
-| RF-13 | O sistema DEVE permitir ao administrador responder, destacar, reabrir e apagar dúvidas. | M | `/admin/duvidas` | E2E `admin` | Atendido |
+| RF-13 | O sistema DEVE permitir ao administrador responder, destacar, reabrir e apagar dúvidas. | M | `/duvidas` (moderação na mesma tela) | E2E `admin` | Atendido |
 | RF-27 | O sistema DEVE permitir ao administrador publicar avisos e DEVE permitir ao membro **editar o próprio** aviso. | S | `/admin/turma`, `/avisos` | E2E `app` cobre publicar, exibir e remover; a edição **não tem** passo | Atendido |
 | RF-16 | O sistema DEVE permitir criar tarefas com título, descrição, responsável, prazo e status, e DEVE permitir ao membro alterar apenas o **status** das tarefas. | M | `/tarefas`, `/admin/turma` | E2E `app` e `participante` | Atendido |
 | RF-17 | O sistema DEVE exibir vitrine de fornecedores por categoria e DEVE permitir ao administrador cadastrar, editar e remover fornecedor e orçamento. | S | `/terceiros` | `orcamento.test.ts`; E2E `app` | Atendido |
@@ -303,7 +303,7 @@ Prioridade MoSCoW: **M** = MVP obrigatório, **S** = desejável, **C** = possív
 | ID | Requisito | Pri. | Onde | Verificação | Sit. |
 |---|---|---|---|---|---|
 | RF-18 | O sistema DEVE permitir ao administrador promover, rebaixar e remover membros. | M | `/admin/membros` | E2E `admin`; RN-17 | Atendido |
-| RF-19 | O sistema DEVE permitir ao administrador ver o código de convite, copiá-lo com mensagem pronta e gerar um novo código. | M | `/admin/convite` | `convite.test.ts`; E2E `admin` | Atendido |
+| RF-19 | O sistema DEVE permitir ao administrador ver o código de convite, copiá-lo com mensagem pronta e gerar um novo código. | M | `/admin/membros` (cartão de convite) | `convite.test.ts`; E2E `admin` | Atendido |
 | RF-20 | O sistema DEVE permitir ao master ver todas as turmas e todos os usuários e gerir os membros de qualquer turma. | C | `/master` | E2E `master` | Atendido |
 | RF-21 | O sistema DEVE permitir ao master excluir turmas e usuários, com confirmação digitada. | C | `/master/turmas`, `/master/usuarios` | E2E `master` | Atendido |
 
@@ -874,9 +874,9 @@ Registradas para que ninguém trate documentação antiga como verdade.
 
 | # | Onde diz | O que o código faz | Correção |
 |---|---|---|---|
-| 1 | `README.md:127` e `README.md:334`: "somente o autor apaga dúvida" e "a comissão não pode excluir dúvida de outra pessoa". | O administrador **tem** `apagarDuvida`, usada em `/admin/duvidas` (`src/actions/admin.ts:144-153`). O comentário em `src/actions/duvidas.ts:57-58` confirma a moderação pela comissão. | README precisa ser corrigido. RF-13 já descreve o comportamento real. |
+| 1 | ~~`README.md`: "somente o autor apaga dúvida"~~ (corrigido: README agora diz que o admin modera em `/duvidas`). | O administrador **tem** `apagarDuvida` (`src/actions/admin.ts`), usada na moderação em `/duvidas`. | Resolvida. RF-13 descreve o comportamento real. |
 | 2 | `db/schema.sql:149`: "avisos não têm edição". | Existe `atualizarAviso` (`src/actions/avisos.ts:43-60`), usada em `/avisos`. | Comentário do schema desatualizado. RF-27 reflete o código. |
-| 3 | `README.md:214`: 10 arquivos de teste unitário. | São **13** arquivos, com **136** testes. `auth-config.test.ts` e `tema.test.ts` não são citados. | README precisa ser corrigido. |
+| 3 | ~~`README.md`: 10 arquivos de teste~~ (corrigido: README cita 14 arquivos e 157 testes). | São **14** arquivos, com **157** testes. | Resolvida. |
 | 4 | TEST-10 exige suíte determinística. | A primeira requisição autenticada da suíte depende de compilação fria, o que já produziu falha por tempo. Foi corrigido com aquecimento, mas a condição não está formalmente verificada. | Lacuna do requisito, não do código. |
 | 5 | LAC-07: `fornecedores.turma_id` aceita nulo. | Registro anterior à migração fica sem turma e não aparece em listagem por turma. | Exige migração de dados ou filtro explícito. |
 
