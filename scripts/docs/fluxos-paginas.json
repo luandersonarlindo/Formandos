@@ -39,13 +39,37 @@
   "tabelas": "turmas · membros · tentativas_convite",
   "saida": "/dashboard · /conta · /master"
  },
+ "/privacidade": {
+  "arquivo": "src/app/(publico)/privacidade/page.tsx:11",
+  "gate": "nenhum — pública por desenho (titular lê antes do cadastro)",
+  "dados": "empresa:{EMPRESA, DPO}",
+  "actions": "nenhuma — só exibição",
+  "tabelas": "nenhuma",
+  "saida": "/ · /conta · /termos"
+ },
+ "/termos": {
+  "arquivo": "src/app/(publico)/termos/page.tsx:10",
+  "gate": "nenhum — pública por desenho (aceita no cadastro)",
+  "dados": "empresa:{EMPRESA, DPO}",
+  "actions": "nenhuma — só exibição",
+  "tabelas": "nenhuma",
+  "saida": "/ · /conta · /privacidade"
+ },
  "/conta": {
   "arquivo": "src/app/(conta)/conta/page.tsx:18",
   "gate": "exigirSessao() :19",
-  "dados": "usuarios:getImpactoExclusaoConta master:ehMaster",
+  "dados": "usuarios:{getImpactoExclusaoConta, getMeusDados} master:ehMaster empresa:DPO",
   "actions": "conta:{atualizarMeuNome, excluirMinhaConta}",
   "tabelas": "usuarios · membros · turmas · votos · duvidas",
-  "saida": "/dashboard (se tem turma) · /convite (se não)"
+  "saida": "/dashboard (se tem turma) · /convite (se não) · /conta/exportar · /privacidade"
+ },
+ "/conta/exportar": {
+  "arquivo": "src/app/(conta)/conta/exportar/route.ts:6",
+  "gate": "exigirSessao() :7",
+  "dados": "usuarios:getMeusDados (conta, turmas, votos, presencas, duvidas, upvotes, tarefas, avisos)",
+  "actions": "nenhuma — GET com download",
+  "tabelas": "usuarios · membros · turmas · votos · presencas · duvidas · duvida_upvotes · tarefas · avisos",
+  "saida": "arquivo meus-dados-formandos.json"
  },
  "/dashboard": {
   "arquivo": "src/app/(app)/dashboard/page.tsx:93",

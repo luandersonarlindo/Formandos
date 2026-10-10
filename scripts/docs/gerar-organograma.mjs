@@ -123,9 +123,10 @@ class Diagrama {
 
 // ============================================================ shells, menus e links
 const SHELL = {};
-for (const r of ["/", "/entrar", "/esqueci-senha", "/redefinir-senha"]) SHELL[r] = "público";
+for (const r of ["/", "/entrar", "/esqueci-senha", "/redefinir-senha", "/privacidade", "/termos"]) SHELL[r] = "público";
 SHELL["/convite"] = "onboarding";
 SHELL["/conta"] = "conta";
+SHELL["/conta/exportar"] = "conta";
 for (const r of ["/dashboard", "/avisos", "/tarefas", "/duvidas", "/terceiros",
   "/votacoes", "/votacoes/[catalogoId]", "/votacoes/relatorio"]) SHELL[r] = "membro";
 for (const r of ["/admin", "/admin/membros",
@@ -176,7 +177,10 @@ const LINKS = {
   "/esqueci-senha": ["/redefinir-senha"],
   "/redefinir-senha": ["/entrar"],
   "/convite": ["/dashboard"],
-  "/conta": ["/dashboard"],
+  "/conta": ["/dashboard", "/conta/exportar", "/privacidade"],
+  "/conta/exportar": [],
+  "/privacidade": ["/termos"],
+  "/termos": ["/privacidade"],
   "/dashboard": ["/admin", "/master", "/conta"],
   "/votacoes": ["/votacoes/[catalogoId]", "/votacoes/relatorio"],
   "/votacoes/[catalogoId]": ["/votacoes"],
@@ -269,7 +273,10 @@ function apelido(rota) {
     "/esqueci-senha": "Pedir link de redefinição",
     "/redefinir-senha": "Trocar senha pelo token",
     "/convite": "Entrar por código ou criar turma",
-    "/conta": "Ver e excluir a própria conta",
+    "/conta": "Ver, baixar dados e excluir a própria conta",
+    "/conta/exportar": "Download dos dados (JSON)",
+    "/privacidade": "Política de Privacidade",
+    "/termos": "Termos de Uso",
     "/dashboard": "Painel da turma",
     "/avisos": "Mural de recados",
     "/tarefas": "Lista de tarefas",
@@ -462,7 +469,7 @@ function svgJornadaMembro() {
   g.caixa({ x: 420, y: 248, w: 230, h: 52, cor: mem, fill: claro(mem),
     linhas: [{ t: "/votacoes/relatorio", fonte: 14, peso: 700 }, { t: "ver resultados", fonte: 11, peso: 500, fill: TINTA.membro }] });
 
-  g.texto(20, 330, "o menu lateral cobre as cinco telas; votações abre mais duas");
+  g.texto(20, 330, "o menu lateral cobre as sete telas; votações abre mais duas");
   g.caixa({ x: 470, y: 326, w: 250, h: 48, cor: "#94a3b8", fill: "#f1f5f9",
     linhas: [{ t: "rodapé do menu", fonte: 14, peso: 700 }, { t: "conta · administração · master", fonte: 11, peso: 500, fill: "#475569" }] });
   g.caminho("M480,42 H745 V350 H725", { tracejado: true });
@@ -516,9 +523,9 @@ function svgRodapeAreas() {
 // ============================================================ sitemap SVG
 function sitemapSVG() {
   const GRUPOS = [
-    { nome: "Público", cor: "#64748b", rotas: ["/", "/entrar", "/esqueci-senha", "/redefinir-senha"] },
+    { nome: "Público", cor: "#64748b", rotas: ["/", "/entrar", "/esqueci-senha", "/redefinir-senha", "/privacidade", "/termos"] },
     { nome: "Onboarding", cor: "#d97706", rotas: ["/convite"] },
-    { nome: "Conta", cor: "#ca8a04", rotas: ["/conta"] },
+    { nome: "Conta", cor: "#ca8a04", rotas: ["/conta", "/conta/exportar"] },
     { nome: "Membro", cor: "#16a34a", rotas: ["/dashboard", "/avisos", "/tarefas", "/duvidas", "/terceiros", "/votacoes", "/votacoes/[catalogoId]", "/votacoes/relatorio"] },
     { nome: "Administração", cor: "#2563eb", rotas: ["/admin", "/admin/membros", "/admin/presenca", "/admin/turma", "/admin/votacoes", "/admin/votacoes/nova", "/admin/votacoes/[catalogoId]", "/admin/votacoes/votos/[enqueteId]"] },
     { nome: "Master", cor: "#7c3aed", rotas: ["/master", "/master/turmas", "/master/turmas/[turmaId]", "/master/usuarios"] },
@@ -633,7 +640,7 @@ const { svg, GRUPOS, total, LARG, ALT } = sitemapSVG();
 const md = [];
 md.push("# Organograma da Aplicação — Formandos", "");
 md.push("| | |", "|---|---|");
-md.push("| Escopo | `src/app/**` — 29 `page.tsx` e 1 `route.ts` |");
+md.push("| Escopo | `src/app/**` — 28 `page.tsx` e 2 `route.ts` |");
 md.push("| Base | Código na ramificação `main` |");
 md.push("| Companheiros | `Especificação de Requisitos de Software.md` · `README.md` |");
 md.push("| PDF | `docs/Organograma da Aplicação.pdf` |", "");
@@ -691,8 +698,9 @@ GRUPOS.forEach((g, gi) => {
 const conteudo = md.join("\n").replace(/\n{3,}/g, "\n\n").replace(/\n+$/, "\n");
 
 const nSvg = (conteudo.match(/<svg /g) || []).length;
-if (nSvg !== 1 + 3 + 30) {
-  console.error(`esperava 33 <svg> no documento, veio ${nSvg}`);
+const nEsperado = 1 + 3 + TODAS.length;
+if (nSvg !== nEsperado) {
+  console.error(`esperava ${nEsperado} <svg> no documento, veio ${nSvg}`);
   process.exit(1);
 }
 const semSvg = conteudo.replace(/<svg[\s\S]*?<\/svg>/g, "");

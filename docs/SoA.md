@@ -53,7 +53,7 @@ pessoas + 14 físicos + 34 tecnológicos). **Versão:** 1.0 — 2026-10-10.
 |---|---|---|---|
 | 8.2–8.4 | Acesso privilegiado, restrição, código-fonte | ✅ | Master só via env; gates por rota; repo com acesso controlado |
 | 8.5 | Autenticação segura | ✅ | `src/lib/auth.ts` + `form-email-senha.tsx`: mín 8, verificação obrigatória, anti-enumeração, anti-descartável (`email-validacao.ts`) |
-| 8.8 | Gestão de vulnerabilidades | 🔶 | `npm audit` antes de entregas; sem rotina agendada — fase 3 |
+| 8.8 | Gestão de vulnerabilidades | 🔶 | `npm audit` antes de entregas; 10/10/2026: Next 16.3.6→16.3.8 (SSRF GHSA-cjq9-62q9 corrigido), 7 high residuais na cadeia `braces/fast-glob` via ferramental dev (sem entrada de usuário alcançável) — aceitos; sem rotina agendada |
 | 8.9 | Gestão de configuração | ✅ | `next.config.ts` (headers, sem `poweredByHeader`); env fora do repo |
 | 8.10 | Eliminação de dados | ✅ | Exclusão de conta/turma em transação + notificação (`conta.ts`, `turmas.ts`) |
 | 8.13–8.14 | Backup e redundância | 🔶 | Herdados do Neon/Vercel; sem rotina própria nem RPO testado — risco R-04 |
