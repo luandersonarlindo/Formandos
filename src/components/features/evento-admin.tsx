@@ -86,7 +86,7 @@ export async function EventoAdmin() {
               />
               <p className="text-xs text-muted-foreground">Aparece no topo do dashboard, para todos os membros.</p>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="dataEvento" className={rotulo}>
                   <CalendarDays className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Início da festa
@@ -100,7 +100,7 @@ export async function EventoAdmin() {
                 <Input id="dataFimEvento" name="dataFimEvento" type="datetime-local" defaultValue={evento.dataFimLocal} className="h-10" />
               </div>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="localEvento" className={rotulo}>
                   <MapPin className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome do local
@@ -123,7 +123,7 @@ export async function EventoAdmin() {
                 Vira o botão “Como chegar”. Sem link, o botão usa o endereço (ou o nome do local) numa busca do Google Maps.
               </p>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="traje" className={rotulo}>
                   <Shirt className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Traje (opcional)
@@ -243,7 +243,7 @@ export async function EventoAdmin() {
             </summary>
             <div className="mt-4">
               <FormAcao acao={adicionarItemProgramacao} rotulo="Adicionar" rotuloPendente="Adicionando…">
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="horario">Data e hora</Label>
                     <Input id="horario" name="horario" type="datetime-local" className="h-10" required />

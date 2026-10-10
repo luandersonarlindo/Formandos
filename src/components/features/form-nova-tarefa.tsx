@@ -20,7 +20,7 @@ export function FormNovaTarefa({
   const [estado, acao, pendente] = useActionState(criarTarefa, inicial);
 
   return (
-    <form action={acao} className="grid gap-3 md:grid-cols-2">
+    <form action={acao} className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
       <div className="flex flex-col gap-1.5 md:col-span-2">
         <Label htmlFor="titulo">Título</Label>
         <Input

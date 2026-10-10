@@ -16,7 +16,7 @@ export function FormNovoFornecedor({ categorias }: { categorias: readonly string
   const [estado, acao, pendente] = useActionState(criarFornecedor, inicial);
 
   return (
-    <form action={acao} className="grid gap-3 md:grid-cols-2">
+    <form action={acao} className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nome">Nome</Label>
         <Input id="nome" name="nome" maxLength={255} required />

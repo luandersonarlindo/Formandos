@@ -140,8 +140,9 @@ export default async function ContaPage() {
                 Apaga a sua conta e os seus dados. Não dá para desfazer.
               </p>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="confirmacao" className="leading-normal">
-                  Digite o seu email, <strong>{user.email}</strong>, para confirmar
+                <Label htmlFor="confirmacao" className="block leading-normal">
+                  Digite o seu email, <strong className="wrap-break-word">{user.email}</strong>, para
+                  confirmar
                 </Label>
                 <Input id="confirmacao" name="confirmacao" autoComplete="off" className="h-10" required />
               </div>

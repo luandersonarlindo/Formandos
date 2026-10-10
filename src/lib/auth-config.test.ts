@@ -58,12 +58,12 @@ describe("config do auth por ambiente da Vercel", () => {
 
   it("soma as origens em vez de substituir a lista", async () => {
     process.env.VERCEL_ENV = "production";
-    process.env.LAN_ORIGIN = "http://10.0.0.112:3000";
+    process.env.LAN_ORIGIN = "http://192.0.2.10:3000";
     const { auth } = await carregarAuth();
     const origens = auth.options.trustedOrigins as string[];
     // A origem de LAN_ORIGIN não pode apagar o localhost, que é o default do dev.
     expect(origens).toContain("http://localhost:3000");
-    expect(origens).toContain("http://10.0.0.112:3000");
+    expect(origens).toContain("http://192.0.2.10:3000");
   });
 
   it("confia no proxy da Vercel para enxergar o host publico", async () => {
