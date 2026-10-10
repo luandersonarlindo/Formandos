@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { normalizarEmail, validarEmailCadastro } from "@/lib/email-validacao";
 
 export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
   const router = useRouter();
@@ -26,13 +27,23 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
   async function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const dados = new FormData(e.currentTarget);
-    const email = String(dados.get("email") ?? "").trim();
+    const email = normalizarEmail(String(dados.get("email") ?? ""));
     const senha = String(dados.get("senha") ?? "");
     const nome = String(dados.get("nome") ?? "").trim();
 
     setCarregando(true);
     setErro(null);
     setAviso(null);
+    // Barreira imediata no cadastro (descartável + erro de digitação). O
+    // servidor repete a checagem no hook de criação; aqui é só UX rápida.
+    if (criando) {
+      const valido = validarEmailCadastro(email);
+      if (!valido.ok) {
+        setErro(valido.erro);
+        setCarregando(false);
+        return;
+      }
+    }
     // O `try` não é sobre o `router.push`: ele não devolve promise, e quem
     // resolve a tela é a navegação. O que ele cobre é a rejeição do authClient
     // (rede caída, fetch recusado) — sem isso o `setCarregando(false)` nunca era
