@@ -5,6 +5,7 @@ import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { emailRemovidoDaTurma, enviarEmailSilencioso, urlDoSite } from "@/lib/email";
+import { registrarAuditoria } from "@/lib/auditoria";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
 import { dadosParaEmail } from "@/lib/usuarios";
 import type { EstadoForm } from "./tipos";
@@ -61,6 +62,14 @@ export async function alterarPapel(
       "update membros set papel = $1 where turma_id = $2 and usuario_id = $3",
       [papel, admin.turmaId, usuarioId],
     );
+    await registrarAuditoria(db, {
+      usuarioId: admin.usuarioId,
+      turmaId: admin.turmaId,
+      acao: "papel.trocado",
+      entidade: "membro",
+      entidadeId: usuarioId,
+      detalhe: { de: alvo.papel, para: papel },
+    });
     alterado = true;
   });
   revalidatePath("/admin/membros");
@@ -81,7 +90,17 @@ export async function removerMembro(formData: FormData) {
   if (!alvo) return;
 
   // Expulso da turma é apagar o rastro dela: votos, dúvidas, presença e upvotes.
-  await transacao((db) => removerMembroDaTurma(db, admin.turmaId, dados.data.usuarioId));
+  await transacao(async (db) => {
+    await removerMembroDaTurma(db, admin.turmaId, dados.data.usuarioId);
+    await registrarAuditoria(db, {
+      usuarioId: admin.usuarioId,
+      turmaId: admin.turmaId,
+      acao: "membro.removido",
+      entidade: "membro",
+      entidadeId: dados.data.usuarioId,
+      detalhe: { email: alvo.email, nome: alvo.name, por: "admin" },
+    });
+  });
   await enviarEmailSilencioso({
     para: alvo.email,
     ...emailRemovidoDaTurma(alvo.name, admin.turmaNome, urlDoSite("/dashboard")),

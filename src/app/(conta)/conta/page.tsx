@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { Download, MailQuestion, TriangleAlert } from "lucide-react";
 import { excluirMinhaConta, atualizarMeuNome } from "@/actions/conta";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { FormAcao } from "@/components/features/form-acao";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exigirSessao } from "@/lib/dal";
+import { DPO } from "@/lib/empresa";
 import { ehMaster } from "@/lib/master";
 import { getImpactoExclusaoConta } from "@/lib/usuarios";
 
@@ -56,6 +59,45 @@ export default async function ContaPage() {
               <p className="text-xs text-muted-foreground">Até 120 caracteres.</p>
             </div>
           </FormAcao>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <span className="mb-1 flex size-10 items-center justify-center rounded-lg border bg-muted/50 text-[var(--vitrine-a)]">
+            <Download className="size-5" aria-hidden />
+          </span>
+          <CardTitle className="text-lg">Baixar meus dados</CardTitle>
+          <CardDescription className="text-pretty">
+            Portabilidade (LGPD, art. 18): um JSON com sua conta, turmas, votos,
+            presenças, dúvidas, tarefas e avisos. Sem senha, sem token.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/conta/exportar" download className={buttonVariants({ variant: "outline" })}>
+            <Download className="size-4" aria-hidden /> Baixar JSON
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <span className="mb-1 flex size-10 items-center justify-center rounded-lg border bg-muted/50 text-[var(--vitrine-a)]">
+            <MailQuestion className="size-5" aria-hidden />
+          </span>
+          <CardTitle className="text-lg">Privacidade e DPO</CardTitle>
+          <CardDescription className="text-pretty">
+            Para acessar, corrigir, anonimizar ou reclamar dos seus dados, fale
+            com o encarregado: {DPO.nome} — {DPO.email}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <a href={`mailto:${DPO.email}`} className={buttonVariants({ variant: "outline" })}>
+            <MailQuestion className="size-4" aria-hidden /> Falar com o DPO
+          </a>
+          <Link href="/privacidade" className={buttonVariants({ variant: "ghost" })}>
+            Política de Privacidade
+          </Link>
         </CardContent>
       </Card>
 

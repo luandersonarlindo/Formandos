@@ -63,6 +63,82 @@ export async function dadosParaEmail(
   return rows[0];
 }
 
+// Portabilidade LGPD (art. 18, II e V): tudo que o app guarda da pessoa, num
+// objeto pronto para JSON. Lido em /conta/exportar (download). Sem senha,
+// sem hash, sem token: só dado da pessoa.
+export async function getMeusDados(usuarioId: string) {
+  const { rows: conta } = await pool.query(
+    `select name as nome, email, image as imagem,
+            "emailVerified" as email_verificado, "createdAt" as criada_em,
+            consentimento_em
+       from usuarios where id = $1`,
+    [usuarioId],
+  );
+  const { rows: turmas } = await pool.query(
+    `select t.nome as turma, m.papel, m.created_at as desde
+       from membros m join turmas t on t.id = m.turma_id
+      where m.usuario_id = $1 order by t.nome`,
+    [usuarioId],
+  );
+  const { rows: votos } = await pool.query(
+    `select t.nome as turma, cat.nome as categoria, e.titulo as pergunta,
+            o.texto as opcao, v.created_at as votado_em
+       from votos v
+       join turmas t on t.id = v.turma_id
+       join opcoes o on o.id = v.opcao_id
+       join enquetes e on e.id = o.enquete_id
+       join categorias cat on cat.id = e.categoria_id
+      where v.usuario_id = $1
+      order by v.created_at`,
+    [usuarioId],
+  );
+  const { rows: presencas } = await pool.query(
+    `select t.nome as turma, p.status, p.acompanhantes, p.observacao
+       from presencas p join turmas t on t.id = p.turma_id
+      where p.usuario_id = $1 order by t.nome`,
+    [usuarioId],
+  );
+  const { rows: duvidas } = await pool.query(
+    `select t.nome as turma, d.conteudo, d.resposta, d.respondida,
+            d.destaque, d.created_at as criada_em
+       from duvidas d join turmas t on t.id = d.turma_id
+      where d.autor_id = $1 order by d.created_at`,
+    [usuarioId],
+  );
+  const { rows: upvotes } = await pool.query(
+    `select t.nome as turma, d.conteudo as duvida, u.name as autor
+       from duvida_upvotes x
+       join duvidas d on d.id = x.duvida_id
+       join turmas t on t.id = d.turma_id
+       join usuarios u on u.id = d.autor_id
+      where x.usuario_id = $1 order by d.created_at`,
+    [usuarioId],
+  );
+  const { rows: tarefas } = await pool.query(
+    `select t.nome as turma, ta.titulo, ta.descricao, ta.status, ta.prazo
+       from tarefas ta join turmas t on t.id = ta.turma_id
+      where ta.responsavel_id = $1 order by ta.prazo nulls last, ta.created_at`,
+    [usuarioId],
+  );
+  const { rows: avisos } = await pool.query(
+    `select t.nome as turma, a.titulo, a.conteudo, a.created_at as criado_em
+       from avisos a join turmas t on t.id = a.turma_id
+      where a.autor_id = $1 order by a.created_at`,
+    [usuarioId],
+  );
+  return {
+    conta: conta[0] ?? null,
+    turmas,
+    votos,
+    presencas,
+    duvidas,
+    upvotes_dados: upvotes,
+    tarefas_responsavel: tarefas,
+    avisos_criados: avisos,
+    exportado_em: new Date().toISOString(),
+  };
+}
+
 export type ImpactoExclusaoConta = {
   // Turmas em que ele é o único administrador e há outros membros: impedem a exclusão.
   bloqueiam: string[];

@@ -163,9 +163,11 @@ await grupo("auth", async () => {
     await nav.preencher("#nome", "Novo Teste");
     await nav.preencher("#email", NOVO);
     await nav.preencher("#senha", "SenhaTeste123");
+    await nav.clicar("Li e aceito", { seletor: "label" });
     await nav.clicar("Criar conta", { seletor: "form button[type=submit]" });
     await nav.esperarTexto("Enviamos um link de confirmação");
     igual(sql(`select "emailVerified" from usuarios where email='${NOVO}'`), "f", "email ainda não confirmado");
+    igual(sql(`select (consentimento_em is not null)::int from usuarios where email='${NOVO}'`), "1", "aceite LGPD carimbado");
   });
   await passo("entrar antes de confirmar o email é bloqueado", async () => {
     await nav.abrir("/entrar");
@@ -193,7 +195,8 @@ await grupo("auth", async () => {
     await nav.esperarUrl("/dashboard");
     await nav.assentar();
     await nav.esperarTexto("A data do evento ainda não foi definida");
-    await nav.esperarTexto("A programação ainda não foi divulgada");
+    await nav.esperarTexto("Dados do evento");
+    await nav.esperarTexto("Nenhum item ainda");
     await nav.foto(`${TMP}/vazio-dashboard.png`);
     sql(`update turmas set codigo_convite='TESTENOVA01' where nome='Turma Nova Teste'`);
   });
