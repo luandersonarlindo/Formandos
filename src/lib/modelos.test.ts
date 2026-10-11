@@ -7,11 +7,16 @@ import { lerCatalogo, lerModelo } from "../../db/catalogo-md.mjs";
 // tela de perguntas impõe (src/actions/catalogos.ts).
 const docs = path.join(process.cwd(), "docs");
 const pastaModelos = path.join(docs, "catalogos-modelo");
+// Mesmo corte de src/lib/modelos.ts: o catálogo padrão não é um modelo.
+const NAO_E_MODELO = new Set(["catalogo-enquetes.md"]);
 
 const catalogos = [
-  { nome: "catálogo padrão", md: readFileSync(path.join(docs, "catalogo-enquetes.md"), "utf8") },
+  {
+    nome: "catálogo padrão",
+    md: readFileSync(path.join(pastaModelos, "catalogo-enquetes.md"), "utf8"),
+  },
   ...readdirSync(pastaModelos)
-    .filter((a) => a.endsWith(".md"))
+    .filter((a) => a.endsWith(".md") && !NAO_E_MODELO.has(a))
     .map((a) => ({ nome: a, md: readFileSync(path.join(pastaModelos, a), "utf8") })),
 ];
 

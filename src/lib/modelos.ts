@@ -24,8 +24,16 @@ export type Modelo = {
 
 const PASTA = path.join(process.cwd(), "docs", "catalogos-modelo");
 
+// O catálogo padrão mora na mesma pasta (docs/catalogos-modelo/catalogo-enquetes.md)
+// e é lido pelo seed, não é um modelo: entra pelo global, é somente leitura e
+// não tem bloco de descrição. Sem esta exclusão ele apareceria na tela "Novo
+// catálogo" como se fosse um perfil de turma.
+const NAO_E_MODELO = new Set(["catalogo-enquetes.md"]);
+
 export async function listarModelos(): Promise<Modelo[]> {
-  const arquivos = (await readdir(PASTA)).filter((a) => a.endsWith(".md")).sort();
+  const arquivos = (await readdir(PASTA))
+    .filter((a) => a.endsWith(".md") && !NAO_E_MODELO.has(a))
+    .sort();
   const modelos = await Promise.all(
     arquivos.map(async (arquivo) => ({
       slug: arquivo.slice(0, -3),

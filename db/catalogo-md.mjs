@@ -2,7 +2,7 @@
 // Usado pelo seed (db/seed.mjs) e pela tela "Novo catálogo" (src/lib/modelos.ts).
 
 // Lê as categorias, enquetes e opções de um documento no formato de
-// docs/catalogo-enquetes.md.
+// docs/catalogos-modelo/catalogo-enquetes.md.
 export function lerCatalogo(markdown) {
   const categorias = [];
   let categoria = null;

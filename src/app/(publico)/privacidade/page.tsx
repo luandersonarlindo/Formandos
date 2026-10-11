@@ -6,7 +6,7 @@ import { DPO, EMPRESA } from "@/lib/empresa";
 export const metadata: Metadata = { title: "Política de Privacidade" };
 
 // Política de Privacidade (LGPD). Texto curto e em PT direto: o detalhamento
-// jurídico fica em docs/legislacao.md. Pública de propósito: o titular lê
+// jurídico fica em docs/auditoria-direitos/legislacao.md. Pública de propósito: o titular lê
 // antes de criar a conta.
 export default function PrivacidadePage() {
   return (
@@ -72,7 +72,7 @@ export default function PrivacidadePage() {
             Senha com hash (nunca texto puro), email confirmado obrigatório,
             acesso por papéis (participante, administrador, master) e validação
             de toda entrada. Incidentes seguem a Política de Segurança
-            (`docs/PSI.md`), com comunicação à ANPD e aos titulares quando a lei
+            (`docs/auditoria-direitos/PSI.md`), com comunicação à ANPD e aos titulares quando a lei
             exigir.
           </p>
         </section>

@@ -1,4 +1,4 @@
-// Grava o catálogo padrão a partir de docs/catalogo-enquetes.md.
+// Grava o catálogo padrão a partir de docs/catalogos-modelo/catalogo-enquetes.md.
 // Se o catálogo ainda não existe, insere tudo. Se já existe, só acrescenta o que
 // falta (categorias, perguntas e opções) e atualiza ordem, tipo e exclusiva:
 // nada é apagado, então os votos já dados continuam valendo. Perguntas e
@@ -13,7 +13,7 @@ const NOME_CATALOGO = "Catálogo Padrão";
 const dry = process.argv.includes("--dry");
 
 const md = await readFile(
-  new URL("../docs/catalogo-enquetes.md", import.meta.url),
+  new URL("../docs/catalogos-modelo/catalogo-enquetes.md", import.meta.url),
   "utf8",
 );
 const categorias = lerCatalogo(md);
