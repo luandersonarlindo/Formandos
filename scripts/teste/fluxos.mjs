@@ -79,22 +79,29 @@ const nav = await iniciar({ base: process.env.BASE_URL ?? "http://localhost:3000
 const abrirDadosDoEvento = async () => {
   await nav.clicar("Editar dados do evento", { seletor: "button" });
 };
-// O formulario de pergunta e um unico painel no fim da pagina, e ele continua
-// aberto depois do envio. Cada clique no resumo alterna, entao so abre quando
-// precisa. Repetir porque o painel sobrevive ao re-render do servidor, mas o
-// clique pode cair enquanto a pagina ainda esta trocando, e o painel volta
-// fechado: aqui o erro seria só "sem-elemento" la embaixo, sem dizer o porque.
-const abrirFormularioDePergunta = async () => {
-  const estado = () =>
-    nav.ev(
-      "(() => { const d = [...document.querySelectorAll('details')].find(x=>x.querySelector('summary')?.textContent.includes('Adicionar pergunta')); return !d ? 'sem-painel' : d.open ? 'aberto' : 'fechado'; })()",
+// "Adicionar pergunta" mora no cabeçalho de cada categoria e abre um diálogo.
+// O mesmo texto de botão aparece em todas as seções, então o clique é feito
+// pelo h2 da categoria dentro do próprio <section>. O retry existe porque
+// logo após adicionar uma categoria a página ainda está re-renderizando.
+const abrirFormularioDePergunta = async (categoria) => {
+  const achar = async () => {
+    const alvo = categoria
+      ? `[...document.querySelectorAll('section')].find(s => s.querySelector('h2')?.textContent.trim() === ${JSON.stringify(categoria)})`
+      : "document.body";
+    return nav.ev(
+      `(() => { const s = ${alvo};
+        const b = s ? [...s.querySelectorAll('button')].find(x => x.textContent.trim() === 'Adicionar pergunta') : null;
+        if (!b) return false; b.click(); return true; })()`,
     );
+  };
   for (let i = 0; i < 20; i++) {
-    if ((await estado()) === "aberto") return;
-    await nav.clicar("Adicionar pergunta", { seletor: "summary" }).catch(() => {});
+    if (await achar()) {
+      await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, `diálogo de pergunta${categoria ? ` de ${categoria}` : ""}`);
+      return;
+    }
     await dormir(500);
   }
-  throw new Error("o formulario de pergunta nao abriu");
+  throw new Error(`botão "Adicionar pergunta" de "${categoria ?? "(primeira categoria)"}" não apareceu`);
 };
 const logsDesde = (n) => nav.logs.slice(n);
 // Os botões de exclusão abrem um diálogo antes de apagar. Clica no botão,
@@ -135,6 +142,17 @@ async function preencherEm(escopo, seletor, valor) {
     Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(valor)});
     el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
   if (!ok) throw new Error(`campo "${seletor}" não encontrado em "${escopo}"`);
+}
+
+// As opções não são mais um campo de texto com uma por linha: são linhas com
+// input próprio (editor-opcoes.tsx). Preenche a linha i de dentro do diálogo.
+async function preencherOpcoes(textos) {
+  for (let i = 0; i < textos.length; i++) {
+    if (i > 0) {
+      await nav.clicar("Adicionar opção", { escopo: "@[role=dialog]", seletor: "button" });
+    }
+    await preencherEm("@[role=dialog]", `[aria-label='Opção ${i + 1}']`, textos[i]);
+  }
 }
 
 const NOVO = "teste-novo@example.invalid";
@@ -779,42 +797,37 @@ await grupo("admin", async () => {
     igual(sql("select count(*) from catalogos where nome='Catálogo E2E Renomeado'"), "1", "renomeado");
     await nav.preencher("#nome-categoria", "Categoria E2E");
     await nav.clicar("Adicionar categoria", { seletor: "button" });
-    // Uma categoria só: o seletor some e a pergunta vai para a única categoria.
-    await abrirFormularioDePergunta();
+    // A pergunta é criada de dentro da categoria: sem seletor, porque o botão
+    // já sabe a que categoria pertence.
+    await abrirFormularioDePergunta("Categoria E2E");
     verdade(
-      !(await em("Adicionar pergunta", "!!raiz.querySelector('select[name=categoriaId]')")),
-      "sem seletor com uma categoria só",
+      !(await nav.ev("!!document.querySelector('[role=dialog] select[name=categoriaId]')")),
+      "sem seletor de categoria: o botão já diz em qual é",
     );
-    await preencherEm("Adicionar pergunta", "input[name=titulo]", "Qual cor da decoração?");
-    await preencherEm("Adicionar pergunta", "textarea[name=opcoes]", "Azul\nRosa\nDourado");
-    await nav.clicar("Adicionar pergunta", { seletor: "button", contem: false });
-    await nav.esperarTexto("Qual cor da decoração?");
+    igual(
+      await nav.ev("document.querySelector('[role=dialog] input[name=categoriaId]')?.value"),
+      sql("select id from categorias where nome='Categoria E2E'"),
+      "categoria fixa é a da seção",
+    );
+    await preencherEm("@[role=dialog]", "input[name=titulo]", "Qual cor da decoração?");
+    await preencherOpcoes(["Azul", "Rosa", "Dourado"]);
+    await nav.clicar("Adicionar pergunta", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await dormir(1800);
     igual(sql("select count(*) from opcoes o join enquetes e on e.id=o.enquete_id where e.titulo='Qual cor da decoração?'"), "3", "três opções");
     igual(
       sql("select k.nome from categorias k join enquetes e on e.categoria_id=k.id where e.titulo='Qual cor da decoração?'"),
       "Categoria E2E",
-      "a pergunta foi para a única categoria",
+      "a pergunta foi para a categoria do botão",
     );
-    // Duas categorias: o seletor aparece, e a pergunta tem que ir para a escolhida.
+    // Duas categorias: cada uma tem o seu botão, e a pergunta vai para a escolhida.
     await nav.preencher("#nome-categoria", "Outra E2E");
     await nav.clicar("Adicionar categoria", { seletor: "button" });
     await dormir(2000);
-    await abrirFormularioDePergunta();
-    await nav.esperar(
-      "!![...document.querySelectorAll('details')].find(d=>d.querySelector('summary')?.textContent.includes('Adicionar pergunta'))?.querySelector('select[name=categoriaId]')",
-      15000,
-      "seletor de categoria com duas categorias",
-    );
-    await preencherEm(
-      "Adicionar pergunta",
-      "select[name=categoriaId]",
-      await em("Adicionar pergunta", "[...raiz.querySelectorAll('select[name=categoriaId] option')].find(o=>o.textContent.trim()==='Outra E2E').value"),
-    );
-    await preencherEm("Adicionar pergunta", "input[name=titulo]", "Qual a música da abertura?");
-    await preencherEm("Adicionar pergunta", "textarea[name=opcoes]", "Samba\nAxé");
-    igual(await em("Adicionar pergunta", "raiz.querySelector('input[name=titulo]').value"), "Qual a música da abertura?", "o título foi para o formulário de adicionar, não para o de edição");
-    await nav.clicar("Adicionar pergunta", { seletor: "button", contem: false });
-    await nav.esperarTexto("Qual a música da abertura?");
+    await abrirFormularioDePergunta("Outra E2E");
+    await preencherEm("@[role=dialog]", "input[name=titulo]", "Qual a música da abertura?");
+    await preencherOpcoes(["Samba", "Axé"]);
+    await nav.clicar("Adicionar pergunta", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await dormir(1800);
     igual(
       sql("select k.nome from categorias k join enquetes e on e.categoria_id=k.id where e.titulo='Qual a música da abertura?'"),
       "Outra E2E",

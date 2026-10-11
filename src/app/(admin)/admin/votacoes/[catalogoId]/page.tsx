@@ -7,7 +7,6 @@ import {
   ListChecks,
   Lock,
   Pencil,
-  Plus,
   Trash2,
   Users,
 } from "lucide-react";
@@ -23,11 +22,11 @@ import {
   renomearCategoria,
 } from "@/actions/catalogos";
 import { EstadoVazio } from "@/components/features/estado-vazio";
+import { EditorOpcoes } from "@/components/features/editor-opcoes";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { DialogoNovaPergunta } from "@/components/features/dialogo-nova-pergunta";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormDialog } from "@/components/features/form-dialog";
-import { FormEnquete } from "@/components/features/form-enquete";
-import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,50 +81,75 @@ export default async function CatalogoAdminPage(
       )}
 
       {editavel && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Pencil className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome do catálogo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <FormDialog
-              rotulo="Renomear"
-              icone={<Pencil aria-hidden />}
-              titulo="Nome do catálogo"
-              descricao="Vale para todos os membros desta turma."
-              acao={renomearCatalogo}
-              campos={{ catalogoId: catalogo.id }}
-              rotuloSubmit="Renomear"
-              rotuloPendente="Salvando…"
-            >
-              <Input
-                name="nome"
-                defaultValue={catalogo.nome}
-                maxLength={255}
-                className="h-10"
-                required
-                aria-label="Nome do catálogo"
-              />
-            </FormDialog>
-            <div className="flex flex-col gap-2 rounded-lg border border-dashed border-destructive/40 p-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Apaga também todas as perguntas e os votos deste catálogo. Não dá para desfazer.
-              </p>
-              <ConfirmarExclusao
-                acao={excluirCatalogo}
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Pencil className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome do catálogo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <FormDialog
+                rotulo="Renomear"
+                icone={<Pencil aria-hidden />}
+                titulo="Nome do catálogo"
+                descricao="Vale para todos os membros desta turma."
+                acao={renomearCatalogo}
                 campos={{ catalogoId: catalogo.id }}
-                alvo="o catálogo"
-                nome={catalogo.nome}
-                aviso="Apaga também todas as perguntas e os votos deste catálogo."
-                rotulo="Excluir catálogo"
-                descricao={`Excluir o catálogo ${catalogo.nome}`}
-                icone={<Trash2 aria-hidden />}
-                className="self-start"
-              />
-            </div>
-          </CardContent>
-        </Card>
+                rotuloSubmit="Renomear"
+                rotuloPendente="Salvando…"
+              >
+                <Input
+                  name="nome"
+                  defaultValue={catalogo.nome}
+                  maxLength={255}
+                  className="h-10"
+                  required
+                  aria-label="Nome do catálogo"
+                />
+              </FormDialog>
+              <div className="flex flex-col gap-2 rounded-lg border border-dashed border-destructive/40 p-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Apaga também todas as perguntas e os votos deste catálogo. Não dá para desfazer.
+                </p>
+                <ConfirmarExclusao
+                  acao={excluirCatalogo}
+                  campos={{ catalogoId: catalogo.id }}
+                  alvo="o catálogo"
+                  nome={catalogo.nome}
+                  aviso="Apaga também todas as perguntas e os votos deste catálogo."
+                  rotulo="Excluir catálogo"
+                  descricao={`Excluir o catálogo ${catalogo.nome}`}
+                  icone={<Trash2 aria-hidden />}
+                  className="self-start"
+                />
+              </div>
+            </CardContent>
+          </Card>
+          {/* Fica no topo, e não no fim da página: num catálogo recém-criado a
+              única coisa a fazer é criar a primeira categoria, e ela aparecia
+              depois de tudo rolar. */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Folder className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nova categoria
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormAcao
+                acao={adicionarCategoria}
+                rotulo="Adicionar categoria"
+                rotuloPendente="Adicionando…"
+              >
+                <input type="hidden" name="catalogoId" value={catalogo.id} />
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="nome-categoria">Nome</Label>
+                  <Input id="nome-categoria" name="nome" maxLength={100} className="h-10" required />
+                </div>
+              </FormAcao>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* top-14, e nao top-0: o cabecalho do painel (app-shell.tsx) e
@@ -187,17 +211,26 @@ export default async function CatalogoAdminPage(
             ) : (
               <h2 className="text-lg font-semibold">{categoria.nome}</h2>
             )}
+            {/* "Adicionar pergunta" mora na categoria, não no fim da página:
+                com dez categorias o formulário único no rodapé obrigava a rolar
+                tudo e ainda escolher a categoria num dropdown. */}
             {editavel && (
-              <ConfirmarExclusao
-                acao={excluirCategoria}
-                campos={{ categoriaId: categoria.id }}
-                alvo="a categoria"
-                nome={categoria.nome}
-                aviso="Apaga também as perguntas e os votos desta categoria."
-                rotulo="Excluir categoria"
-                descricao={`Excluir a categoria ${categoria.nome}`}
-                icone={<Trash2 aria-hidden />}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <DialogoNovaPergunta
+                  categoria={{ id: categoria.id, nome: categoria.nome }}
+                  categorias={catalogo.categorias.map((c) => ({ id: c.id, nome: c.nome }))}
+                />
+                <ConfirmarExclusao
+                  acao={excluirCategoria}
+                  campos={{ categoriaId: categoria.id }}
+                  alvo="a categoria"
+                  nome={categoria.nome}
+                  aviso="Apaga também as perguntas e os votos desta categoria."
+                  rotulo="Excluir categoria"
+                  descricao={`Excluir a categoria ${categoria.nome}`}
+                  icone={<Trash2 aria-hidden />}
+                />
+              </div>
             )}
           </div>
 
@@ -290,32 +323,12 @@ export default async function CatalogoAdminPage(
                           </div>
                           <div className="flex flex-col gap-2">
                             <Label className="text-xs">Opções</Label>
-                            {e.opcoes.map((o) => (
-                              <div key={o.id} className="flex items-center gap-2">
-                                <Input name={`opcao-${o.id}`} defaultValue={o.texto} maxLength={255} className="h-9" aria-label={`Opção ${o.texto}`} required />
-                                <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                                  <input type="radio" name="exclusivaId" value={o.id} defaultChecked={o.exclusiva} />
-                                  Exclusiva
-                                </label>
-                                <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                                  <input type="checkbox" name={`remover-${o.id}`} />
-                                  Remover
-                                </label>
-                              </div>
-                            ))}
-                            <div className="flex items-center gap-2">
-                              <Input name="novaOpcao" placeholder="Nova opção (opcional)" maxLength={255} className="h-9" />
-                              <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                                <input type="radio" name="exclusivaId" value="nova" />
-                                Exclusiva
-                              </label>
-                            </div>
-                            <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <input type="radio" name="exclusivaId" value="" defaultChecked={!e.opcoes.some((o) => o.exclusiva)} />
-                              Nenhuma opção exclusiva
-                            </label>
+                            <EditorOpcoes
+                              modo="editar"
+                              tipo={e.tipo}
+                              opcoesIniciais={e.opcoes}
+                            />
                             <p className="text-xs text-muted-foreground">
-                              “Exclusiva” só vale em escolha múltipla: marcá-la desmarca as outras (ex.: “Nenhuma preferência”).
                               Uma opção só é removida se ainda não tiver voto.
                             </p>
                           </div>
@@ -329,46 +342,6 @@ export default async function CatalogoAdminPage(
           </ul>
         </section>
       ))}
-
-      {editavel && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Folder className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nova categoria
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormAcao acao={adicionarCategoria} rotulo="Adicionar categoria" rotuloPendente="Adicionando…">
-              <input type="hidden" name="catalogoId" value={catalogo.id} />
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="nome-categoria">Nome</Label>
-                <Input id="nome-categoria" name="nome" maxLength={100} className="h-10" required />
-              </div>
-            </FormAcao>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Um formulário só, aqui no fim, em vez de um repetido no fim de cada
-          categoria. Com dez categorias eram dez cópias do mesmo formulário
-          espalhadas pela página, e a pessoa tinha que rolar até a categoria
-          certa para adicionar uma pergunta. A categoria agora é escolhida
-          dentro do formulário. */}
-      {editavel && catalogo.categorias.length > 0 && (
-        <PainelRecolhivel className="group mt-4 rounded-xl border p-4">
-          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-            <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
-              <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
-            </span>
-            Adicionar pergunta
-          </summary>
-          <div className="mt-4">
-            <FormEnquete
-              categorias={catalogo.categorias.map((c) => ({ id: c.id, nome: c.nome }))}
-            />
-          </div>
-        </PainelRecolhivel>
-      )}
     </div>
   );
 }
