@@ -113,7 +113,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
 * **`/src/lib/dal.ts`:** *Data Access Layer* com as verificações centralizadas: `exigirSessao()`, `getMembro()`, `exigirMembro()`, `exigirAdmin()` e `exigirMaster()`. `src/lib/master.ts` decide quem é master e `src/lib/plataforma.ts` traz as consultas de todas as turmas.
 * **`/src/lib` (consultas e utilitários):** consultas de leitura por área (`votacoes.ts`, `relatorio.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `dashboard.ts`, `admin.ts`) e funções puras (`convite.ts`, `datas.ts`), estas com testes em `*.test.ts`.
-* **`/db`:** `migrate.mjs` (roda no `prebuild`: tabelas do Better Auth + `schema.sql`, idempotente), `schema.sql` (tabelas do domínio), `apply-schema.mjs`, `seed.mjs` (catálogo padrão, lido de `docs/catalogo-enquetes.md`) e `catalogo-md.mjs` (leitor dos catálogos em Markdown).
+* **`/db`:** `migrate.mjs` (roda no `prebuild`: tabelas do Better Auth + `schema.sql`, idempotente), `schema.sql` (tabelas do domínio), `apply-schema.mjs`, `seed.mjs` (catálogo padrão, lido de `docs/catalogos-modelo/catalogo-enquetes.md`) e `catalogo-md.mjs` (leitor dos catálogos em Markdown).
 * **`/docs`:** catálogo de enquetes, catálogos-modelo (`catalogos-modelo/`) e guia de estudo.
 
 ---
@@ -136,7 +136,7 @@ Inspirado no projeto **Letmeask (NLW-06)**, a área `/duvidas` possui as seguint
 
 O sistema trabalha com dois tipos de catálogo:
 
-* **Catálogo padrão:** pré-configurado, igual para todas as turmas e somente leitura. Está descrito em [`docs/catalogo-enquetes.md`](docs/catalogo-enquetes.md) (10 categorias e 23 perguntas). Cada turma decide em `/admin/votacoes` se usa ou não esse catálogo: **desligado, ele some das votações, do relatório, do painel e dos links já guardados, mas nada é apagado** (votos, enquetes e decisões continuam guardados e voltam a aparecer se a turma religar). Catálogos personalizados não são afetados por essa escolha.
+* **Catálogo padrão:** pré-configurado, igual para todas as turmas e somente leitura. Está descrito em [`docs/catalogos-modelo/catalogo-enquetes.md`](docs/catalogos-modelo/catalogo-enquetes.md) (10 categorias e 23 perguntas). Cada turma decide em `/admin/votacoes` se usa ou não esse catálogo: **desligado, ele some das votações, do relatório, do painel e dos links já guardados, mas nada é apagado** (votos, enquetes e decisões continuam guardados e voltam a aparecer se a turma religar). Catálogos personalizados não são afetados por essa escolha.
 * **Catálogos personalizados:** criados pelo administrador de uma turma, visíveis apenas para essa turma, com categorias e perguntas próprias. Podem começar do zero ou de um **modelo** pronto, em [`docs/catalogos-modelo/`](docs/catalogos-modelo): Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, e Cursos da Área da Saúde. O modelo é copiado para a turma e pode ser editado.
 
 As 10 categorias do catálogo padrão:
@@ -203,7 +203,7 @@ As 10 categorias do catálogo padrão:
    npm run db:migrate       # tabelas do Better Auth (usuarios, session, account, verification)
                                # + db/schema.sql (turmas, membros, catálogos, enquetes, votos, dúvidas…)
    npm run db:schema         # só o db/schema.sql, se preferir pular o passo anterior
-   npm run db:seed           # catálogo padrão, lido de docs/catalogo-enquetes.md
+   npm run db:seed           # catálogo padrão, lido de docs/catalogos-modelo/catalogo-enquetes.md
    ```
    Os comandos podem ser repetidos sem problema: só criam o que falta. O `db:migrate` usa `MIGRATION_DATABASE_URL` (conexão direta, sem `-pooler`); se a variável estiver vazia ele sai sem avisar erro, porque no deploy quem roda essa migração é o build da Vercel. O `db:seed` não duplica o catálogo e, se o Markdown ganhar perguntas ou opções, acrescenta as novas sem apagar nada (os votos já dados continuam valendo).
 
@@ -335,9 +335,9 @@ Substituir a lista em vez de somar é o que quebrava o login: a origem pública 
 * Tentativas de código de convite inválido são limitadas (10 a cada 15 minutos por utilizador). Não há limite de envio de dúvidas nem de votos por utilizador.
 * Cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS e CSP com `frame-ancestors 'none'`) configurados em `next.config.ts`.
 * Cadastro com aceite explícito de Termos e Privacidade (carimbo `consentimento_em`); email descartável e erro de digitação barrados no cliente e no servidor (`src/lib/email-validacao.ts` + pacote `disposable-domains` no hook do Better Auth).
-* LGPD na prática: `/privacidade` e `/termos` públicos, download dos dados em `/conta/exportar`, canal do DPO em `/conta`, eliminação em transação. Ver `docs/legislacao.md`.
-* Trilha de auditoria persistente (tabela `auditoria`, escrita em `src/lib/auditoria.ts`): troca de papel, remoção de membro, exclusão de conta e arquivar/desarquivar/excluir turma. Retenção de 5 anos. Ver `docs/auditoria.md`.
-* SGSI documentado: `docs/PSI.md`, `docs/SoA.md` (93 controles), `docs/riscos.md` (matriz P×I) e `docs/auditoria.md`.
+* LGPD na prática: `/privacidade` e `/termos` públicos, download dos dados em `/conta/exportar`, canal do DPO em `/conta`, eliminação em transação. Ver `docs/auditoria-direitos/legislacao.md`.
+* Trilha de auditoria persistente (tabela `auditoria`, escrita em `src/lib/auditoria.ts`): troca de papel, remoção de membro, exclusão de conta e arquivar/desarquivar/excluir turma. Retenção de 5 anos. Ver `docs/auditoria-direitos/auditoria.md`.
+* SGSI documentado: `docs/auditoria-direitos/PSI.md`, `docs/auditoria-direitos/SoA.md` (93 controles), `docs/auditoria-direitos/riscos.md` (matriz P×I) e `docs/auditoria-direitos/auditoria.md`.
 * Link "Pular para o conteúdo", títulos por página, tabela alternativa nos gráficos e mensagens de erro anunciadas para leitores de ecrã.
 * Telas de carregamento (`loading.tsx`), erro (`error.tsx`, `global-error.tsx`) e página não encontrada em português.
 

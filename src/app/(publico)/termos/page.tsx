@@ -6,7 +6,7 @@ import { DPO, EMPRESA } from "@/lib/empresa";
 export const metadata: Metadata = { title: "Termos de Uso" };
 
 // Termos de Uso. Públicos de propósito: aceitos no cadastro (checkbox) e
-// legíveis sem login. Detalhe jurídico em docs/legislacao.md.
+// legíveis sem login. Detalhe jurídico em docs/auditoria-direitos/legislacao.md.
 export default function TermosPage() {
   return (
     <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-3xl px-4 py-10 outline-none">

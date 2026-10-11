@@ -2,7 +2,7 @@
 
 Guia para quem está criando o primeiro projeto com Next.js e React. Cobre os assuntos que o projeto exige, na ordem em que aparecem, com o que estudar em cada etapa e onde ler.
 
-Fontes analisadas: `README.md`, `docs/catalogo-enquetes.md` e a documentação embarcada do Next.js instalado (`node_modules/next/dist/docs/`).
+Fontes analisadas: `README.md`, `docs/catalogos-modelo/catalogo-enquetes.md` e a documentação embarcada do Next.js instalado (`node_modules/next/dist/docs/`).
 
 > **Situação (26/09/2026):** o MVP está implementado (etapas 0 a 11 do roteiro da seção 4). O projeto **não será hospedado**: o código fica no GitHub e roda localmente. Este guia continua útil como material de estudo: cada assunto aponta para o arquivo do projeto onde ele foi aplicado.
 
@@ -36,7 +36,7 @@ Respostas às dúvidas levantadas na primeira versão deste guia.
 |---|---|---|
 | 1 | Biblioteca de autenticação | **Better Auth** (estável), no lugar do Auth.js/NextAuth, que segue em beta na v5. |
 | 2 | Login | "Entrar com Google" (OAuth, **gratuito**, ver abaixo) **e** e-mail e senha como alternativa, para quando o Google estiver indisponível. O e-mail precisa ser confirmado por link. Decisão posterior à versão inicial, que era só Google. |
-| 3 | Nomes das categorias | Seguem `docs/catalogo-enquetes.md`. README já ajustado. |
+| 3 | Nomes das categorias | Seguem `docs/catalogos-modelo/catalogo-enquetes.md`. README já ajustado. |
 | 4 | Pergunta neutra/negativa | É uma opção normal com marca `exclusiva`. Em pergunta múltipla, marcá-la desmarca as outras. |
 | 5 | Pergunta 5.2 | Passa a ser **Seleção Múltipla**. |
 | 6 | Typo em 8.2 | Corrigir para "Nenhum ritual protocolar". |
@@ -256,7 +256,7 @@ programacao     (id, turma_id, horario, titulo, descricao)                      
 |---|---|
 | `npm run db:auth` | Cria as tabelas do Better Auth (`usuarios`, `session`, `account`, `verification`). **Rodar primeiro.** |
 | `npm run db:schema` | Aplica `db/schema.sql` (13 tabelas do domínio). |
-| `npm run db:seed` | Insere o catálogo padrão (10 categorias, 23 enquetes, 129 opções) lendo `docs/catalogo-enquetes.md`; se já existir, acrescenta só o que falta. `-- --dry` só mostra o que leria. |
+| `npm run db:seed` | Insere o catálogo padrão (10 categorias, 23 enquetes, 129 opções) lendo `docs/catalogos-modelo/catalogo-enquetes.md`; se já existir, acrescenta só o que falta. `-- --dry` só mostra o que leria. |
 
 Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`. Isso permite testar em um banco descartável.
 
