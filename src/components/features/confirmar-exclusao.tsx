@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -121,37 +120,49 @@ export function ConfirmarExclusao({
               )}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" disabled={pendente} onClick={() => setAberto(false)}>
-              Cancelar
-            </Button>
-            <form action={formAcao} className="flex flex-col gap-2 sm:items-end">
-              {Object.entries(campos).map(([nomeCampo, valor]) => (
-                <input key={nomeCampo} type="hidden" name={nomeCampo} value={valor} />
-              ))}
-              {confirmacao && (
-                <div className="flex flex-col gap-1.5">
-                  <Label className="block leading-normal wrap-break-word">{confirmacao.rotulo}</Label>
-                  <Input
-                    name="confirmacao"
-                    autoComplete="off"
-                    className="h-10 w-full sm:w-72"
-                    value={digitado}
-                    onChange={(e) => setDigitado(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
-              <Button type="submit" variant="destructive" disabled={pendente || !confere}>
-                {pendente ? "Excluindo…" : confirmar}
-              </Button>
-            </form>
+          {/* Tudo que a ação precisa fica dentro do form, inclusive o campo de
+              confirmação: fora dele o valor não é enviado e o "Sim, excluir"
+              volta como não excluído. Os dois botões ficam lado a lado numa
+              linha própria; o Cancelar é type="button", então fecha o diálogo
+              sem submeter nada. */}
+          <form action={formAcao} className="flex flex-col gap-3">
+            {Object.entries(campos).map(([nomeCampo, valor]) => (
+              <input key={nomeCampo} type="hidden" name={nomeCampo} value={valor} />
+            ))}
+            {confirmacao && (
+              <div className="flex flex-col gap-1.5">
+                <Label className="block leading-normal wrap-break-word">
+                  {confirmacao.rotulo}
+                </Label>
+                <Input
+                  name="confirmacao"
+                  autoComplete="off"
+                  className="h-10 w-full"
+                  value={digitado}
+                  onChange={(e) => setDigitado(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             {estado.erro && (
-              <p role="alert" className="w-full text-sm text-destructive">
+              <p role="alert" className="text-sm text-destructive">
                 {estado.erro}
               </p>
             )}
-          </DialogFooter>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pendente}
+                onClick={() => setAberto(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" variant="destructive" disabled={pendente || !confere}>
+                {pendente ? "Excluindo…" : confirmar}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </>
