@@ -790,9 +790,10 @@ await grupo("admin", async () => {
     await nav.esperarUrl("/admin/votacoes/");
     await nav.assentar();
     await nav.esperarTexto("Catálogo E2E");
-    await nav.clicar("Renomear", { seletor: "button" });
-    await preencherEm("@[role=dialog]", "input[aria-label='Nome do catálogo']", "Catálogo E2E Renomeado");
-    await nav.clicar("Renomear", { escopo: "@[role=dialog]", seletor: "button" });
+    // Renomear é no lugar: abre o input ao lado do nome, salva sem diálogo.
+    await nav.clicar("Renomear o catálogo", { seletor: "button" });
+    await nav.preencher("input[aria-label='Nome novo do catálogo']", "Catálogo E2E Renomeado");
+    await nav.clicar("Salvar novo nome", { seletor: "button" });
     await dormir(1800);
     igual(sql("select count(*) from catalogos where nome='Catálogo E2E Renomeado'"), "1", "renomeado");
     await nav.preencher("#nome-categoria", "Categoria E2E");
@@ -838,6 +839,41 @@ await grupo("admin", async () => {
       "0",
       "nada foi parar na primeira categoria",
     );
+  });
+  await passo("reordenar: categoria e pergunta trocam de lugar", async () => {
+    const cat = sql("select id from catalogos where nome='Catálogo E2E Renomeado'");
+    const ordem = () =>
+      sql(`select string_agg(k.nome, ' > ' order by k.ordem) from categorias k where k.catalogo_id='${cat}'`);
+    igual(await ordem(), "Categoria E2E > Outra E2E", "ordem inicial");
+    // A primeira categoria não tem "Subir": o botão some na ponta da lista.
+    verdade(
+      !(await nav.ev("!![...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Subir') && [...document.querySelectorAll('section')].find(s => s.querySelector('h2')?.textContent.includes('Categoria E2E') && [...s.querySelectorAll('button')].some(b => b.getAttribute('aria-label') === 'Subir a categoria Categoria E2E'))")),
+      "a primeira categoria não pode subir",
+    );
+    await nav.clicar("Descer a categoria Categoria E2E", { seletor: "button" });
+    await dormir(1800);
+    igual(await ordem(), "Outra E2E > Categoria E2E", "categorias trocaram de lugar");
+    await nav.clicar("Descer a categoria Outra E2E", { seletor: "button" });
+    await dormir(1800);
+    igual(await ordem(), "Categoria E2E > Outra E2E", "voltou ao lugar de origem");
+
+    const perguntas = () =>
+      sql(`select string_agg(e.titulo, ' > ' order by e.ordem) from enquetes e
+             join categorias k on k.id = e.categoria_id where k.nome = 'Outra E2E'`);
+    igual(await perguntas(), "Qual a música da abertura?", "uma pergunta só, sem para onde descer");
+    verdade(
+      !(await nav.ev("!![...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Descer a pergunta Qual a música da abertura?')")),
+      "a única pergunta da categoria não tem botão de descer",
+    );
+    await abrirFormularioDePergunta("Outra E2E");
+    await preencherEm("@[role=dialog]", "input[name=titulo]", "Segunda pergunta E2E");
+    await preencherOpcoes(["Samba", "Axé"]);
+    await nav.clicar("Adicionar pergunta", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await dormir(1800);
+    igual(await perguntas(), "Qual a música da abertura? > Segunda pergunta E2E", "pergunta nova vai para o fim");
+    await nav.clicar("Subir a pergunta Segunda pergunta E2E", { seletor: "button" });
+    await dormir(1800);
+    igual(await perguntas(), "Segunda pergunta E2E > Qual a música da abertura?", "perguntas trocaram de lugar");
   });
   await passo("ver quem votou em uma pergunta", async () => {
     await nav.abrir(`/admin/votacoes/${idPadrao()}`);

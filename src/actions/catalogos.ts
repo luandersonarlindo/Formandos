@@ -252,6 +252,124 @@ export async function excluirCategoria(formData: FormData) {
   revalidarCatalogo();
 }
 
+// Reordenar --------------------------------------------------------------
+//
+// A ordem das categorias e das perguntas é a ordem em que a turma voto, então
+// sem isto so dava para anexar no fim e nunca corrigir.
+//
+// Botão ↑/↓ em vez de arrastar (WCAG 2.2 SC 2.5.7 e G219): arrastar e
+// inacessivel sem teclado e ruim no celular. Com botão, nem precisa existir
+// alternativa.
+//
+// A troca e de dois vizinhos e a lista e renumerada inteira. A lista e curta
+// (no maximo 20 categorias, 50 perguntas por categoria), entao o custo e
+// irrelevante e o codigo fica sem aritmetica de espacos. O `ordem` guarda o
+// passo (PASSO) para deixar lugar degrow sem mexer nos vizinhos.
+
+const PASSO = 1024;
+
+export async function moverCategoria(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = z
+    .object({ categoriaId: z.uuid(), direcao: z.enum(["cima", "baixo"]) })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: "Dados inválidos." };
+  const { categoriaId, direcao } = dados.data;
+
+  const resultado = await transacao(async (db) => {
+    // Filtra pela turma do admin: o catálogo padrão (turma_id nulo) fica de
+    // fora, e o lock garante que dois movimentos seguidos não se cruzem.
+    const { rows: alvo } = await db.query(
+      `select ca.nome, ca.catalogo_id
+         from categorias ca
+         join catalogos c on c.id = ca.catalogo_id
+        where ca.id = $1 and c.turma_id = $2
+        for update of ca`,
+      [categoriaId, admin.turmaId],
+    );
+    if (alvo.length === 0) return { erro: "Categoria não encontrada." };
+
+    const { rows: lista } = await db.query(
+      "select id from categorias where catalogo_id = $1 order by ordem, id",
+      [alvo[0].catalogo_id],
+    );
+    // O mesmo array é trocado e regravado: se a troca fosse numa cópia, o
+    // laço abaixo escreveria a ordem antiga de volta e nada mudaria.
+    const ids = lista.map((l) => l.id);
+    const posicao = trocarNaLista(ids, categoriaId, direcao === "cima");
+    if (posicao === null) return { ok: `“${alvo[0].nome}” já está na ponta.` };
+
+    for (const [i, id] of ids.entries()) {
+      await db.query("update categorias set ordem = $1 where id = $2", [i * PASSO, id]);
+    }
+    return { ok: `“${alvo[0].nome}” agora é a ${posicao + 1}ª categoria.` };
+  });
+
+  if ("erro" in resultado) return resultado;
+  revalidarCatalogo();
+  return resultado;
+}
+
+export async function moverEnquete(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = z
+    .object({ enqueteId: z.uuid(), direcao: z.enum(["cima", "baixo"]) })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: "Dados inválidos." };
+  const { enqueteId, direcao } = dados.data;
+
+  const resultado = await transacao(async (db) => {
+    const { rows: alvo } = await db.query(
+      `select e.titulo, e.categoria_id
+         from enquetes e
+         join categorias ca on ca.id = e.categoria_id
+         join catalogos c on c.id = ca.catalogo_id
+        where e.id = $1 and c.turma_id = $2
+        for update of e`,
+      [enqueteId, admin.turmaId],
+    );
+    if (alvo.length === 0) return { erro: "Pergunta não encontrada." };
+
+    const { rows: lista } = await db.query(
+      "select id from enquetes where categoria_id = $1 order by ordem, id",
+      [alvo[0].categoria_id],
+    );
+    const ids = lista.map((l) => l.id);
+    const posicao = trocarNaLista(ids, enqueteId, direcao === "cima");
+    if (posicao === null) return { ok: `“${alvo[0].titulo}” já está na ponta.` };
+
+    for (const [i, id] of ids.entries()) {
+      await db.query("update enquetes set ordem = $1 where id = $2", [i * PASSO, id]);
+    }
+    return { ok: `“${alvo[0].titulo}” agora é a ${posicao + 1}ª pergunta da categoria.` };
+  });
+
+  if ("erro" in resultado) return resultado;
+  revalidarCatalogo();
+  return resultado;
+}
+
+// Troca o item de lugar com o vizinho e devolve a nova posição (base 0), ou null
+// se ele ja esta na ponta. Muta a lista recebida.
+function trocarNaLista(
+  ids: string[],
+  id: string,
+  paraCima: boolean,
+): number | null {
+  const posicao = ids.indexOf(id);
+  if (posicao < 0) return null;
+  const destino = posicao + (paraCima ? -1 : 1);
+  if (destino < 0 || destino >= ids.length) return null;
+  ids[posicao] = ids[destino];
+  ids[destino] = id;
+  return destino;
+}
 // Opções chegam como texto, uma por linha. A opção "exclusiva" (ex.: "Sem
 // preferência") só vale em pergunta de múltipla escolha e vai por último.
 export async function adicionarEnquete(

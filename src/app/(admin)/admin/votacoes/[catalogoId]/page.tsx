@@ -18,15 +18,19 @@ import {
   excluirCatalogo,
   excluirCategoria,
   excluirEnquete,
+  moverCategoria,
+  moverEnquete,
   renomearCatalogo,
   renomearCategoria,
 } from "@/actions/catalogos";
+import { BotaoMover } from "@/components/features/botao-mover";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { EditorOpcoes } from "@/components/features/editor-opcoes";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { DialogoNovaPergunta } from "@/components/features/dialogo-nova-pergunta";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormDialog } from "@/components/features/form-dialog";
+import { RenomearInline } from "@/components/features/renomear-inline";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,29 +89,17 @@ export default async function CatalogoAdminPage(
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Pencil className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome do catálogo
+                <Folder className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Nome do catálogo
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <FormDialog
-                rotulo="Renomear"
-                icone={<Pencil aria-hidden />}
-                titulo="Nome do catálogo"
-                descricao="Vale para todos os membros desta turma."
+              <RenomearInline
+                valor={catalogo.nome}
                 acao={renomearCatalogo}
                 campos={{ catalogoId: catalogo.id }}
-                rotuloSubmit="Renomear"
-                rotuloPendente="Salvando…"
-              >
-                <Input
-                  name="nome"
-                  defaultValue={catalogo.nome}
-                  maxLength={255}
-                  className="h-10"
-                  required
-                  aria-label="Nome do catálogo"
-                />
-              </FormDialog>
+                rotuloBotao="Renomear o catálogo"
+                rotuloCampo="Nome novo do catálogo"
+              />
               <div className="flex flex-col gap-2 rounded-lg border border-dashed border-destructive/40 p-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-xs text-muted-foreground">
                   Apaga também todas as perguntas e os votos deste catálogo. Não dá para desfazer.
@@ -186,28 +178,15 @@ export default async function CatalogoAdminPage(
         <section key={categoria.id} id={`cat-${categoria.id}`} className="mt-8 scroll-mt-16">
           <div className="flex flex-wrap items-center justify-between gap-2">
             {editavel ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-semibold">{categoria.nome}</h2>
-                <FormDialog
-                  rotulo="Renomear"
-                  icone={<Pencil aria-hidden />}
-                  titulo="Nome da categoria"
-                  descricao="Vale para todos os membros desta turma."
+              <h2 className="text-lg font-semibold">
+                <RenomearInline
+                  valor={categoria.nome}
                   acao={renomearCategoria}
                   campos={{ categoriaId: categoria.id }}
-                  rotuloSubmit="Salvar"
-                  rotuloPendente="Salvando…"
-                >
-                  <Input
-                    name="nome"
-                    defaultValue={categoria.nome}
-                    maxLength={100}
-                    className="h-10"
-                    aria-label={`Nome da categoria ${categoria.nome}`}
-                    required
-                  />
-                </FormDialog>
-              </div>
+                  rotuloBotao={`Renomear a categoria ${categoria.nome}`}
+                  rotuloCampo={`Nome novo da categoria ${categoria.nome}`}
+                />
+              </h2>
             ) : (
               <h2 className="text-lg font-semibold">{categoria.nome}</h2>
             )}
@@ -216,6 +195,22 @@ export default async function CatalogoAdminPage(
                 tudo e ainda escolher a categoria num dropdown. */}
             {editavel && (
               <div className="flex flex-wrap items-center gap-2">
+                <BotaoMover
+                  acao={moverCategoria}
+                  id={categoria.id}
+                  tipo="categoria"
+                  nome={categoria.nome}
+                  direcao="cima"
+                  desabilitado={catalogo.categorias[0].id === categoria.id}
+                />
+                <BotaoMover
+                  acao={moverCategoria}
+                  id={categoria.id}
+                  tipo="categoria"
+                  nome={categoria.nome}
+                  direcao="baixo"
+                  desabilitado={catalogo.categorias.at(-1)?.id === categoria.id}
+                />
                 <DialogoNovaPergunta
                   categoria={{ id: categoria.id, nome: categoria.nome }}
                   categorias={catalogo.categorias.map((c) => ({ id: c.id, nome: c.nome }))}
@@ -275,16 +270,34 @@ export default async function CatalogoAdminPage(
                         <Eye className="size-3.5" aria-hidden /> Ver quem votou
                       </Link>
                       {editavel && (
-                        <ConfirmarExclusao
-                          acao={excluirEnquete}
-                          campos={{ enqueteId: e.id }}
-                          alvo="a pergunta"
-                          nome={e.titulo}
-                          aviso="Apaga também as opções e os votos desta pergunta."
-                          rotulo="Excluir pergunta"
-                          descricao={`Excluir a pergunta ${e.titulo}`}
-                          icone={<Trash2 aria-hidden />}
-                        />
+                        <>
+                          <BotaoMover
+                            acao={moverEnquete}
+                            id={e.id}
+                            tipo="pergunta"
+                            nome={e.titulo}
+                            direcao="cima"
+                            desabilitado={categoria.enquetes[0].id === e.id}
+                          />
+                          <BotaoMover
+                            acao={moverEnquete}
+                            id={e.id}
+                            tipo="pergunta"
+                            nome={e.titulo}
+                            direcao="baixo"
+                            desabilitado={categoria.enquetes.at(-1)?.id === e.id}
+                          />
+                          <ConfirmarExclusao
+                            acao={excluirEnquete}
+                            campos={{ enqueteId: e.id }}
+                            alvo="a pergunta"
+                            nome={e.titulo}
+                            aviso="Apaga também as opções e os votos desta pergunta."
+                            rotulo="Excluir pergunta"
+                            descricao={`Excluir a pergunta ${e.titulo}`}
+                            icone={<Trash2 aria-hidden />}
+                          />
+                        </>
                       )}
                     </div>
 
