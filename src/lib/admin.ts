@@ -24,7 +24,10 @@ export type CatalogoAdmin = {
   enquetes: number;
 };
 
-export type OpcaoAdmin = { id: string; texto: string; exclusiva: boolean };
+// `votos` é a trava de remoção: o servidor só apaga uma opção sem voto nenhum
+// (atualizarEnquete), e o editor precisa mostrar a mesma trava em vez de
+// fingir que a opção vai sumir.
+export type OpcaoAdmin = { id: string; texto: string; exclusiva: boolean; votos: number };
 export type EnqueteAdmin = {
   id: string;
   titulo: string;
@@ -107,12 +110,14 @@ export async function getCatalogoAdmin(
       [catalogoId],
     ),
     pool.query(
-      `select o.id, o.enquete_id, o.texto, o.exclusiva
+      `select o.id, o.enquete_id, o.texto, o.exclusiva,
+              (select count(*) from votos v
+                where v.opcao_id = o.id and v.turma_id = $2)::int as votos
          from opcoes o
          join enquetes e on e.id = o.enquete_id
          join categorias ca on ca.id = e.categoria_id
         where ca.catalogo_id = $1 order by o.ordem`,
-      [catalogoId],
+      [catalogoId, turmaId],
     ),
     pool.query(
       `select o.enquete_id, count(distinct v.usuario_id)::int as n
@@ -141,7 +146,7 @@ export async function getCatalogoAdmin(
           votantes: n.get(e.id) ?? 0,
           opcoes: opcoes.rows
             .filter((o) => o.enquete_id === e.id)
-            .map((o) => ({ id: o.id, texto: o.texto, exclusiva: o.exclusiva })),
+            .map((o) => ({ id: o.id, texto: o.texto, exclusiva: o.exclusiva, votos: o.votos })),
         })),
     })),
   };
