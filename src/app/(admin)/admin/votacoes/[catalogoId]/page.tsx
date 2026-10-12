@@ -259,7 +259,7 @@ export default async function CatalogoAdminPage(
                 <Card>
                   <CardContent className="flex flex-col gap-3">
                     <div>
-                      <p className="font-medium">{e.titulo}</p>
+                      <p className="font-medium wrap-break-word">{e.titulo}</p>
                       <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1.5">
                           {e.tipo === "unica" ? (
