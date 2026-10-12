@@ -137,10 +137,11 @@ export function ConfirmarExclusao({
             ))}
             {confirmacao && (
               <div className="flex flex-col gap-1.5">
-                <Label className="block leading-normal wrap-break-word">
+                <Label htmlFor="confirmacao" className="block leading-normal wrap-break-word">
                   {confirmacao.rotulo}
                 </Label>
                 <Input
+                  id="confirmacao"
                   name="confirmacao"
                   autoComplete="off"
                   className="h-10 w-full"
