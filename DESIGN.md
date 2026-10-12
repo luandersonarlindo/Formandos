@@ -209,7 +209,7 @@ Concrete guardrails grounded in the implemented system.
 - **Do** build every color from semantic tokens; the only hex values in app UI are the two validated chart blues.
 - **Do** keep body-text contrast at or above 4.5:1 in both themes; the observed pairs (body, muted, primary-on-white-text, destructive) all pass.
 - **Do** grow touch targets on coarse pointers using the established pattern; the floor is a full 44px for any new control.
-- **Do** gate entrance animation behind reduced-motion checks and always leave a no-JS, no-animation path that shows content.
+- **Do** gate entrance animation behind reduced-motion checks and always leave a no-JS, no-animation path that shows content — including when the bundle itself fails to load (safety timer plus mount signal).
 - **Do** keep the skip-link target (`id="conteudo"`) on exactly one content landmark per route layout.
 
 ### Don't:
