@@ -119,9 +119,23 @@ export function GraficoEnquete({ opcoes }: { opcoes: OpcaoRelatorio[] }) {
     rotulo: `${o.votos} · ${Math.round(o.percentual)}%`,
   }));
   const altura = dados.length * alturaLinha + 8;
+  // Resumo textual dos resultados: com role="img" o SVG vira presentacional e
+  // o leitor de tela anuncia os dados sem precisar abrir a tabela abaixo.
+  const resumo = opcoes
+    .map(
+      (o) =>
+        `${o.texto}: ${o.votos} ${o.votos === 1 ? "voto" : "votos"} (${Math.round(o.percentual)}%)`,
+    )
+    .join("; ");
 
   return (
-    <div ref={ref} className="w-full" style={{ height: altura }} aria-hidden>
+    <div
+      ref={ref}
+      className="w-full"
+      style={{ height: altura }}
+      role="img"
+      aria-label={`Resultados da enquete. ${resumo}`}
+    >
       {largura > 0 && (
         <BarChart
           width={largura}
