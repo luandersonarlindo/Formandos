@@ -163,7 +163,7 @@ Filter and toolbar rows scroll horizontally on narrow screens with hidden scroll
 
 - **Card rest** (`shadow-sm` plus a 10%-opacity foreground ring): the default card treatment — a hairline ring does the separation work, the shadow is barely there.
 - **Vitrine hover** (translate up 4px with a tinted indigo shadow): cards on the marketing page lift on hover; app cards never lift.
-- **Overlay scrims** (black at 40% behind dialogs, 10% behind sheets): dimmers that isolate modal content. The two values differ today; do not invent a third until they are unified.
+- **Overlay scrim** (black at 40%): the single dimmer behind dialogs and sheets, isolating modal content.
 - **Focus glow** (3px ring at 50% ring color plus a 3px solid global outline): keyboard focus is deliberately double-marked and visible on every control, including TV D-pad navigation.
 
 ## Shapes
@@ -216,6 +216,6 @@ Concrete guardrails grounded in the implemented system.
 
 - **Don't** hardcode gray, white, or black utilities in app UI; illustration fills and email templates are the only sanctioned exceptions.
 - **Don't** set gradient text on functional headings or metrics; the vitrine hero title is the single exception.
-- **Don't** build a second chart series on the `--chart-*` tokens; they are dead, all-gray, and the lightest is near-invisible on white.
+- **Don't** add a second chart series without a validated color; the dead gray `--chart-*` tokens were removed, and `--viz-serie-1` covers the single series.
 - **Don't** nest landmarks (a `main` inside a `main`) or label plain paragraphs and divs with `aria-label`; assistive technology ignores both.
 - **Don't** add new overlay scrim opacities; the single 40% scrim covers dialogs and sheets.

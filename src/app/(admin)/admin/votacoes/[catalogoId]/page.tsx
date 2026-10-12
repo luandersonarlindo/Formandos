@@ -36,6 +36,7 @@ import { RenomearInline } from "@/components/features/renomear-inline";
 import { RolarParaPerguntaCriada } from "@/components/features/rolar-para-pergunta-criada";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -290,12 +291,11 @@ export default async function CatalogoAdminPage(
                         o "Editar pergunta": na tela a divisória extra repetida
                         em cada pergunta pesava mais que as próprias opções. */}
                     <div className="flex flex-wrap items-center gap-1 border-t pt-2">
-                      <Link
-                        href={`/admin/votacoes/votos/${e.id}`}
-                        className="inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-[0.8rem] font-medium transition-colors hover:bg-muted"
-                      >
-                        <Eye className="size-3.5" aria-hidden /> Ver quem votou
-                      </Link>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/admin/votacoes/votos/${e.id}`}>
+                          <Eye className="size-3.5" aria-hidden /> Ver quem votou
+                        </Link>
+                      </Button>
                       <PreviaEnquete
                         titulo={e.titulo}
                         tipo={e.tipo}
