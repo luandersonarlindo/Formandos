@@ -63,6 +63,20 @@ export const auth = betterAuth({
     trustedProxyHeaders: true,
     database: { generateId: "uuid" },
   },
+  // Sessão: vale no máximo 3 dias, e renova por mais 3 quando usada depois de
+  // 1 dia parada. 7 dias (padrão) era tempo demais para equipamento
+  // compartilhado (biblioteca, faculdade, trabalho): quem esquece a conta
+  // aberta deixa a porta aberta por uma semana.
+  //
+  // `freshAge` de propósito não entra: ele é medido da CRIAÇÃO da sessão
+  // (não da inatividade) e só vale nos endpoints sensíveis do Better Auth
+  // (listar/revogar sessões, excluir conta via better-auth) — que o app não
+  // usa. A exclusão de conta passa por SQL próprio (`conta.ts`), então mexer
+  // no `freshAge` não mudaria nada aqui.
+  session: {
+    expiresIn: 60 * 60 * 24 * 3,
+    updateAge: 60 * 60 * 24,
+  },
   // A tabela de usuários do Better Auth se chama `usuarios` (e não `user`,
   // que é palavra reservada no PostgreSQL).
   user: { modelName: "usuarios" },
