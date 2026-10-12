@@ -63,7 +63,8 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
-          <p
+          <div
+            role="img"
             aria-label={`Código de convite: ${codigo}`}
             className="flex flex-wrap gap-2"
           >
@@ -76,7 +77,7 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
                 {letra}
               </span>
             ))}
-          </p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <BotaoCopiar texto={codigo} rotulo="Copiar código" />
             <BotaoConvite nomeTurma={admin.turmaNome} codigo={codigo} />
