@@ -24,7 +24,7 @@ export default async function ContaLayout({ children }: { children: React.ReactN
           </div>
         </div>
       </header>
-      <div className="mx-auto flex w-full max-w-4xl 2xl:max-w-6xl flex-1 flex-col p-4 md:p-8">
+      <main id="conteudo" tabIndex={-1} className="mx-auto flex w-full max-w-4xl 2xl:max-w-6xl flex-1 flex-col p-4 outline-none md:p-8">
         <Link
           href={vinculos.length > 0 ? "/dashboard" : "/convite"}
           className="mb-6 inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -32,7 +32,7 @@ export default async function ContaLayout({ children }: { children: React.ReactN
           <ArrowLeft className="size-4" aria-hidden /> {vinculos.length > 0 ? "Voltar para a turma" : "Voltar"}
         </Link>
         <AnimarPagina>{children}</AnimarPagina>
-      </div>
+      </main>
     </div>
   );
 }
