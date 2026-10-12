@@ -100,17 +100,17 @@ export function FormEnquete({
           Escolha múltipla
         </label>
       </fieldset>
-      <div className="flex flex-col gap-1.5">
-        <Label>Opções (de 2 a 12)</Label>
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1.5 p-0 text-sm font-medium">Opções (de 2 a 12)</legend>
         <EditorOpcoes modo="nova" tipo={tipo} />
-      </div>
+      </fieldset>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="sm" disabled={pendente}>
           {pendente && <LoaderCircle className="animate-spin" aria-hidden />}
           {pendente ? "Adicionando…" : "Adicionar pergunta"}
         </Button>
         <p
-          role="status"
+          role={estado.erro ? "alert" : "status"}
           className={estado.erro ? "text-sm text-destructive" : "text-sm text-muted-foreground"}
         >
           {estado.erro ?? estado.ok}

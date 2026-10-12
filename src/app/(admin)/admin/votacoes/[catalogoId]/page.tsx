@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowLeft,
   CircleDot,
@@ -41,6 +42,17 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { getCatalogoAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
+
+export async function generateMetadata(
+  props: PageProps<"/admin/votacoes/[catalogoId]">,
+): Promise<Metadata> {
+  const admin = await exigirAdmin();
+  const { catalogoId } = await props.params;
+  if (!z.uuid().safeParse(catalogoId).success) return {};
+  const catalogo = await getCatalogoAdmin(catalogoId, admin.turmaId);
+  if (!catalogo) return {};
+  return { title: `Gerenciar ${catalogo.nome}` };
+}
 
 export default async function CatalogoAdminPage(
   props: PageProps<"/admin/votacoes/[catalogoId]">,
@@ -325,8 +337,8 @@ export default async function CatalogoAdminPage(
                                 </NativeSelect>
                               )}
                             </div>
-                            <div className="flex flex-col gap-2">
-                              <Label className="text-xs">Opções</Label>
+                            <fieldset className="flex flex-col gap-2">
+                              <legend className="mb-1 p-0 text-xs font-medium">Opções</legend>
                               <EditorOpcoes
                                 modo="editar"
                                 tipo={e.tipo}
@@ -335,7 +347,7 @@ export default async function CatalogoAdminPage(
                               <p className="text-xs text-muted-foreground">
                                 Uma opção só é removida se ainda não tiver voto.
                               </p>
-                            </div>
+                            </fieldset>
                           </FormDialog>
                           {/* Agrupa as ações de posição e exclusão à direita: são
                               usadas de vez em quando, e no meio ficavam

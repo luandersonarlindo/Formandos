@@ -41,7 +41,7 @@ export function FormNovoAviso() {
           {pendente ? <LoaderCircle className="animate-spin" aria-hidden /> : <Send aria-hidden />}
           {pendente ? "Publicando…" : "Publicar aviso"}
         </Button>
-        <p role="status" className={estado.erro ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
+        <p role={estado.erro ? "alert" : "status"} className={estado.erro ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
           {estado.erro ?? estado.ok}
         </p>
       </div>

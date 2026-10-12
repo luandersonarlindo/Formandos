@@ -47,7 +47,7 @@ export function FormNovaDuvida() {
           {pendente ? "Enviando…" : "Enviar dúvida"}
         </Button>
         <p
-          role="status"
+          role={estado.erro ? "alert" : "status"}
           className={
             estado.erro
               ? "text-sm text-destructive"

@@ -73,7 +73,7 @@ export function FormAcao({
           {pendente ? rotuloPendente : rotulo}
         </Button>
         <p
-          role="status"
+          role={estado.erro ? "alert" : "status"}
           className={
             estado.erro
               ? "text-sm text-destructive"

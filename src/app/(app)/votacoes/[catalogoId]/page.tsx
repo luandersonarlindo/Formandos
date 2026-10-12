@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -8,6 +9,17 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
 import { getCatalogoParaVotar } from "@/lib/votacoes";
+
+export async function generateMetadata(
+  props: PageProps<"/votacoes/[catalogoId]">,
+): Promise<Metadata> {
+  const membro = await exigirMembro();
+  const { catalogoId } = await props.params;
+  if (!z.uuid().safeParse(catalogoId).success) return {};
+  const catalogo = await getCatalogoParaVotar(catalogoId, membro);
+  if (!catalogo) return {};
+  return { title: catalogo.nome };
+}
 
 export default async function CatalogoPage(
   props: PageProps<"/votacoes/[catalogoId]">,
@@ -43,7 +55,7 @@ export default async function CatalogoPage(
       <Card className="vitrine-fundo-hero mt-4">
         <CardHeader>
           <CardDescription>Seu progresso neste catálogo</CardDescription>
-          <CardTitle className="text-2xl tabular-nums">
+          <CardTitle role="status" className="text-2xl tabular-nums">
             <span data-contar={respondidas}>{respondidas}</span>{" "}
             <span className="text-base font-normal text-muted-foreground">
               de {enquetes.length} respondidas

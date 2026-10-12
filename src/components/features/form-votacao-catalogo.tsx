@@ -112,7 +112,7 @@ export function FormVotacaoCatalogo({
         <div className="sticky bottom-3 z-20 mt-6">
           <Card className="mx-auto max-w-3xl border bg-background/90 backdrop-blur">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <p className="text-sm font-medium">
+              <p role="status" className="text-sm font-medium">
                 {respondidas} de {enquetes.length} respondidas
               </p>
               <div className="flex flex-wrap items-center gap-3">
@@ -125,7 +125,7 @@ export function FormVotacaoCatalogo({
                   {pendente ? "Salvando…" : "Salvar tudo"}
                 </Button>
                 <p
-                  role="status"
+                  role={estado.erro ? "alert" : "status"}
                   className={
                     estado.erro
                       ? "text-sm text-destructive"

@@ -38,6 +38,11 @@ export function BotaoUpvote({
     >
       <ThumbsUp className="size-4" aria-hidden />
       <span className="text-sm font-semibold tabular-nums">{otimista.votos}</span>
+      {/* O aria-label do botão mascara a contagem; esta região anuncia a
+          mudança de votos, no padrão do BotaoCopiar. */}
+      <span role="status" className="sr-only">
+        {otimista.votos} {otimista.votos === 1 ? "voto" : "votos"}
+      </span>
     </button>
   );
 }

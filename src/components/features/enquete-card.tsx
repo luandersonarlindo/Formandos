@@ -40,7 +40,7 @@ export function EnqueteCard({
               </Badge>
             ) : (
               respondida && (
-                <Badge variant="secondary" className="shrink-0 text-emerald-700 dark:text-emerald-400">
+                <Badge variant="secondary" role="status" className="shrink-0 text-emerald-700 dark:text-emerald-400">
                   <CircleCheck aria-hidden /> Respondida
                 </Badge>
               )

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { ArrowLeft, CircleCheck, Gavel, Pencil, Pin, RotateCcw, Trophy } from "lucide-react";
@@ -18,6 +19,17 @@ function Pessoa({ v }: { v: Votante }) {
       <span className="truncate text-sm">{v.nome}</span>
     </li>
   );
+}
+
+export async function generateMetadata(
+  props: PageProps<"/admin/votacoes/votos/[enqueteId]">,
+): Promise<Metadata> {
+  const admin = await exigirAdmin();
+  const { enqueteId } = await props.params;
+  if (!z.uuid().safeParse(enqueteId).success) return {};
+  const dados = await getVotosEnquete(enqueteId, admin.turmaId);
+  if (!dados) return {};
+  return { title: `Quem votou: ${dados.titulo}` };
 }
 
 export default async function VotosEnquetePage(
