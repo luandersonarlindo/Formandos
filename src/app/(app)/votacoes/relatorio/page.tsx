@@ -165,13 +165,13 @@ export default async function RelatorioPage(
                       <table className="mt-2 w-full border-collapse text-left">
                         <thead>
                           <tr className="border-b text-muted-foreground">
-                            <th className="py-1 pr-2 font-medium">Opção</th>
-                            <th className="px-2 py-1 text-right font-medium">
-                              Votos
-                            </th>
-                            <th className="py-1 pl-2 text-right font-medium">
-                              % de quem respondeu
-                            </th>
+                    <th scope="col" className="py-1 pr-2 font-medium">Opção</th>
+                    <th scope="col" className="px-2 py-1 text-right font-medium">
+                      Votos
+                    </th>
+                    <th scope="col" className="py-1 pl-2 text-right font-medium">
+                      % de quem respondeu
+                    </th>
                           </tr>
                         </thead>
                         <tbody>
