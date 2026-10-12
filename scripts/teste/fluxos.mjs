@@ -875,6 +875,114 @@ await grupo("admin", async () => {
     await dormir(1800);
     igual(await perguntas(), "Segunda pergunta E2E > Qual a música da abertura?", "perguntas trocaram de lugar");
   });
+  await passo("fase E: título repetido, foco na pergunta nova, preview e ações compactas", async () => {
+    const cat = sql("select id from catalogos where nome='Catálogo E2E Renomeado'");
+    await nav.abrir(`/admin/votacoes/${cat}`);
+
+    // Título repetido: "cATEGORIA e2e" é a mesma categoria que já existe, com
+    // outra caixa e espaço sobrando. Comparar só com `=` deixaria passar.
+    await nav.preencher("#nome-categoria", "  CATEGORIA e2e  ");
+    await nav.clicar("Adicionar categoria", { seletor: "form button[type=submit]" });
+    await dormir(1500);
+    verdade(
+      (await nav.texto()).includes("Já existe uma categoria chamada"),
+      "a categoria repetida é recusada com aviso",
+    );
+    igual(
+      sql(`select count(*) from categorias where catalogo_id='${cat}'`),
+      "2",
+      "nenhuma categoria duplicada foi criada",
+    );
+
+    // Renomear para o nome de outra também é recusado, e a categoria mantém o
+    // nome antigo. Sem escopo por texto aqui: com o campo aberto o nome vira
+    // `value` do input e some do texto do cartão, então o escopo não acha.
+    await nav.clicar("Renomear a categoria Outra E2E", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('input[name=nome]')", 10000, "campo de renomear");
+    await nav.preencher("input[name=nome]", "categoria E2E");
+    await nav.clicar("Salvar novo nome", { seletor: "button" });
+    await dormir(1500);
+    verdade(
+      (await nav.texto()).includes("Já existe uma categoria chamada"),
+      "renomear para um nome em uso é recusado",
+    );
+    igual(sql("select nome from categorias where nome='Outra E2E'"), "Outra E2E", "o nome antigo continua");
+    // O campo continua aberto depois do erro (a pessoa precisa corrigir), mas
+    // com ele aberto o nome da categoria sai do texto do h2. Fecha com o X.
+    await nav.clicar("Cancelar renomeação", { seletor: "button" });
+    await dormir(800);
+
+    // Pergunta repetida dentro da mesma categoria. "segunda PERGUNTA e2e" é a que
+    // já existe em "Outra E2E".
+    await abrirFormularioDePergunta("Outra E2E");
+    await preencherEm("@[role=dialog]", "input[name=titulo]", "segunda PERGUNTA e2e");
+    await preencherOpcoes(["Samba", "Axé"]);
+    await nav.clicar("Adicionar pergunta", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await dormir(1500);
+    verdade(
+      (await nav.texto()).includes("Já existe uma pergunta com esse texto"),
+      "a pergunta repetida é recusada com aviso",
+    );
+    igual(
+      sql("select count(*) from enquetes where titulo ilike 'segunda pergunta e2e'"),
+      "1",
+      "nenhuma pergunta duplicada foi criada",
+    );
+
+    // Agora um título novo: a pergunta entra, a rolagem vai até ela e o foco
+    // fica nela — quem usa teclado segue de onde parou.
+    await preencherEm("@[role=dialog]", "input[name=titulo]", "Pergunta com foco E2E");
+    await nav.clicar("Adicionar pergunta", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    // A rolagem e o foco dependem da revalidação da página, então se espera a
+    // condição em vez de dormir um tempo chutado.
+    await nav.esperar(
+      "!document.querySelector('[role=dialog][data-state=open]')",
+      15000,
+      "o diálogo fecha depois de criar",
+    );
+    await nav.esperar(
+      "!!document.activeElement?.closest('li[id^=enq-]')?.textContent.includes('Pergunta com foco E2E')",
+      15000,
+      "o foco vai para a pergunta que acabou de ser criada",
+    );
+    // A rolagem é suave: esperar terminar a animação em vez de medir o quadro
+    // imediatamente após o foco.
+    await nav.esperar(
+      "(() => { const li = document.activeElement?.closest('li[id^=enq-]'); if (!li) return false; const r = li.getBoundingClientRect(); return r.top > 0 && r.bottom < window.innerHeight; })()",
+      10000,
+      "a pergunta nova fica à vista, sem precisar rolar",
+    );
+
+    // Preview: a mesma pergunta montada como na tela de votação, com os
+    // controles desligados.
+    await nav.clicar("Ver como o formando vê", {
+      escopo: "Pergunta com foco E2E",
+      seletor: "button",
+    });
+    await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo da prévia");
+    igual(
+      await nav.ev("[...document.querySelectorAll('[role=dialog] label')].map(l => l.textContent.trim()).join('|')"),
+      "Samba|Axé",
+      "a prévia mostra as opções da pergunta",
+    );
+    igual(
+      await nav.ev("[...document.querySelectorAll('[role=dialog] input')].every(i => i.disabled)"),
+      true,
+      "nada na prévia responde, os controles estão desligados",
+    );
+    await nav.clicar("Fechar", { seletor: "button" });
+    await dormir(1000);
+
+    // A exclusão é só o ícone: o texto vermelho repetido era o que mais pesava.
+    // O nome do botão continua exposto para o leitor de tela.
+    const exclusao = await nav.ev(`(() => {
+      const b = [...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Excluir a pergunta Pergunta com foco E2E');
+      return b ? { largura: Math.round(b.getBoundingClientRect().width), rotulo: b.getAttribute('aria-label') } : null;
+    })()`);
+    verdade(!!exclusao, "o botão de excluir continua presente");
+    verdade(exclusao.largura < 60, `o botão de excluir é só o ícone (largura ${exclusao.largura})`);
+    igual(exclusao.rotulo, "Excluir a pergunta Pergunta com foco E2E", "o leitor de tela ouve qual pergunta será apagada");
+  });
   await passo("ver quem votou em uma pergunta", async () => {
     await nav.abrir(`/admin/votacoes/${idPadrao()}`);
     await nav.clicar("Ver quem votou", { seletor: "a" });
