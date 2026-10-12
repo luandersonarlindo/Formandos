@@ -55,7 +55,6 @@ export function PreviaEnquete({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 px-2.5 text-[0.8rem] font-medium"
         >
           <Eye className="size-3.5" aria-hidden /> Ver como o formando vê
         </Button>

@@ -70,7 +70,7 @@ export function RenomearInline({
           }}
           aria-label={rotuloBotao}
           title={rotuloBotao}
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:grid pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:place-items-center pointer-coarse:p-0"
         >
           <Pencil className="size-3.5" aria-hidden />
         </button>

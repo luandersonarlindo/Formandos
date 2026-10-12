@@ -69,7 +69,7 @@ export default async function RelatorioPage(
       )}
 
       {relatorio && (
-        <dl data-grupo className="mt-6 grid grid-cols-2 gap-4">
+        <dl data-grupo className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="rounded-xl border bg-card p-4">
             <dt className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Membros na turma

@@ -206,8 +206,8 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
                       <p
                         className={
                           t.status === "concluida"
-                            ? "mt-2 font-medium text-muted-foreground line-through"
-                            : "mt-2 font-medium"
+                            ? "mt-2 font-medium wrap-break-word text-muted-foreground line-through"
+                            : "mt-2 font-medium wrap-break-word"
                         }
                       >
                         {t.titulo}

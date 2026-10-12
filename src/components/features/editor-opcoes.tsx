@@ -195,7 +195,7 @@ export function EditorOpcoes({
                         ? `Restaurar opção ${o.texto}`
                         : `Remover opção ${o.texto}`
                     }
-                    className="shrink-0 rounded-md p-2 text-muted-foreground hover:text-destructive"
+                    className="shrink-0 rounded-md p-2 text-muted-foreground hover:text-destructive pointer-coarse:grid pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:place-items-center pointer-coarse:p-0"
                   >
                     <X className="size-3.5" aria-hidden />
                   </button>
@@ -235,7 +235,7 @@ export function EditorOpcoes({
                   type="button"
                   onClick={() => apagarLinha(i)}
                   aria-label={`Remover opção ${linha.trim() || i + 1}`}
-                  className="shrink-0 rounded-md p-2 text-muted-foreground hover:text-destructive"
+                  className="shrink-0 rounded-md p-2 text-muted-foreground hover:text-destructive pointer-coarse:grid pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:place-items-center pointer-coarse:p-0"
                 >
                   <X className="size-3.5" aria-hidden />
                 </button>
