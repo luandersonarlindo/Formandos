@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { animate, createScope, stagger } from "animejs";
+import { ATRIBUTO_ANIMACAO_PRONTA } from "@/lib/tema";
 
 // Entrada animada (Anime.js) das páginas internas. O conteúdo é renderizado no
 // servidor e fica completo sem JavaScript; aqui só se acrescenta movimento.
@@ -161,6 +162,12 @@ export function AnimarPagina({
         delete html.dataset.semAnimacao;
       };
     }
+
+    // Sinaliza ao timer de segurança do SCRIPT_TEMA que o bundle carregou.
+    html.setAttribute(ATRIBUTO_ANIMACAO_PRONTA, "");
+    // Se o timer já disparou (montagem muito lenta), o conteúdo está visível:
+    // não re-esconde para animar, sai sem movimento.
+    if (html.hasAttribute("data-sem-animacao")) return;
 
     const limpezas: Array<() => void> = [];
     let ativo = true;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ATRIBUTO_TEMA, CHAVE_TEMA, deveFicarEscuro, ehTema, lerTemaGuardado, SCRIPT_TEMA } from "./tema";
+import { ATRIBUTO_ANIMACAO_PRONTA, ATRIBUTO_TEMA, CHAVE_TEMA, deveFicarEscuro, ehTema, lerTemaGuardado, SCRIPT_TEMA } from "./tema";
 
 describe("ehTema", () => {
   it("aceita só os três modos conhecidos", () => {
@@ -73,6 +73,14 @@ describe("SCRIPT_TEMA", () => {
 
   it("marca o modo de movimento junto, para não piscar", () => {
     expect(SCRIPT_TEMA).toContain("prefers-reduced-motion");
+    expect(SCRIPT_TEMA).toContain("data-sem-animacao");
+  });
+
+  it("mostra o conteúdo se a animação nunca montar", () => {
+    // Timer de segurança: sem o sinal dos componentes (bundle quebrou, chunk
+    // 404), libera tudo estático em vez de deixar a página em branco.
+    expect(SCRIPT_TEMA).toContain("setTimeout");
+    expect(SCRIPT_TEMA).toContain(ATRIBUTO_ANIMACAO_PRONTA);
     expect(SCRIPT_TEMA).toContain("data-sem-animacao");
   });
 });

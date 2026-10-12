@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { animate, createScope, createTimeline, stagger } from "animejs";
 import { animarAmico } from "@/components/animacao/amico";
+import { ATRIBUTO_ANIMACAO_PRONTA } from "@/lib/tema";
 
 // Anima a página inicial com o Anime.js. O conteúdo é renderizado no servidor
 // (fica completo sem JavaScript); aqui só se acrescenta movimento:
@@ -30,6 +31,12 @@ export function VitrineAnimada({ children }: { children: React.ReactNode }) {
         delete html.dataset.semAnimacao;
       };
     }
+
+    // Sinaliza ao timer de segurança do SCRIPT_TEMA que o bundle carregou.
+    html.setAttribute(ATRIBUTO_ANIMACAO_PRONTA, "");
+    // Se o timer já disparou (montagem muito lenta), o conteúdo está visível:
+    // não re-esconde para animar, sai sem movimento.
+    if (html.hasAttribute("data-sem-animacao")) return;
 
     const observadores: IntersectionObserver[] = [];
 

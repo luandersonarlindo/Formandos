@@ -15,6 +15,15 @@ export const CHAVE_TEMA = "formandos:tema";
 /** Atributo no <html> que registra o modo escolhido (não o modo efetivo). */
 export const ATRIBUTO_TEMA = "data-tema";
 
+/**
+ * Atributo que os componentes de animação (AnimarPagina, VitrineAnimada)
+ * marcam no <html> ao montar. O timer de segurança do SCRIPT_TEMA só mostra o
+ * conteúdo estático se este sinal ainda não existir: sem ele, uma falha de
+ * carga do bundle deixaria a página em branco (o CSS esconde o conteúdo até a
+ * animação assumir).
+ */
+export const ATRIBUTO_ANIMACAO_PRONTA = "data-animacao-pronta";
+
 const OPCOES: readonly string[] = ["sistema", "claro", "escuro"];
 
 export function ehTema(valor: unknown): valor is Tema {
@@ -44,6 +53,9 @@ export function lerTemaGuardado(ler: (chave: string) => string | null): Tema {
  * Roda antes da primeira pintura: sem isto, quem escolheu o modo escuro veria a
  * página clara e depois escura. Também marca data-sem-animacao já aqui, para
  * quem pede menos movimento não ver os blocos piscarem antes de o efeito de
- * animação rodar.
+ * animação rodar. E arma um timer de segurança: se os componentes de animação
+ * não montarem em 3s (bundle quebrou, chunk 404, CSP), o conteúdo aparece
+ * estático em vez de ficar invisível para sempre. Quem montar a tempo marca
+ * ATRIBUTO_ANIMACAO_PRONTA e desarma o timer.
  */
-export const SCRIPT_TEMA = `(function(){try{var r=document.documentElement;var t;try{t=localStorage.getItem("${CHAVE_TEMA}")}catch(e){}if(t!=="claro"&&t!=="escuro"){t="sistema"}var s=window.matchMedia("(prefers-color-scheme: dark)").matches;if(t==="escuro"||(t==="sistema"&&s)){r.classList.add("dark")}r.setAttribute("${ATRIBUTO_TEMA}",t);if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){r.setAttribute("data-sem-animacao","")}}catch(e){}})();`;
+export const SCRIPT_TEMA = `(function(){try{var r=document.documentElement;var t;try{t=localStorage.getItem("${CHAVE_TEMA}")}catch(e){}if(t!=="claro"&&t!=="escuro"){t="sistema"}var s=window.matchMedia("(prefers-color-scheme: dark)").matches;if(t==="escuro"||(t==="sistema"&&s)){r.classList.add("dark")}r.setAttribute("${ATRIBUTO_TEMA}",t);if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){r.setAttribute("data-sem-animacao","")}setTimeout(function(){if(!r.hasAttribute("${ATRIBUTO_ANIMACAO_PRONTA}")){r.setAttribute("data-sem-animacao","")}},3000)}catch(e){}})();`;
