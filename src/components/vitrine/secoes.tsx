@@ -142,7 +142,7 @@ export function Hero({ logado }: Sessao) {
           <span aria-hidden data-flutuar className="absolute top-1/2 -left-2 text-3xl md:-left-8">🎉</span>
           <span aria-hidden data-flutuar className="absolute -right-2 -bottom-8 text-4xl md:-right-6">🥂</span>
           <span aria-hidden data-flutuar className="absolute -bottom-6 left-6 text-2xl">✨</span>
-          <div className="rounded-2xl border bg-card p-5 shadow-xl shadow-[color-mix(in_oklch,var(--vitrine-a)_18%,transparent)]">
+          <div className="rounded-xl border bg-card p-5 shadow-xl shadow-[color-mix(in_oklch,var(--vitrine-a)_18%,transparent)]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Espaço do Evento</p>

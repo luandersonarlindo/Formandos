@@ -65,8 +65,7 @@ invent them. Body-text pairs hold ≥4.5:1 in both themes.
 |-------|-------|-------|
 | Card rest | `shadow-sm` + 10% foreground ring | default cards, flat look |
 | Vitrine hover | lift 4px + tinted indigo shadow | marketing cards only |
-| Dialog scrim | black 40% | dialogs |
-| Sheet scrim | black 10% | sheets (differs; do not add a third) |
+| Overlay scrim | black 40% | dialogs and sheets (single value) |
 | Focus glow | 3px ring at 50% + 3px solid outline | every control, keyboard + TV remote |
 
 ---
@@ -168,7 +167,7 @@ shows content; TV root-font scaling (112.5/150/200% at 1920/2560/3400px).
 - ❌ **Gradient text on functional UI** — vitrine hero title is the exception.
 - ❌ **Second chart series on `--chart-*`** — dead all-gray tokens.
 - ❌ **Nested landmarks** (`main` in `main`) or `aria-label` on plain `p`/`div`.
-- ❌ **New overlay opacities** — unify dialog/sheet first.
+- ❌ **New overlay opacities** — the single 40% scrim covers dialogs and sheets.
 - ❌ **Emojis as icons** — Lucide only (one 🎓 brand mark in vitrine footer,
   already `aria-hidden` everywhere structural).
 - ❌ **Invisible focus states** — focus must survive theme switch and TV remote.
