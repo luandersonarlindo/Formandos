@@ -287,19 +287,22 @@ html:not([data-tema]) [data-tema-icone="sistema"] {
   }
 }
 
-/* Foco bem visível para teclado e controle remoto (D-pad) de TV. Com :where a
-   especificidade é zero, então classes como outline-none e ring ainda vencem. */
-:where(a, button, summary, select, input, textarea):focus-visible {
+/* Foco bem visível para teclado e controle remoto (D-pad) de TV. A regra é
+   unlayered, então vence o `outline-none` das utilities do Tailwind: é por
+   isso que o foco continua visível mesmo nos componentes que zeram o outline.
+   O `main` está na lista para o alvo do skip link (#conteudo) mostrar o foco
+   ao pular para o conteúdo. */
+:where(a, button, summary, select, input, textarea, main):focus-visible {
   outline: 3px solid var(--vitrine-a);
   outline-offset: 2px;
 }
 
-/* Telas de toque (celular e tablet): alvos de pelo menos 40px. */
+/* Telas de toque (celular e tablet): alvos de pelo menos 44px (HIG). */
 @media (pointer: coarse) {
   a[class*="rounded-full"],
   button[class*="rounded-full"],
   summary {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
   }
   a[class*="rounded-full"],
   button[class*="rounded-full"] {
