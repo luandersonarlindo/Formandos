@@ -63,7 +63,7 @@ export function FormNovoFornecedor({ categorias }: { categorias: readonly string
           {pendente ? "Adicionando…" : "Adicionar fornecedor"}
         </Button>
         <p
-          role="status"
+          role={estado.erro ? "alert" : "status"}
           className={
             estado.erro
               ? "text-sm text-destructive"

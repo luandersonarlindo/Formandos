@@ -56,7 +56,7 @@ export function FormNovaTarefa({
           {pendente ? "Criando…" : "Criar tarefa"}
         </Button>
         <p
-          role="status"
+          role={estado.erro ? "alert" : "status"}
           className={
             estado.erro
               ? "text-sm text-destructive"

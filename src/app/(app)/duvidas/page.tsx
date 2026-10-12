@@ -170,6 +170,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                         >
                           <Textarea
                             name="conteudo"
+                            aria-label="Conteúdo da dúvida"
                             defaultValue={d.conteudo}
                             maxLength={500}
                             rows={2}
@@ -203,6 +204,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                           >
                             <Textarea
                               name="resposta"
+                              aria-label="Resposta oficial"
                               maxLength={1000}
                               rows={3}
                               defaultValue={d.resposta ?? ""}
