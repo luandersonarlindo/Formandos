@@ -32,6 +32,14 @@ export function DialogoNovaPergunta({
 }) {
   const [aberto, setAberto] = useState(false);
 
+  function aoSalvar(id?: string) {
+    setAberto(false);
+    // A página recarrega os dados da categoria quando a action revalida, e o
+    // item novo entra no fim da lista. O evento diz qual é, para a página rolar
+    // até ele e mover o foco — sem isso a pessoa perde o ponto.
+    if (id) window.dispatchEvent(new CustomEvent("formandos:pergunta-criada", { detail: { id } }));
+  }
+
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger asChild>
@@ -50,7 +58,7 @@ export function DialogoNovaPergunta({
         <FormEnquete
           categorias={categorias}
           categoriaFixa={categoria}
-          aoSucesso={() => setAberto(false)}
+          aoSucesso={aoSalvar}
         />
       </DialogContent>
     </Dialog>

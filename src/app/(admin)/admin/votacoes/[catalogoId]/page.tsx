@@ -30,7 +30,9 @@ import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { DialogoNovaPergunta } from "@/components/features/dialogo-nova-pergunta";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormDialog } from "@/components/features/form-dialog";
+import { PreviaEnquete } from "@/components/features/previa-enquete";
 import { RenomearInline } from "@/components/features/renomear-inline";
+import { RolarParaPerguntaCriada } from "@/components/features/rolar-para-pergunta-criada";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +56,9 @@ export default async function CatalogoAdminPage(
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
+      {/* Fica montado o tempo todo, sem renderizar nada: escuta o evento de
+          "pergunta criada" e rola até ela. */}
+      <RolarParaPerguntaCriada />
       <Link
         href="/admin/votacoes"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -192,9 +197,17 @@ export default async function CatalogoAdminPage(
             )}
             {/* "Adicionar pergunta" mora na categoria, não no fim da página:
                 com dez categorias o formulário único no rodapé obrigava a rolar
-                tudo e ainda escolher a categoria num dropdown. */}
+                tudo e ainda escolher a categoria num dropdown.
+                A exclusão é só o ícone: repetida em dez cabeçalhos, a palavra
+                "Excluir categoria" em vermelho virava o que mais chamava
+                atenção na tela, mais que os nomes. O aria-label continua
+                dizendo o que é. */}
             {editavel && (
               <div className="flex flex-wrap items-center gap-2">
+                <DialogoNovaPergunta
+                  categoria={{ id: categoria.id, nome: categoria.nome }}
+                  categorias={catalogo.categorias.map((c) => ({ id: c.id, nome: c.nome }))}
+                />
                 <BotaoMover
                   acao={moverCategoria}
                   id={categoria.id}
@@ -211,10 +224,6 @@ export default async function CatalogoAdminPage(
                   direcao="baixo"
                   desabilitado={catalogo.categorias.at(-1)?.id === categoria.id}
                 />
-                <DialogoNovaPergunta
-                  categoria={{ id: categoria.id, nome: categoria.nome }}
-                  categorias={catalogo.categorias.map((c) => ({ id: c.id, nome: c.nome }))}
-                />
                 <ConfirmarExclusao
                   acao={excluirCategoria}
                   campos={{ categoriaId: categoria.id }}
@@ -224,6 +233,7 @@ export default async function CatalogoAdminPage(
                   rotulo="Excluir categoria"
                   descricao={`Excluir a categoria ${categoria.nome}`}
                   icone={<Trash2 aria-hidden />}
+                  somenteIcone
                 />
               </div>
             )}
@@ -231,7 +241,9 @@ export default async function CatalogoAdminPage(
 
           <ul data-grupo className="mt-3 grid gap-3">
             {categoria.enquetes.map((e) => (
-              <li key={e.id}>
+              /* tabIndex -1: o item recebe foco por script quando é a pergunta
+                 recém-criada, mas continua fora da ordem de tabulação. */
+              <li key={e.id} id={`enq-${e.id}`} tabIndex={-1} className="scroll-mt-24 outline-none">
                 <Card>
                   <CardContent className="flex flex-col gap-3">
                     <div>
@@ -262,92 +274,104 @@ export default async function CatalogoAdminPage(
                         ))}
                       </ul>
                     </div>
-                    <div className="flex flex-wrap gap-2 border-t pt-3">
+                    {/* Uma fileira só com todas as ações. Eram duas, e a segunda existia só para
+                        o "Editar pergunta": na tela a divisória extra repetida
+                        em cada pergunta pesava mais que as próprias opções. */}
+                    <div className="flex flex-wrap items-center gap-1 border-t pt-2">
                       <Link
                         href={`/admin/votacoes/votos/${e.id}`}
                         className="inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-[0.8rem] font-medium transition-colors hover:bg-muted"
                       >
                         <Eye className="size-3.5" aria-hidden /> Ver quem votou
                       </Link>
+                      <PreviaEnquete
+                        titulo={e.titulo}
+                        tipo={e.tipo}
+                        opcoes={e.opcoes}
+                        categoria={categoria.nome}
+                        posicao={categoria.enquetes.indexOf(e) + 1}
+                        total={categoria.enquetes.length}
+                      />
                       {editavel && (
                         <>
-                          <BotaoMover
-                            acao={moverEnquete}
-                            id={e.id}
-                            tipo="pergunta"
-                            nome={e.titulo}
-                            direcao="cima"
-                            desabilitado={categoria.enquetes[0].id === e.id}
-                          />
-                          <BotaoMover
-                            acao={moverEnquete}
-                            id={e.id}
-                            tipo="pergunta"
-                            nome={e.titulo}
-                            direcao="baixo"
-                            desabilitado={categoria.enquetes.at(-1)?.id === e.id}
-                          />
-                          <ConfirmarExclusao
-                            acao={excluirEnquete}
+                          <FormDialog
+                            rotulo="Editar pergunta"
+                            icone={<Pencil aria-hidden />}
+                            titulo="Editar pergunta"
+                            descricao="Pergunta, tipo (mudável enquanto ninguém votou) e opções."
+                            acao={atualizarEnquete}
                             campos={{ enqueteId: e.id }}
-                            alvo="a pergunta"
-                            nome={e.titulo}
-                            aviso="Apaga também as opções e os votos desta pergunta."
-                            rotulo="Excluir pergunta"
-                            descricao={`Excluir a pergunta ${e.titulo}`}
-                            icone={<Trash2 aria-hidden />}
-                          />
+                            rotuloSubmit="Salvar"
+                            rotuloPendente="Salvando…"
+                            dialogClassName="sm:max-w-xl"
+                          >
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor={`titulo-${e.id}`} className="text-xs">Pergunta</Label>
+                              <Input id={`titulo-${e.id}`} name="titulo" defaultValue={e.titulo} maxLength={500} required />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor={`tipo-${e.id}`} className="text-xs">Tipo</Label>
+                              {e.votantes > 0 ? (
+                                <>
+                                  <p className="text-sm text-muted-foreground">
+                                    {e.tipo === "unica" ? "Escolha única" : "Escolha múltipla"} (já tem voto, não dá para mudar)
+                                  </p>
+                                  <input type="hidden" name="tipo" value={e.tipo} />
+                                </>
+                              ) : (
+                                <NativeSelect id={`tipo-${e.id}`} name="tipo" defaultValue={e.tipo}>
+                                  <option value="unica">Escolha única</option>
+                                  <option value="multipla">Escolha múltipla</option>
+                                </NativeSelect>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <Label className="text-xs">Opções</Label>
+                              <EditorOpcoes
+                                modo="editar"
+                                tipo={e.tipo}
+                                opcoesIniciais={e.opcoes}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Uma opção só é removida se ainda não tiver voto.
+                              </p>
+                            </div>
+                          </FormDialog>
+                          {/* Agrupa as ações de posição e exclusão à direita: são
+                              usadas de vez em quando, e no meio ficavam
+                              indistintas do que a pessoa usa o tempo todo. */}
+                          <div className="ml-auto flex items-center gap-0.5">
+                            <BotaoMover
+                              acao={moverEnquete}
+                              id={e.id}
+                              tipo="pergunta"
+                              nome={e.titulo}
+                              direcao="cima"
+                              desabilitado={categoria.enquetes[0].id === e.id}
+                            />
+                            <BotaoMover
+                              acao={moverEnquete}
+                              id={e.id}
+                              tipo="pergunta"
+                              nome={e.titulo}
+                              direcao="baixo"
+                              desabilitado={categoria.enquetes.at(-1)?.id === e.id}
+                            />
+                            <ConfirmarExclusao
+                              acao={excluirEnquete}
+                              campos={{ enqueteId: e.id }}
+                              alvo="a pergunta"
+                              nome={e.titulo}
+                              aviso="Apaga também as opções e os votos desta pergunta."
+                              rotulo="Excluir pergunta"
+                              descricao={`Excluir a pergunta ${e.titulo}`}
+                              icone={<Trash2 aria-hidden />}
+                              somenteIcone
+                            />
+                          </div>
                         </>
                       )}
                     </div>
-
-                    {editavel && (
-                      <div className="flex flex-wrap gap-2 border-t pt-3">
-                        <FormDialog
-                          rotulo="Editar pergunta"
-                          icone={<Pencil aria-hidden />}
-                          titulo="Editar pergunta"
-                          descricao="Pergunta, tipo (mudável enquanto ninguém votou) e opções."
-                          acao={atualizarEnquete}
-                          campos={{ enqueteId: e.id }}
-                          rotuloSubmit="Salvar"
-                          rotuloPendente="Salvando…"
-                          dialogClassName="sm:max-w-xl"
-                        >
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor={`titulo-${e.id}`} className="text-xs">Pergunta</Label>
-                            <Input id={`titulo-${e.id}`} name="titulo" defaultValue={e.titulo} maxLength={500} required />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor={`tipo-${e.id}`} className="text-xs">Tipo</Label>
-                            {e.votantes > 0 ? (
-                              <>
-                                <p className="text-sm text-muted-foreground">
-                                  {e.tipo === "unica" ? "Escolha única" : "Escolha múltipla"} (já tem voto, não dá para mudar)
-                                </p>
-                                <input type="hidden" name="tipo" value={e.tipo} />
-                              </>
-                            ) : (
-                              <NativeSelect id={`tipo-${e.id}`} name="tipo" defaultValue={e.tipo}>
-                                <option value="unica">Escolha única</option>
-                                <option value="multipla">Escolha múltipla</option>
-                              </NativeSelect>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Opções</Label>
-                            <EditorOpcoes
-                              modo="editar"
-                              tipo={e.tipo}
-                              opcoesIniciais={e.opcoes}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Uma opção só é removida se ainda não tiver voto.
-                            </p>
-                          </div>
-                        </FormDialog>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </li>

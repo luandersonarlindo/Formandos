@@ -27,6 +27,10 @@ type ConfirmarExclusaoProps = {
   rotulo: string;
   /** Ícone antes do texto do botão. */
   icone?: React.ReactNode;
+  /** Botão só com ícone. O texto vai para o leitor de tela, e o `aria-label`
+   *  (`descricao`) é o que o leitor de tela anuncia de fato. Usado nas listas
+   *  longas, onde o rótulo vermelho repetido era o que mais pesava na tela. */
+  somenteIcone?: boolean;
   /** Descrição só para leitores de tela, quando há vários botões iguais. */
   descricao?: string;
   /** Texto do botão de confirmação. */
@@ -60,6 +64,7 @@ export function ConfirmarExclusao({
   aviso,
   rotulo,
   icone,
+  somenteIcone = false,
   descricao,
   confirmar = "Sim, excluir",
   verb = "Excluir",
@@ -94,13 +99,14 @@ export function ConfirmarExclusao({
       <Button
         type="button"
         variant="destructive"
-        size="sm"
+        size={somenteIcone ? "icon-sm" : "sm"}
         className={className}
         aria-label={descricao}
+        title={descricao}
         onClick={() => setAberto(true)}
       >
         {icone}
-        {rotulo}
+        {somenteIcone ? <span className="sr-only">{rotulo}</span> : rotulo}
       </Button>
 
       <Dialog open={aberto} onOpenChange={setAberto}>

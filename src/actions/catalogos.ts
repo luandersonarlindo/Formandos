@@ -51,6 +51,36 @@ function revalidarCatalogo(catalogoId?: string) {
   revalidatePath("/votacoes/relatorio");
 }
 
+// Nome repetido --------------------------------------------------------
+//
+// Duas categorias com o mesmo nome, ou duas perguntas com o mesmo texto na
+// mesma categoria, só confundem: no relatório a pessoa não sabe qual das duas
+// respondeu, e na votação aparece a mesma pergunta duas vezes. A comparação
+// ignora maiúscula, acento e espaço sobrando, porque "Mesa", "mesa" e " mesa "
+// são o mesmo nome na prática. Repetido bloqueia em vez de só avisar: se
+// passar, o estrago já está feito e ninguém vai lembrar de voltar para
+// renomear.
+//
+// A lista cabe em memória: no máximo 20 categorias e 50 perguntas por
+// categoria.
+const comparavel = (texto: string) =>
+  texto
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+function repetido(
+  novo: string,
+  existentes: { id: string; nome: string }[],
+  ignorarId?: string,
+): string | null {
+  const alvo = comparavel(novo);
+  const achado = existentes.find((e) => e.id !== ignorarId && comparavel(e.nome) === alvo);
+  return achado ? achado.nome : null;
+}
+
 export async function criarCatalogo(
   _estado: EstadoForm,
   formData: FormData,
@@ -198,11 +228,16 @@ export async function adicionarCategoria(
       [catalogoId, admin.turmaId],
     );
     if (!rowCount) return "inexistente" as const;
+    const { rows: nomes } = await db.query(
+      "select id, nome from categorias where catalogo_id = $1",
+      [catalogoId],
+    );
     const { rows } = await db.query(
       "select count(*)::int as n, coalesce(max(ordem), -1) + 1 as proxima from categorias where catalogo_id = $1",
       [catalogoId],
     );
     if (rows[0].n >= MAX_CATEGORIAS) return "limite" as const;
+    if (repetido(nome, nomes)) return "repetida" as const;
     await db.query(
       "insert into categorias (catalogo_id, nome, ordem) values ($1, $2, $3)",
       [catalogoId, nome, rows[0].proxima],
@@ -212,6 +247,9 @@ export async function adicionarCategoria(
   if (resultado === "inexistente") return { erro: "Catálogo não encontrado." };
   if (resultado === "limite") {
     return { erro: `O catálogo pode ter no máximo ${MAX_CATEGORIAS} categorias.` };
+  }
+  if (resultado === "repetida") {
+    return { erro: `Já existe uma categoria chamada "${nome}" neste catálogo.` };
   }
   revalidarCatalogo(catalogoId);
   return { ok: "Categoria adicionada." };
@@ -228,13 +266,30 @@ export async function renomearCategoria(
     .safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
 
-  const { rowCount } = await pool.query(
-    `update categorias ca set nome = $1
-      from catalogos c
-     where ca.id = $2 and c.id = ca.catalogo_id and c.turma_id = $3`,
-    [dados.data.nome, dados.data.categoriaId, admin.turmaId],
-  );
-  if (!rowCount) return { erro: "Categoria não encontrada." };
+  const resultado = await transacao(async (db) => {
+    const { rows } = await db.query(
+      `select ca.id,
+              (select c.id from catalogos c
+                where c.id = ca.catalogo_id and c.turma_id = $2) as catalogo
+         from categorias ca where ca.id = $1 for update`,
+      [dados.data.categoriaId, admin.turmaId],
+    );
+    if (!rows[0]?.catalogo) return "inexistente" as const;
+    const { rows: nomes } = await db.query(
+      "select id, nome from categorias where catalogo_id = $1",
+      [rows[0].catalogo],
+    );
+    if (repetido(dados.data.nome, nomes, dados.data.categoriaId)) return "repetida" as const;
+    await db.query("update categorias set nome = $1 where id = $2", [
+      dados.data.nome,
+      dados.data.categoriaId,
+    ]);
+    return "ok" as const;
+  });
+  if (resultado === "inexistente") return { erro: "Categoria não encontrada." };
+  if (resultado === "repetida") {
+    return { erro: `Já existe uma categoria chamada "${dados.data.nome}" neste catálogo.` };
+  }
   revalidarCatalogo();
   return { ok: "Nome salvo." };
 }
@@ -411,6 +466,10 @@ export async function adicionarEnquete(
       [categoriaId, admin.turmaId],
     );
     if (!rowCount) return { estado: "inexistente" as const };
+    const { rows: nomes } = await db.query(
+      "select id, titulo as nome from enquetes where categoria_id = $1",
+      [categoriaId],
+    );
     const { rows } = await db.query(
       `select count(*)::int as n, coalesce(max(ordem), -1) + 1 as proxima,
               (select catalogo_id from categorias where id = $1) as catalogo
@@ -418,6 +477,7 @@ export async function adicionarEnquete(
       [categoriaId],
     );
     if (rows[0].n >= MAX_ENQUETES_POR_CATEGORIA) return { estado: "limite" as const };
+    if (repetido(titulo, nomes)) return { estado: "repetida" as const };
     const { rows: nova } = await db.query(
       `insert into enquetes (categoria_id, titulo, tipo, ordem)
        values ($1, $2, $3, $4) returning id`,
@@ -429,15 +489,18 @@ export async function adicionarEnquete(
         [nova[0].id, o.texto, o.exclusiva, i],
       );
     }
-    return { estado: "ok" as const, catalogo: rows[0].catalogo as string };
+    return { estado: "ok" as const, catalogo: rows[0].catalogo as string, id: nova[0].id as string };
   });
 
   if (resultado.estado === "inexistente") return erro("Categoria não encontrada.");
   if (resultado.estado === "limite") {
     return erro(`A categoria pode ter no máximo ${MAX_ENQUETES_POR_CATEGORIA} perguntas.`);
   }
+  if (resultado.estado === "repetida") {
+    return erro("Já existe uma pergunta com esse texto nesta categoria.");
+  }
   revalidarCatalogo(resultado.catalogo);
-  return { ok: "Pergunta adicionada." };
+  return { ok: "Pergunta adicionada.", id: resultado.id };
 }
 
 const esquemaAtualizarEnquete = z.object({
@@ -477,7 +540,7 @@ export async function atualizarEnquete(
 
   const resultado = await transacao(async (db) => {
     const { rows } = await db.query(
-      `select e.tipo,
+      `select e.tipo, e.categoria_id,
               (select count(distinct v.usuario_id)::int from votos v
                  join opcoes o on o.id = v.opcao_id where o.enquete_id = e.id) as votantes
          from enquetes e
@@ -489,6 +552,12 @@ export async function atualizarEnquete(
     );
     if (!rows.length) return { estado: "inexistente" as const };
     if (rows[0].votantes > 0 && tipo !== rows[0].tipo) return { estado: "temVotos" as const };
+
+    const { rows: irmas } = await db.query(
+      "select id, titulo as nome from enquetes where categoria_id = $1 and id <> $2",
+      [rows[0].categoria_id, enqueteId],
+    );
+    if (repetido(titulo, irmas)) return { estado: "tituloRepetido" as const };
 
     const { rows: opcoesAtuais } = await db.query(
       `select o.id, (select count(*)::int from votos v where v.opcao_id = o.id) as votos
@@ -541,6 +610,9 @@ export async function atualizarEnquete(
   if (resultado.estado === "inexistente") return { erro: "Pergunta não encontrada." };
   if (resultado.estado === "temVotos") {
     return { erro: "Não é possível mudar o tipo depois de já ter votos." };
+  }
+  if (resultado.estado === "tituloRepetido") {
+    return { erro: "Já existe uma pergunta com esse texto nesta categoria." };
   }
   if (resultado.estado === "poucasOpcoes") {
     return { erro: "A pergunta precisa ter pelo menos 2 opções." };

@@ -25,8 +25,8 @@ export function FormEnquete({
    *  sabe onde está, e a pessoa não precisa escolher num dropdown. */
   categoriaFixa?: { id: string; nome: string };
   /** Quem abre a pergunta num diálogo (dialogo-nova-pergunta) usa isto para
-   *  fechar depois de salvar. Fora dele, não é preciso. */
-  aoSucesso?: () => void;
+   *  fechar depois de salvar e avisar qual pergunta foi criada. */
+  aoSucesso?: (id?: string) => void;
 }) {
   const [estado, acao, pendente] = useActionState(adicionarEnquete, inicial);
   const [tipo, setTipo] = useState<"unica" | "multipla">("unica");
@@ -38,11 +38,12 @@ export function FormEnquete({
   const categoriaAtual = categoriaFixa?.id ?? categoriaId;
 
   // Fecha o diálogo logo após salvar, para a pessoa criar a próxima pergunta
-  // sem clicar fora primeiro.
+  // sem clicar fora primeiro. O id volta do servidor para a página rolar até a
+  // pergunta nova.
   const sucesso = useRef(aoSucesso);
   sucesso.current = aoSucesso;
   useEffect(() => {
-    if (estado.ok) sucesso.current?.();
+    if (estado.ok) sucesso.current?.(estado.id);
   }, [estado]);
 
   return (
