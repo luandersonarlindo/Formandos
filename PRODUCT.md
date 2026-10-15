@@ -37,7 +37,7 @@ Confirmed terminology: turma, comissão/administrador, participante/formando, c�
 
 Confirmed functionality: Google login plus email/password with confirmation link; RBAC (only admins create catalogs, answer and highlight dúvidas, manage the event, fix decisions, manage members, archive or delete the turma); identified votes with change allowed; large lists paginated via URL (`?pagina=`); LGPD/SGSI work through phases 1–3 is implemented in the codebase history.
 
-Confirmed technical constraints: single-product Next.js web app; Postgres-backed; master role comes from `ADMIN_MASTER_EMAILS` (no UI for it); deleting a member removes what they left in that turma in a transaction while keeping other members' content.
+Confirmed technical constraints: single-product Next.js web app; Postgres-backed; master role comes from `ADMIN_MASTER_EMAILS` (no UI for it); deleting a member removes what they left in that turma in a transaction while keeping other members' content; realtime updates (polling, SSE, WebSocket) are out of scope while on Vercel/Neon free tiers — verified 2026-10-14: 4s polling fits, but per-change refetch fan-out breaks Neon's 5 GB transfer cap and 1s polling breaks Vercel's 1M invocations cap.
 
 Explicitly undecided: formal accessibility conformance level (no WCAG target was confirmed as product truth); density trade-offs between admin screens and participant screens beyond the confirmed primary user.
 
