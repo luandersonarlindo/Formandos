@@ -42,6 +42,8 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { exigirMembro } from "@/lib/dal";
 import { formatarReal, ROTULO_ORCAMENTO } from "@/lib/orcamento";
+import { lerPagina } from "@/lib/paginacao";
+import { Paginacao } from "@/components/features/paginacao";
 import {
   CATEGORIAS_FORNECEDOR,
   getResumoOrcamento,
@@ -109,19 +111,24 @@ function Contato({ valor }: { valor: string }) {
 
 export default async function TerceirosPage(props: PageProps<"/terceiros">) {
   const membro = await exigirMembro();
-  const { categoria: parametro } = await props.searchParams;
+  const { categoria: parametro, pagina: paginaParametro } = await props.searchParams;
   const ehAdmin = membro.papel === "admin";
-  const [fornecedores, resumo] = await Promise.all([
-    ehAdmin ? listarFornecedoresAdmin(membro.turmaId) : listarFornecedores(membro),
+  const categoriaAtiva = CATEGORIAS_FORNECEDOR.find((c) => c === parametro);
+  const [{ itens: visiveis, pagina, totalPaginas, totais }, resumo] = await Promise.all([
+    ehAdmin
+      ? listarFornecedoresAdmin(membro.turmaId, {
+          categoria: categoriaAtiva,
+          pagina: lerPagina(paginaParametro),
+        })
+      : listarFornecedores(membro, {
+          categoria: categoriaAtiva,
+          pagina: lerPagina(paginaParametro),
+        }),
     ehAdmin ? getResumoOrcamento(membro.turmaId) : Promise.resolve(null),
   ]);
+  const geral = Object.values(totais).reduce((n, c) => n + c, 0);
 
-  const categoriaAtiva = CATEGORIAS_FORNECEDOR.find((c) => c === parametro);
-  const visiveis = categoriaAtiva
-    ? fornecedores.filter((f) => f.categoria === categoriaAtiva)
-    : fornecedores;
-  const contagem = (c?: string) =>
-    c ? fornecedores.filter((f) => f.categoria === c).length : fornecedores.length;
+  const contagem = (c?: string) => (c ? (totais[c] ?? 0) : geral);
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -149,7 +156,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
       {ehAdmin && (
         <Card className="mt-4">
           <CardContent>
-            <PainelRecolhivel abertoInicial={fornecedores.length === 0} className="group">
+            <PainelRecolhivel abertoInicial={geral === 0} className="group">
               <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
                 <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
                   <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
@@ -193,7 +200,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
         <EstadoVazio
           className="mt-4"
           descricao={
-            fornecedores.length === 0
+            geral === 0
               ? ehAdmin
                 ? "Adicione o primeiro fornecedor no formulário acima."
                 : "A comissão ainda não indicou fornecedores."
@@ -290,6 +297,12 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
           })}
         </ul>
       )}
+      <Paginacao
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        caminho="/terceiros"
+        parametros={{ categoria: categoriaAtiva }}
+      />
     </div>
   );
 }

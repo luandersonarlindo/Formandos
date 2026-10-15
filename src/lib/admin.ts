@@ -252,7 +252,7 @@ export type LinhaMembro = {
   papel: "admin" | "participante";
 };
 
-export const POR_PAGINA_MEMBROS = 20;
+export const POR_PAGINA_MEMBROS = 10;
 
 export type PaginaMembros = {
   itens: LinhaMembro[];

@@ -35,6 +35,8 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
 import { formatarPrazo, hojeIso } from "@/lib/datas";
+import { lerPagina } from "@/lib/paginacao";
+import { Paginacao } from "@/components/features/paginacao";
 import {
   listarMembros,
   listarTarefas,
@@ -84,18 +86,21 @@ const resumoAberto =
 
 export default async function TarefasPage({ searchParams }: PageProps<"/tarefas">) {
   const membro = await exigirMembro();
-  const { status } = await searchParams;
+  const { status, pagina: paginaParametro } = await searchParams;
   const filtro = STATUS_TAREFA.find((s) => s === status) ?? "todas";
   const ehAdmin = membro.papel === "admin";
-  const [tarefas, membros] = await Promise.all([
-    listarTarefas(membro),
+  const [{ itens: visiveis, pagina, totalPaginas, totais }, membros] = await Promise.all([
+    listarTarefas(membro, {
+      status: filtro === "todas" ? undefined : filtro,
+      pagina: lerPagina(paginaParametro),
+    }),
     ehAdmin ? listarMembros(membro) : Promise.resolve([]),
   ]);
-  const concluidas = tarefas.filter((t) => t.status === "concluida").length;
-  const percentual = tarefas.length === 0 ? 0 : Math.round((concluidas / tarefas.length) * 100);
+  const geral = totais.pendente + totais.em_andamento + totais.concluida;
+  const concluidas = totais.concluida;
+  const percentual = geral === 0 ? 0 : Math.round((concluidas / geral) * 100);
   const contagem = (v: string) =>
-    v === "todas" ? tarefas.length : tarefas.filter((t) => t.status === v).length;
-  const visiveis = filtro === "todas" ? tarefas : tarefas.filter((t) => t.status === filtro);
+    v === "todas" ? geral : totais[v as StatusTarefa];
   const hoje = hojeIso();
 
   return (
@@ -114,7 +119,7 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
             <CardTitle className="text-3xl tabular-nums">
               <span data-contar={concluidas}>{concluidas}</span>{" "}
               <span className="text-base font-normal text-muted-foreground">
-                de {tarefas.length} concluídas
+                de {geral} concluídas
               </span>
             </CardTitle>
             <span className="vitrine-texto-gradiente text-2xl font-semibold tabular-nums">
@@ -132,7 +137,7 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
       {ehAdmin && (
         <Card className="mt-4">
           <CardContent>
-            <PainelRecolhivel abertoInicial={tarefas.length === 0} className="group">
+            <PainelRecolhivel abertoInicial={geral === 0} className="group">
               <summary className={resumoAberto}>
                 <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
                   <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
@@ -172,14 +177,14 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
         <EstadoVazio
           className="mt-4"
           descricao={
-            tarefas.length === 0
+            geral === 0
               ? ehAdmin
                 ? "Crie a primeira tarefa no formulário acima."
                 : "O administrador ainda não cadastrou tarefas."
               : "Escolha outro status para ver as demais."
           }
           ilustracao={<ChecklistAmico />}
-          titulo={tarefas.length === 0 ? "Nenhuma tarefa ainda" : "Nenhuma tarefa neste filtro"}
+          titulo={geral === 0 ? "Nenhuma tarefa ainda" : "Nenhuma tarefa neste filtro"}
         />
       ) : (
         <ul data-grupo className="mt-4 grid gap-3">
@@ -338,6 +343,12 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
           })}
         </ul>
       )}
+      <Paginacao
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        caminho="/tarefas"
+        parametros={{ status: filtro === "todas" ? undefined : filtro }}
+      />
     </div>
   );
 }

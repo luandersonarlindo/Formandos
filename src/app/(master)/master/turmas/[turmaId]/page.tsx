@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Info,
   KeyRound,
+  Search,
   ShieldCheck,
   ShieldOff,
   TriangleAlert,
@@ -19,9 +20,14 @@ import {
 } from "@/actions/master";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormDialog } from "@/components/features/form-dialog";
+import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { lerBusca } from "@/lib/busca";
 import { exigirMaster } from "@/lib/dal";
 import { getTurma } from "@/lib/plataforma";
 
@@ -32,10 +38,12 @@ export default async function TurmaMasterPage(
 ) {
   const master = await exigirMaster();
   const { turmaId } = await props.params;
+  const { busca: buscaParametro } = await props.searchParams;
   if (!z.uuid().safeParse(turmaId).success) notFound();
-  const turma = await getTurma(turmaId);
+  const busca = lerBusca(buscaParametro);
+  const turma = await getTurma(turmaId, { busca });
   if (!turma) notFound();
-  const totalAdmins = turma.membros.filter((m) => m.papel === "admin").length;
+  const totalAdmins = turma.totalAdmins;
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -59,8 +67,51 @@ export default async function TurmaMasterPage(
 
       <h2 className="mt-8 flex items-center gap-2 text-lg font-semibold">
         <Users className="size-5 text-[var(--vitrine-a)]" aria-hidden />
-        Membros ({turma.membros.length})
+        Membros ({turma.totalMembros})
       </h2>
+      <form action={`/master/turmas/${turma.id}`} role="search" className="mt-4 flex gap-2">
+        <div className="relative flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            name="busca"
+            defaultValue={busca}
+            maxLength={100}
+            placeholder="Buscar por nome ou email"
+            aria-label="Buscar membro por nome ou email"
+            autoComplete="off"
+            className="h-10 pl-9"
+          />
+        </div>
+        <Button type="submit" size="lg">
+          Buscar
+        </Button>
+        {busca && (
+          <Link
+            href={`/master/turmas/${turma.id}`}
+            className={buttonVariants({ variant: "outline", size: "lg" })}
+          >
+            Limpar
+          </Link>
+        )}
+      </form>
+      {busca && (
+        <p role="status" className="mt-3 text-sm text-muted-foreground">
+          {turma.membros.length}{" "}
+          {turma.membros.length === 1 ? "membro encontrado" : "membros encontrados"} para “{busca}”.
+        </p>
+      )}
+      {turma.membros.length === 0 && busca ? (
+        <EstadoVazio
+          className="mt-4"
+          ilustracao={<EquipeAmico />}
+          titulo="Nenhum membro encontrado"
+          descricao="Confira o nome ou o email e tente de novo."
+        />
+      ) : (
       <ul data-grupo className="mt-3 grid gap-3">
         {turma.membros.map((m) => {
           const ultimoAdmin = m.papel === "admin" && totalAdmins === 1;
@@ -131,7 +182,8 @@ export default async function TurmaMasterPage(
           );
         })}
       </ul>
-      {turma.membros.length > 0 && totalAdmins === 1 && (
+      )}
+      {turma.totalMembros > 0 && totalAdmins === 1 && (
         <p className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           O único administrador da turma não pode ser rebaixado nem removido. Promova outro membro antes, ou exclua a turma.
