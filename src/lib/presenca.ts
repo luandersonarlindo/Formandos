@@ -69,7 +69,7 @@ const CONDICAO: Record<FiltroPresenca, string> = {
   pendente: "and p.status is null",
 };
 
-export const POR_PAGINA_PRESENCA = 20;
+export const POR_PAGINA_PRESENCA = 10;
 
 export async function listarPresencas(
   turmaId: string,

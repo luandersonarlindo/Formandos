@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MailWarning, ShieldCheck, Trash2 } from "lucide-react";
+import { MailWarning, Search, ShieldCheck, Trash2 } from "lucide-react";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { excluirUsuario } from "@/actions/master";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { EstadoVazio } from "@/components/features/estado-vazio";
 import { Paginacao } from "@/components/features/paginacao";
+import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { lerBusca } from "@/lib/busca";
 import { exigirMaster } from "@/lib/dal";
 import { emailsMaster } from "@/lib/master";
 import { lerPagina } from "@/lib/paginacao";
@@ -16,8 +21,12 @@ export const metadata: Metadata = { title: "Usuários" };
 
 export default async function UsuariosMasterPage({ searchParams }: PageProps<"/master/usuarios">) {
   const master = await exigirMaster();
-  const { pagina: paginaParametro } = await searchParams;
-  const { itens: usuarios, total, pagina, totalPaginas } = await listarUsuarios(lerPagina(paginaParametro));
+  const { busca: buscaParametro, pagina: paginaParametro } = await searchParams;
+  const busca = lerBusca(buscaParametro);
+  const { itens: usuarios, total, pagina, totalPaginas } = await listarUsuarios(
+    lerPagina(paginaParametro),
+    { busca },
+  );
   const masters = emailsMaster();
 
   return (
@@ -27,6 +36,46 @@ export default async function UsuariosMasterPage({ searchParams }: PageProps<"/m
         {total} {total === 1 ? "usuário cadastrado" : "usuários cadastrados"}. Para mudar o papel de alguém em uma turma, abra a turma.
       </p>
 
+      <form action="/master/usuarios" role="search" className="mt-6 flex gap-2">
+        <div className="relative flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            name="busca"
+            defaultValue={busca}
+            maxLength={100}
+            placeholder="Buscar por nome ou email"
+            aria-label="Buscar usuário por nome ou email"
+            autoComplete="off"
+            className="h-10 pl-9"
+          />
+        </div>
+        <Button type="submit" size="lg">
+          Buscar
+        </Button>
+        {busca && (
+          <Link href="/master/usuarios" className={buttonVariants({ variant: "outline", size: "lg" })}>
+            Limpar
+          </Link>
+        )}
+      </form>
+      {busca && (
+        <p role="status" className="mt-3 text-sm text-muted-foreground">
+          {total} {total === 1 ? "usuário encontrado" : "usuários encontrados"} para “{busca}”.
+        </p>
+      )}
+
+      {usuarios.length === 0 ? (
+        <EstadoVazio
+          className="mt-6"
+          ilustracao={<EquipeAmico />}
+          titulo="Nenhum usuário encontrado"
+          descricao="Confira o nome ou o email e tente de novo."
+        />
+      ) : (
       <ul data-grupo className="mt-6 grid gap-3">
         {usuarios.map((u) => {
           const ehMasterAlvo = masters.includes(u.email.toLowerCase());
@@ -105,7 +154,13 @@ export default async function UsuariosMasterPage({ searchParams }: PageProps<"/m
           );
         })}
       </ul>
-      <Paginacao pagina={pagina} totalPaginas={totalPaginas} caminho="/master/usuarios" />
+      )}
+      <Paginacao
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        caminho="/master/usuarios"
+        parametros={{ busca: busca || undefined }}
+      />
     </div>
   );
 }

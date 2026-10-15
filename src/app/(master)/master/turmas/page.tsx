@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, School, TriangleAlert, Users } from "lucide-react";
+import { ArrowRight, School, Search, TriangleAlert, Users } from "lucide-react";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { Paginacao } from "@/components/features/paginacao";
 import { AprendizadoAmico } from "@/components/ilustracoes/aprendizado-amico";
 import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { lerBusca } from "@/lib/busca";
 import { exigirMaster } from "@/lib/dal";
 import { lerPagina } from "@/lib/paginacao";
 import { listarTurmas } from "@/lib/plataforma";
@@ -16,8 +19,12 @@ const data = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "A
 
 export default async function TurmasMasterPage({ searchParams }: PageProps<"/master/turmas">) {
   await exigirMaster();
-  const { pagina: paginaParametro } = await searchParams;
-  const { itens: turmas, total, pagina, totalPaginas } = await listarTurmas(lerPagina(paginaParametro));
+  const { busca: buscaParametro, pagina: paginaParametro } = await searchParams;
+  const busca = lerBusca(buscaParametro);
+  const { itens: turmas, total, pagina, totalPaginas } = await listarTurmas(
+    lerPagina(paginaParametro),
+    { busca },
+  );
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -26,8 +33,45 @@ export default async function TurmasMasterPage({ searchParams }: PageProps<"/mas
         {total} {total === 1 ? "turma" : "turmas"} na plataforma.
       </p>
 
-      {total === 0 ? (
-        <EstadoVazio className="mt-6" ilustracao={<AprendizadoAmico />} titulo="Nenhuma turma criada ainda" />
+      <form action="/master/turmas" role="search" className="mt-6 flex gap-2">
+        <div className="relative flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            name="busca"
+            defaultValue={busca}
+            maxLength={100}
+            placeholder="Buscar por nome da turma"
+            aria-label="Buscar turma por nome"
+            autoComplete="off"
+            className="h-10 pl-9"
+          />
+        </div>
+        <Button type="submit" size="lg">
+          Buscar
+        </Button>
+        {busca && (
+          <Link href="/master/turmas" className={buttonVariants({ variant: "outline", size: "lg" })}>
+            Limpar
+          </Link>
+        )}
+      </form>
+      {busca && (
+        <p role="status" className="mt-3 text-sm text-muted-foreground">
+          {total} {total === 1 ? "turma encontrada" : "turmas encontradas"} para “{busca}”.
+        </p>
+      )}
+
+      {turmas.length === 0 ? (
+        <EstadoVazio
+          className="mt-6"
+          ilustracao={<AprendizadoAmico />}
+          titulo={busca ? "Nenhuma turma encontrada" : "Nenhuma turma criada ainda"}
+          descricao={busca ? "Confira o nome e tente de novo." : undefined}
+        />
       ) : (
         <ul data-grupo className="mt-6 grid gap-4 md:grid-cols-2">
           {turmas.map((t) => (
@@ -64,7 +108,12 @@ export default async function TurmasMasterPage({ searchParams }: PageProps<"/mas
           ))}
         </ul>
       )}
-      <Paginacao pagina={pagina} totalPaginas={totalPaginas} caminho="/master/turmas" />
+      <Paginacao
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        caminho="/master/turmas"
+        parametros={{ busca: busca || undefined }}
+      />
     </div>
   );
 }
