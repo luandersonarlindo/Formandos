@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
-import { pool, transacao } from "@/lib/db";
+import { transacao } from "@/lib/db";
 import type { EstadoForm } from "./tipos";
 
 // A decisão vale para a turma do administrador (vem da sessão). O id da enquete
@@ -17,6 +17,10 @@ const esquemaFixar = z.object({
 });
 
 function revalidarDecisoes() {
+  // Com "layout" de propósito: a decisão aparece nas filhas
+  // /votacoes/[catalogoId], /votacoes/relatorio e /admin/votacoes/*.
+  // Revalidar só a página exata deixava as filhas stale. Ação rara de admin,
+  // fan-out irrelevante aqui.
   revalidatePath("/dashboard");
   revalidatePath("/votacoes", "layout");
   revalidatePath("/admin/votacoes", "layout");
@@ -36,7 +40,14 @@ export async function fixarDecisao(
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { enqueteId, opcaoIds } = dados.data;
 
-  const resultado = await transacao(async (db) => {
+  const resultado = await transacao(
+    async (db) => {
+    // Dois admins fixando a mesma enquete ao mesmo tempo esperam a vez.
+    // Sem isso, dois delete+insert concorrentes deixam 2 decisões numa
+    // pergunta de escolha única (PK é por opcao, não por enquete).
+    await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+      `${admin.turmaId}:${enqueteId}`,
+    ]);
     const { rows: enquetes } = await db.query(
       `select e.tipo
          from enquetes e
@@ -65,7 +76,9 @@ export async function fixarDecisao(
       [admin.turmaId, enqueteId, opcaoIds, admin.usuarioId],
     );
     return "ok" as const;
-  });
+    },
+    { acao: "decisoes.fixar" },
+  );
 
   if (resultado === "inexistente") return { erro: "Enquete não encontrada." };
   if (resultado === "unica") return { erro: "Escolha apenas uma opção." };
@@ -84,10 +97,18 @@ export async function reabrirVotacao(
   const admin = await exigirAdminEditavel();
   const dados = z.object({ enqueteId: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Enquete não encontrada." };
-  await pool.query("delete from decisoes where turma_id = $1 and enquete_id = $2", [
-    admin.turmaId,
-    dados.data.enqueteId,
-  ]);
+  await transacao(
+    async (db) => {
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+        `${admin.turmaId}:${dados.data.enqueteId}`,
+      ]);
+      await db.query("delete from decisoes where turma_id = $1 and enquete_id = $2", [
+        admin.turmaId,
+        dados.data.enqueteId,
+      ]);
+    },
+    { acao: "decisoes.reabrir" },
+  );
   revalidarDecisoes();
   return { ok: "Votação reaberta." };
 }

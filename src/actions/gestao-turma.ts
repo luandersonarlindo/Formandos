@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { COOKIE_TURMA, exigirAdmin } from "@/lib/dal";
-import { pool, transacao } from "@/lib/db";
+import { transacao } from "@/lib/db";
 import type { EstadoForm } from "./tipos";
 
 // Ações do administrador sobre a turma inteira. Usam exigirAdmin (e não a
@@ -15,17 +15,19 @@ import type { EstadoForm } from "./tipos";
 
 export async function arquivarTurma(): Promise<EstadoForm> {
   const admin = await exigirAdmin();
-  await pool.query(
-    "update turmas set arquivada_em = now() where id = $1 and arquivada_em is null",
-    [admin.turmaId],
-  );
-  await registrarAuditoria(pool, {
-    usuarioId: admin.usuarioId,
-    turmaId: admin.turmaId,
-    acao: "turma.arquivada",
-    entidade: "turma",
-    entidadeId: admin.turmaId,
-    detalhe: { nome: admin.turmaNome },
+  await transacao(async (db) => {
+    await db.query(
+      "update turmas set arquivada_em = now() where id = $1 and arquivada_em is null",
+      [admin.turmaId],
+    );
+    await registrarAuditoria(db, {
+      usuarioId: admin.usuarioId,
+      turmaId: admin.turmaId,
+      acao: "turma.arquivada",
+      entidade: "turma",
+      entidadeId: admin.turmaId,
+      detalhe: { nome: admin.turmaNome },
+    });
   });
   revalidatePath("/", "layout");
   return { ok: "Turma arquivada." };
@@ -33,14 +35,16 @@ export async function arquivarTurma(): Promise<EstadoForm> {
 
 export async function desarquivarTurma(): Promise<EstadoForm> {
   const admin = await exigirAdmin();
-  await pool.query("update turmas set arquivada_em = null where id = $1", [admin.turmaId]);
-  await registrarAuditoria(pool, {
-    usuarioId: admin.usuarioId,
-    turmaId: admin.turmaId,
-    acao: "turma.desarquivada",
-    entidade: "turma",
-    entidadeId: admin.turmaId,
-    detalhe: { nome: admin.turmaNome },
+  await transacao(async (db) => {
+    await db.query("update turmas set arquivada_em = null where id = $1", [admin.turmaId]);
+    await registrarAuditoria(db, {
+      usuarioId: admin.usuarioId,
+      turmaId: admin.turmaId,
+      acao: "turma.desarquivada",
+      entidade: "turma",
+      entidadeId: admin.turmaId,
+      detalhe: { nome: admin.turmaNome },
+    });
   });
   revalidatePath("/", "layout");
   return { ok: "Turma desarquivada." };

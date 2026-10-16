@@ -89,20 +89,25 @@ export async function criarCatalogo(
   const dados = esquemaCatalogo.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
 
-  const total = await pool.query(
-    "select count(*)::int as n from catalogos where turma_id = $1",
-    [admin.turmaId],
-  );
-  if (total.rows[0].n >= MAX_CATALOGOS) {
+  const catalogoId = await transacao(async (db) => {
+    // Bloqueia a turma para dois cliques seguidos não passarem do limite.
+    await db.query("select 1 from turmas where id = $1 for update", [admin.turmaId]);
+    const { rows: total } = await db.query(
+      "select count(*)::int as n from catalogos where turma_id = $1",
+      [admin.turmaId],
+    );
+    if (total[0].n >= MAX_CATALOGOS) return null;
+    const { rows } = await db.query(
+      "insert into catalogos (turma_id, nome) values ($1, $2) returning id",
+      [admin.turmaId, dados.data.nome],
+    );
+    return rows[0].id as string;
+  });
+  if (!catalogoId) {
     return { erro: `A turma pode ter no máximo ${MAX_CATALOGOS} catálogos personalizados.` };
   }
-
-  const { rows } = await pool.query(
-    "insert into catalogos (turma_id, nome) values ($1, $2) returning id",
-    [admin.turmaId, dados.data.nome],
-  );
   revalidarCatalogo();
-  redirect(`/admin/votacoes/${rows[0].id}`);
+  redirect(`/admin/votacoes/${catalogoId}`);
 }
 
 // Copia um catálogo-modelo (docs/catalogos-modelo) para a turma. A cópia é um
@@ -207,7 +212,11 @@ export async function alternarCatalogoPadrao(
     admin.turmaId,
   ]);
   revalidarCatalogo();
-  revalidatePath("/", "layout");
+  // Subtrees de votação (filhas incluídas: [catalogoId], relatorio) + contadores
+  // do dashboard. Sem o layout raiz: sidebar/shell não listam catálogos.
+  revalidatePath("/votacoes", "layout");
+  revalidatePath("/admin/votacoes", "layout");
+  revalidatePath("/dashboard");
   return {
     ok: dados.data.usar === "sim" ? "Catálogo padrão ligado." : "Catálogo padrão desligado.",
   };
