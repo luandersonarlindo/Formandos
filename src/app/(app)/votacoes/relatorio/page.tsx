@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Trophy, Users, Vote } from "lucide-react";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { GraficoEnquete } from "@/components/features/grafico-enquete";
+import { GraficoEnqueteLazy } from "@/components/features/grafico-enquete-lazy";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import {
   Card,
@@ -154,7 +154,7 @@ export default async function RelatorioPage(
                         Ninguém votou ainda.
                       </p>
                     ) : (
-                      <GraficoEnquete opcoes={enquete.opcoes} />
+                      <GraficoEnqueteLazy opcoes={enquete.opcoes} />
                     )}
                     <details className="group mt-3 text-sm">
                       <summary className="flex cursor-pointer list-none items-center gap-1.5 text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">

@@ -49,13 +49,19 @@ const origemDaRede = process.env.LAN_ORIGIN ? new URL(process.env.LAN_ORIGIN) : 
 const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
-  ...(origemDaRede && {
-    allowedDevOrigins: [origemDaRede.hostname],
-    experimental: {
+  // Só baixa o que usa de cada barrel: radix-ui (11 arquivos ui), recharts,
+  // lucide-react (dezenas de ícones por página) e animejs. Sem isso, o
+  // import nomeado puxa o pacote inteiro para o chunk da página.
+  experimental: {
+    optimizePackageImports: ["radix-ui", "recharts", "lucide-react", "animejs"],
+    ...(origemDaRede && {
       serverActions: {
         allowedOrigins: [origemDaRede.host],
       },
-    },
+    }),
+  },
+  ...(origemDaRede && {
+    allowedDevOrigins: [origemDaRede.hostname],
   }),
   async headers() {
     return [{ source: "/:path*", headers: cabecalhosDeSeguranca }];

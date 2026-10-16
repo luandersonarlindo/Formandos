@@ -1,7 +1,6 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { animate, createScope, stagger } from "animejs";
 import { ATRIBUTO_ANIMACAO_PRONTA } from "@/lib/tema";
 
 // Entrada animada (Anime.js) das páginas internas. O conteúdo é renderizado no
@@ -22,7 +21,11 @@ const ATRASO_ITEM = 45;
 
 const filhos = (el: Element) => Array.from(el.children) as HTMLElement[];
 
-function animarEntrada(raiz: HTMLElement): () => void {
+// Tipo do módulo animejs, carregado sob demanda (ver AnimarPagina).
+type AnimeLib = typeof import("animejs");
+
+function animarEntrada(raiz: HTMLElement, anime: AnimeLib): () => void {
+  const { animate, stagger } = anime;
   const desfazer: Array<() => void> = [];
   const esconder = (els: HTMLElement[]) => {
     els.forEach((el) => {
@@ -146,6 +149,10 @@ export function AnimarPagina({
 
   // useLayoutEffect: os blocos ficam escondidos antes da primeira pintura, sem
   // piscar o conteúdo pronto e depois escondê-lo.
+  //
+  // O animejs baixa sob demanda: quem pede menos movimento sai antes do
+  // import (nunca baixa o chunk), e o restante baixa em paralelo com a
+  // hidratação, só quando a animação vai rodar de verdade.
   useLayoutEffect(() => {
     const el = raiz.current;
     if (!el) return;
@@ -166,20 +173,26 @@ export function AnimarPagina({
     // Sinaliza ao timer de segurança do SCRIPT_TEMA que o bundle carregou.
     html.setAttribute(ATRIBUTO_ANIMACAO_PRONTA, "");
     // Se o timer já disparou (montagem muito lenta), o conteúdo está visível:
-    // não re-esconde para animar, sai sem movimento.
-    if (html.hasAttribute("data-sem-animacao")) return;
+    // não re-esconde para animar, sai sem movimento. Marca "pronto" mesmo
+    // assim: sem isso, quem espera pela liberação (e os testes, via assentar)
+    // ficava pendurado, embora a página já estivesse visível.
+    if (html.hasAttribute("data-sem-animacao")) {
+      el.dataset.animar = "pronto";
+      return;
+    }
 
     const limpezas: Array<() => void> = [];
     let ativo = true;
-    const escopo = createScope({ root: el });
+    let escopo: { add: (corpo: () => void) => void; revert: () => void } | undefined;
+    let observador: MutationObserver | undefined;
     // Carregando (loading.tsx) usa role="status" e não precisa de entrada.
-    const entrar = async (alvo: Node) => {
+    const entrar = (anime: AnimeLib) => async (alvo: Node) => {
       if (!(alvo instanceof HTMLElement) || alvo.getAttribute("role") === "status") return;
       await esperarHidratacao(alvo, () => !ativo);
       if (!ativo || !alvo.isConnected) return;
       try {
-        escopo.add(() => {
-          limpezas.push(animarEntrada(alvo));
+        escopo?.add(() => {
+          limpezas.push(animarEntrada(alvo, anime));
         });
       } catch (erro) {
         // Se algo falhar, mostra o conteúdo sem animação em vez de deixá-lo invisível.
@@ -188,20 +201,43 @@ export function AnimarPagina({
       }
     };
 
-    // O conteúdo só é liberado (data-animar="pronto") depois de assumido.
-    Promise.all(filhos(el).map(entrar)).then(() => {
-      if (ativo) el.dataset.animar = "pronto";
-    });
+    void (async () => {
+      // Fail-open: se o chunk demorar ou falhar (rede, build parcial), o
+      // conteúdo aparece sem animação em vez de ficar escondido esperando.
+      // Sem isso, `data-animar` nunca virava "pronto" e a página travava
+      // invisível — e os testes (assentar) estouravam timeout.
+      let anime: AnimeLib | null = null;
+      try {
+        anime = await Promise.race([
+          import("animejs"),
+          new Promise<null>((resolver) => setTimeout(() => resolver(null), 2500)),
+        ]);
+      } catch {
+        anime = null;
+      }
+      if (!anime) {
+        if (ativo && el.isConnected) el.dataset.animar = "pronto";
+        return;
+      }
+      if (!ativo || !el.isConnected) return;
+      const { createScope } = anime;
+      escopo = createScope({ root: el });
+      const entrarComAnime = entrar(anime);
+      // O conteúdo só é liberado (data-animar="pronto") depois de assumido.
+      void Promise.all(filhos(el).map(entrarComAnime)).then(() => {
+        if (ativo) el.dataset.animar = "pronto";
+      });
 
-    const observador = new MutationObserver((mudancas) => {
-      mudancas.forEach((m) => m.addedNodes.forEach((n) => void entrar(n)));
-    });
-    observador.observe(el, { childList: true });
+      observador = new MutationObserver((mudancas) => {
+        mudancas.forEach((m) => m.addedNodes.forEach((n) => void entrarComAnime(n)));
+      });
+      observador.observe(el, { childList: true });
+    })();
 
     return () => {
       ativo = false;
-      observador.disconnect();
-      escopo.revert();
+      observador?.disconnect();
+      escopo?.revert();
       limpezas.forEach((f) => f());
       delete html.dataset.semAnimacao;
     };
