@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
-import { pool } from "@/lib/db";
+import { pool, transacao } from "@/lib/db";
 import { ehLinkHttps } from "@/lib/evento";
 import type { EstadoForm } from "./tipos";
 
@@ -104,19 +104,25 @@ export async function adicionarItemProgramacao(
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { horario, titulo, descricao } = dados.data;
 
-  const { rows } = await pool.query(
-    "select count(*)::int as total from programacao where turma_id = $1",
-    [admin.turmaId],
-  );
-  if (rows[0].total >= MAX_ITENS_PROGRAMACAO) {
+  // Conta e insere na mesma transação com lock: dois cliques seguidos
+  // passavam juntos pelo teto (mesmo padrão do limite de catálogos).
+  const total = await transacao(async (db) => {
+    await db.query("select 1 from turmas where id = $1 for update", [admin.turmaId]);
+    const { rows } = await db.query(
+      "select count(*)::int as total from programacao where turma_id = $1",
+      [admin.turmaId],
+    );
+    if (rows[0].total >= MAX_ITENS_PROGRAMACAO) return null;
+    await db.query(
+      `insert into programacao (turma_id, horario, titulo, descricao)
+       values ($1, $2::timestamp at time zone 'America/Sao_Paulo', $3, $4)`,
+      [admin.turmaId, horario, titulo, descricao],
+    );
+    return true;
+  });
+  if (!total) {
     return { erro: `A programação pode ter no máximo ${MAX_ITENS_PROGRAMACAO} itens.` };
   }
-
-  await pool.query(
-    `insert into programacao (turma_id, horario, titulo, descricao)
-     values ($1, $2::timestamp at time zone 'America/Sao_Paulo', $3, $4)`,
-    [admin.turmaId, horario, titulo, descricao],
-  );
   revalidarEvento();
   return { ok: "Item adicionado." };
 }
