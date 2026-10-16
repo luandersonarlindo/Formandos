@@ -234,6 +234,12 @@ create table if not exists tentativas_convite (
 create index if not exists idx_tentativas_convite_usuario
   on tentativas_convite (usuario_id, created_at);
 
+-- IP de quem errou o código: o limite por usuário não pega ataque com várias
+-- contas do mesmo endereço. Coluna nula nos registros antigos.
+alter table tentativas_convite add column if not exists ip varchar(45);
+create index if not exists idx_tentativas_convite_ip
+  on tentativas_convite (ip, created_at);
+
 -- Consentimento LGPD: quando a pessoa aceitou Termos + Privacidade no cadastro
 -- por email/senha (checkbox obrigatório). Nulo em contas Google (consentimento
 -- via OAuth) e em contas criadas antes desta coluna.
@@ -255,3 +261,23 @@ create table if not exists auditoria (
 );
 create index if not exists idx_auditoria_turma on auditoria (turma_id, created_at desc);
 create index if not exists idx_auditoria_usuario on auditoria (usuario_id, created_at desc);
+
+-- Atalhos de leitura quente (pico de votação): as consultas filtram sempre por
+-- turma + outro predicado, e os índices simples existentes varrem.
+-- Idempotente: só cria o que falta; o `prebuild` aplica sozinho na Vercel.
+create index if not exists idx_votos_turma_usuario on votos (turma_id, usuario_id);
+create index if not exists idx_votos_opcao_turma on votos (opcao_id, turma_id);
+create index if not exists idx_duvidas_turma_resp on duvidas (turma_id, respondida);
+create index if not exists idx_tarefas_turma_status on tarefas (turma_id, status);
+create index if not exists idx_fornecedores_turma_cat on fornecedores (turma_id, categoria);
+
+-- Throttle genérico de Server Actions (flood no pico): cada consumo grava uma
+-- linha com a chave da ação; a contagem na janela decide se passa. Limpeza de
+-- linhas com +1 dia roda junto de cada consumo (delete barato por índice).
+-- Idempotente: só cria o que falta.
+create table if not exists throttle (
+  id         bigserial primary key,
+  chave      varchar(255) not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_throttle_chave on throttle (chave, created_at);
