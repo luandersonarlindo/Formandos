@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirMembroEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
+import { consumirLimite } from "@/lib/throttle";
 import type { EstadoForm } from "./tipos";
 
 const esquemaDuvida = z.object({
@@ -26,10 +27,19 @@ export async function enviarDuvida(
     return { erro: dados.error.issues[0].message, valor: texto };
   }
 
-  await pool.query(
-    "insert into duvidas (turma_id, autor_id, conteudo) values ($1, $2, $3)",
-    [membro.turmaId, membro.usuarioId, dados.data.conteudo],
+  const livre = await transacao(
+    async (db) => {
+      const ok = await consumirLimite(db, `duvida:${membro.usuarioId}:${membro.turmaId}`, 20, 60);
+      if (!ok) return false;
+      await db.query(
+        "insert into duvidas (turma_id, autor_id, conteudo) values ($1, $2, $3)",
+        [membro.turmaId, membro.usuarioId, dados.data.conteudo],
+      );
+      return true;
+    },
+    { acao: "duvidas.enviar" },
   );
+  if (!livre) return { erro: "Muitas dúvidas em pouco tempo. Aguarde alguns minutos.", valor: texto };
   revalidatePath("/duvidas");
   return { ok: "Dúvida enviada." };
 }
@@ -75,24 +85,36 @@ export async function alternarUpvote(duvidaId: string) {
   const membro = await exigirMembroEditavel();
   if (!z.uuid().safeParse(duvidaId).success) return;
 
-  await transacao(async (db) => {
-    const { rowCount } = await db.query(
-      "select 1 from duvidas where id = $1 and turma_id = $2",
-      [duvidaId, membro.turmaId],
-    );
-    if (!rowCount) return;
+  await transacao(
+    async (db) => {
+      // Duplo clique no upvote esperam a vez: sem isso, dois toggles
+      // concorrentes invertem a intenção (liga-desliga vira desliga-liga).
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+        `${duvidaId}:${membro.usuarioId}`,
+      ]);
+      // Teto generoso contra flood de toggle (cada um dispara revalidate):
+      // 120/hora por usuário nunca pega uso normal.
+      const livre = await consumirLimite(db, `upvote:${membro.usuarioId}`, 120, 60);
+      if (!livre) return;
+      const { rowCount } = await db.query(
+        "select 1 from duvidas where id = $1 and turma_id = $2",
+        [duvidaId, membro.turmaId],
+      );
+      if (!rowCount) return;
 
-    const removido = await db.query(
-      "delete from duvida_upvotes where duvida_id = $1 and usuario_id = $2",
-      [duvidaId, membro.usuarioId],
-    );
-    if (removido.rowCount === 0) {
-      await db.query(
-        `insert into duvida_upvotes (duvida_id, usuario_id) values ($1, $2)
-         on conflict do nothing`,
+      const removido = await db.query(
+        "delete from duvida_upvotes where duvida_id = $1 and usuario_id = $2",
         [duvidaId, membro.usuarioId],
       );
-    }
-  });
+      if (removido.rowCount === 0) {
+        await db.query(
+          `insert into duvida_upvotes (duvida_id, usuario_id) values ($1, $2)
+           on conflict do nothing`,
+          [duvidaId, membro.usuarioId],
+        );
+      }
+    },
+    { acao: "duvidas.upvote" },
+  );
   revalidatePath("/duvidas");
 }

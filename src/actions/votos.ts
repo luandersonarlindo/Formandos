@@ -22,6 +22,13 @@ export async function salvarVotos(
 ): Promise<EstadoForm> {
   const membro = await exigirMembroEditavel();
 
+  // Freio de pico: com VOTACAO_CONGELADA=1, a votação pausa sem deploy.
+  // Decisões do admin (fixar/reabrir) seguem funcionando: é a comissão que
+  // congela, fixa e libera. Ver .env.example.
+  if (process.env.VOTACAO_CONGELADA === "1") {
+    return { erro: "Votação pausada temporariamente. Tente de novo em instantes." };
+  }
+
   const catalogoId = uuid.safeParse(formData.get("catalogoId"));
   if (!catalogoId.success) return { erro: "Catálogo não encontrado." };
 
@@ -98,26 +105,29 @@ export async function salvarVotos(
     validos.set(enqueteId, opcaoIds);
   }
 
-  await transacao(async (db) => {
-    for (const [enqueteId, opcaoIds] of validos) {
-      // Dois envios simultâneos do mesmo usuário na mesma enquete esperam a vez.
-      await db.query("select pg_advisory_xact_lock(hashtext($1))", [
-        `${membro.usuarioId}:${enqueteId}`,
-      ]);
-      const daEnquete = [...porOpcao.keys()].filter(
-        (id) => porOpcao.get(id)!.enqueteId === enqueteId,
-      );
-      await db.query(
-        "delete from votos where usuario_id = $1 and opcao_id = any($2::uuid[])",
-        [membro.usuarioId, daEnquete],
-      );
-      await db.query(
-        `insert into votos (turma_id, opcao_id, usuario_id)
-         select $1, unnest($2::uuid[]), $3`,
-        [membro.turmaId, opcaoIds, membro.usuarioId],
-      );
-    }
-  });
+  await transacao(
+    async (db) => {
+      for (const [enqueteId, opcaoIds] of validos) {
+        // Dois envios simultâneos do mesmo usuário na mesma enquete esperam a vez.
+        await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+          `${membro.usuarioId}:${enqueteId}`,
+        ]);
+        const daEnquete = [...porOpcao.keys()].filter(
+          (id) => porOpcao.get(id)!.enqueteId === enqueteId,
+        );
+        await db.query(
+          "delete from votos where usuario_id = $1 and opcao_id = any($2::uuid[])",
+          [membro.usuarioId, daEnquete],
+        );
+        await db.query(
+          `insert into votos (turma_id, opcao_id, usuario_id)
+           select $1, unnest($2::uuid[]), $3`,
+          [membro.turmaId, opcaoIds, membro.usuarioId],
+        );
+      }
+    },
+    { acao: "votos.salvar" },
+  );
 
   revalidatePath(`/votacoes/${catalogoId.data}`);
   revalidatePath("/votacoes");
