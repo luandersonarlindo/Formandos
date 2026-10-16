@@ -73,7 +73,7 @@ export function FormEnquete({
       )}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`${id}-titulo`}>Pergunta</Label>
-        <Input id={`${id}-titulo`} name="titulo" defaultValue={v?.titulo} maxLength={500} required />
+        <Input id={`${id}-titulo`} name="titulo" defaultValue={v?.titulo} minLength={5} maxLength={500} required />
       </div>
       <fieldset className="flex flex-wrap gap-4 text-sm">
         <legend className="mb-1.5 text-sm font-medium">Tipo</legend>

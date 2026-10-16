@@ -26,6 +26,7 @@ export function FormNovaTarefa({
         <Input
           id="titulo"
           name="titulo"
+          minLength={3}
           maxLength={255}
           placeholder="Ex.: Contratar o fotógrafo"
           required

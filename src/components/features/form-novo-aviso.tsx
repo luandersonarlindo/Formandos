@@ -23,13 +23,14 @@ export function FormNovoAviso() {
           </span>
           Título
         </Label>
-        <Input id="titulo-aviso" name="titulo" maxLength={200} placeholder="Ex.: Prazo do pagamento do buffet" required />
+        <Input id="titulo-aviso" name="titulo" minLength={3} maxLength={200} placeholder="Ex.: Prazo do pagamento do buffet" required />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="conteudo-aviso">Recado</Label>
         <Textarea
           id="conteudo-aviso"
           name="conteudo"
+          minLength={3}
           maxLength={2000}
           rows={3}
           placeholder="Escreva o recado para a turma."

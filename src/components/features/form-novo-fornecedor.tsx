@@ -19,7 +19,7 @@ export function FormNovoFornecedor({ categorias }: { categorias: readonly string
     <form action={acao} className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nome">Nome</Label>
-        <Input id="nome" name="nome" maxLength={255} required />
+        <Input id="nome" name="nome" minLength={2} maxLength={255} required />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="categoria">Categoria</Label>
