@@ -54,6 +54,17 @@ function CamposPresenca({
   );
   const [observacao, setObservacao] = useState(inicial.observacao);
 
+  // Espelha o clamp do servidor (normalizarPresenca): sem isso, digitar 999
+  // passa no max do HTML só como sugestão, o servidor salva o limite e a
+  // pessoa vê número diferente do que digitou. Clamp no blur, não no change,
+  // para não brigar com a digitação (ex.: apagar para reescrever).
+  function fixarAcompanhantes(valor: string) {
+    if (valor === "") return valor;
+    const n = Math.trunc(Number(valor));
+    if (!Number.isFinite(n)) return "0";
+    return String(Math.min(Math.max(0, n), limite));
+  }
+
   return (
     <>
       <fieldset className="grid gap-2 sm:grid-cols-3">
@@ -88,6 +99,7 @@ function CamposPresenca({
             max={limite}
             value={acompanhantes}
             onChange={(e) => setAcompanhantes(e.target.value)}
+            onBlur={(e) => setAcompanhantes(fixarAcompanhantes(e.target.value))}
             className="h-10 w-full sm:w-32"
           />
           <p className="text-xs text-muted-foreground">

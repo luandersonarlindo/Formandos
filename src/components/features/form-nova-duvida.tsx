@@ -34,6 +34,7 @@ export function FormNovaDuvida() {
       <Textarea
         id="texto-duvida"
         name="conteudo"
+        minLength={5}
         maxLength={500}
         rows={3}
         placeholder="Ex.: Qual é o prazo final para enviar as fotos do telão?"

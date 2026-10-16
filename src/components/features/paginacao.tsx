@@ -25,6 +25,11 @@ function href(caminho: string, parametros: PaginacaoProps["parametros"], pagina:
 
 // Anterior / Próxima com "Página X de Y". Só links, sem estado no cliente.
 // Não aparece quando há uma página só.
+//
+// scroll={false} de propósito: o padrão do Next volta ao topo a cada troca,
+// e a pessoa perde o ponto da lista (pior em lista longa, mobile e TV com
+// D-pad). Sem scroll, a posição fica onde estava, junto da paginação.
+// O contador tem role="status" para leitor de tela anunciar a troca.
 export function Paginacao({ pagina, totalPaginas, caminho, parametros, className }: PaginacaoProps) {
   if (totalPaginas <= 1) return null;
   const classe = buttonVariants({ variant: "outline", size: "sm" });
@@ -36,7 +41,7 @@ export function Paginacao({ pagina, totalPaginas, caminho, parametros, className
       className={cn("mt-6 flex items-center justify-between gap-3", className)}
     >
       {pagina > 1 ? (
-        <Link href={href(caminho, parametros, pagina - 1)} rel="prev" className={classe}>
+        <Link href={href(caminho, parametros, pagina - 1)} rel="prev" scroll={false} className={classe}>
           <ChevronLeft aria-hidden /> Anterior
         </Link>
       ) : (
@@ -44,11 +49,11 @@ export function Paginacao({ pagina, totalPaginas, caminho, parametros, className
           <ChevronLeft aria-hidden /> Anterior
         </span>
       )}
-      <p className="text-sm text-muted-foreground tabular-nums" aria-current="page">
+      <p role="status" className="text-sm text-muted-foreground tabular-nums">
         Página {pagina} de {totalPaginas}
       </p>
       {pagina < totalPaginas ? (
-        <Link href={href(caminho, parametros, pagina + 1)} rel="next" className={classe}>
+        <Link href={href(caminho, parametros, pagina + 1)} rel="next" scroll={false} className={classe}>
           Próxima <ChevronRight aria-hidden />
         </Link>
       ) : (

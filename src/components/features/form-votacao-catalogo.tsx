@@ -46,9 +46,24 @@ export function FormVotacaoCatalogo({
   );
   const [estado, setEstado] = useState<EstadoForm>(inicial);
   const [pendente, setPendente] = useState(false);
+  // Última seleção confirmada pelo servidor. Serve para avisar "alterações não
+  // salvas": sem isso, depois de votar a pessoa não sabe se o que está na tela
+  // já foi gravado, clica de novo e gera retry em cima de retry no pico.
+  const [salvas, setSalvas] = useState<Record<string, string[]>>(() => {
+    const inicial: Record<string, string[]> = {};
+    for (const categoria of catalogo.categorias) {
+      for (const enquete of categoria.enquetes) {
+        inicial[enquete.id] = enquete.selecionadas;
+      }
+    }
+    return inicial;
+  });
 
   const enquetes = catalogo.categorias.flatMap((c) => c.enquetes);
   const respondidas = enquetes.filter((e) => selecionadas[e.id]?.length > 0).length;
+  const sujo = enquetes.some(
+    (e) => JSON.stringify(selecionadas[e.id] ?? []) !== JSON.stringify(salvas[e.id] ?? []),
+  );
 
   // Sem action de formulário: o React 19 reseta o <form> depois da server
   // action e o checkbox controlado volta para a seleção antiga. Aqui o envio é
@@ -57,12 +72,17 @@ export function FormVotacaoCatalogo({
     event.preventDefault();
     if (pendente) return;
     setPendente(true);
+    const tentativa = selecionadas;
     const resposta = await salvarVotos(estado, new FormData(event.currentTarget));
+    // Só marca como salvo o que foi enviado: se a pessoa mexeu em algo durante
+    // o save, aquilo segue como "não salvo" em vez de sumir do aviso.
+    if (resposta.ok) setSalvas(tentativa);
     setEstado(resposta);
     setPendente(false);
   }
 
   function alternar(enqueteId: string, opcaoId: string) {
+    if (pendente) return;
     const enquete = EnqueteDoCatalogo(catalogo, enqueteId);
     if (!enquete || enquete.decisao.length > 0) return;
     const exclusiva =
@@ -86,7 +106,7 @@ export function FormVotacaoCatalogo({
   }
 
   return (
-    <form onSubmit={aoEnviar}>
+    <form onSubmit={aoEnviar} aria-busy={pendente}>
       <input type="hidden" name="catalogoId" value={catalogo.id} />
       {catalogo.categorias.map((categoria) => (
         <section
@@ -95,7 +115,9 @@ export function FormVotacaoCatalogo({
           className="mt-8 scroll-mt-16"
         >
           <h2 className="text-lg font-semibold">{categoria.nome}</h2>
-          <div data-grupo className="mt-3 grid gap-4">
+          {/* Trava a edição durante o save: mexer no meio do envio gera
+              seleção divergente do que foi gravado e retry confuso. */}
+          <div data-grupo className={pendente ? "pointer-events-none mt-3 grid gap-4 opacity-70" : "mt-3 grid gap-4"} aria-disabled={pendente}>
             {categoria.enquetes.map((enquete) => (
               <EnqueteCard
                 key={enquete.id}
@@ -114,6 +136,9 @@ export function FormVotacaoCatalogo({
             <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
               <p role="status" className="text-sm font-medium">
                 {respondidas} de {enquetes.length} respondidas
+                {!pendente && !estado.erro && sujo && (
+                  <span className="text-muted-foreground"> · alterações não salvas</span>
+                )}
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Button type="submit" size="sm" disabled={pendente}>

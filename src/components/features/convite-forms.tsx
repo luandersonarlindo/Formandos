@@ -93,6 +93,7 @@ export function FormCriarTurma() {
           <Input
             id="nome"
             name="nome"
+            minLength={3}
             maxLength={100}
             placeholder="Ex.: Engenharia 2026"
             className="h-11"
