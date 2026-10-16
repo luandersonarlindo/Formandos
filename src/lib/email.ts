@@ -28,8 +28,15 @@ export type Email = { para: string; assunto: string; texto: string; html: string
 
 export async function enviarEmail({ para, assunto, texto, html }: Email) {
   if (!transporte) {
-    // O texto puro vai inteiro para o log de propósito: é dele que os testes de
-    // ponta a ponta tiram o link de confirmação e o de redefinição de senha.
+    // Em produção, nunca despejar o texto (contém token de verificação/reset
+    // com 1h de validade) no log: Vercel retém logs e o link ficaria exposto.
+    // Em dev/teste, o texto vai inteiro de propósito: é dele que os testes de
+    // ponta a ponta tiram o link de confirmação e o de redefinição de senha
+    // (ver scripts/teste/README.md e email.test.ts).
+    if (process.env.NODE_ENV === "production") {
+      console.log(`\n[email não enviado: SMTP_HOST vazio]\nPara: ${para}\nAssunto: ${assunto}\n`);
+      return;
+    }
     console.log(`\n[email não enviado: SMTP_HOST vazio]\nPara: ${para}\nAssunto: ${assunto}\n${texto}\n`);
     return;
   }

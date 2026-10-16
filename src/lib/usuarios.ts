@@ -89,7 +89,8 @@ export async function getMeusDados(usuarioId: string) {
        join enquetes e on e.id = o.enquete_id
        join categorias cat on cat.id = e.categoria_id
       where v.usuario_id = $1
-      order by v.created_at`,
+      order by v.created_at
+      limit 2000`,
     [usuarioId],
   );
   const { rows: presencas } = await pool.query(
@@ -102,7 +103,8 @@ export async function getMeusDados(usuarioId: string) {
     `select t.nome as turma, d.conteudo, d.resposta, d.respondida,
             d.destaque, d.created_at as criada_em
        from duvidas d join turmas t on t.id = d.turma_id
-      where d.autor_id = $1 order by d.created_at`,
+      where d.autor_id = $1 order by d.created_at
+      limit 2000`,
     [usuarioId],
   );
   const { rows: upvotes } = await pool.query(
@@ -111,21 +113,63 @@ export async function getMeusDados(usuarioId: string) {
        join duvidas d on d.id = x.duvida_id
        join turmas t on t.id = d.turma_id
        join usuarios u on u.id = d.autor_id
-      where x.usuario_id = $1 order by d.created_at`,
+      where x.usuario_id = $1 order by d.created_at
+      limit 2000`,
     [usuarioId],
   );
   const { rows: tarefas } = await pool.query(
     `select t.nome as turma, ta.titulo, ta.descricao, ta.status, ta.prazo
        from tarefas ta join turmas t on t.id = ta.turma_id
-      where ta.responsavel_id = $1 order by ta.prazo nulls last, ta.created_at`,
+      where ta.responsavel_id = $1 order by ta.prazo nulls last, ta.created_at
+      limit 2000`,
     [usuarioId],
   );
   const { rows: avisos } = await pool.query(
     `select t.nome as turma, a.titulo, a.conteudo, a.created_at as criado_em
        from avisos a join turmas t on t.id = a.turma_id
-      where a.autor_id = $1 order by a.created_at`,
+      where a.autor_id = $1 order by a.created_at
+      limit 2000`,
     [usuarioId],
   );
+  // Trilhas que também guardam dado da pessoa: tentativas de convite,
+  // auditoria (só as linhas dele) e sessões (sem token, só metadados).
+  // Sem isso o JSON saía parcial (LGPD art. 18, II e V).
+  const { rows: tentativas } = await pool.query(
+    `select created_at as tentado_em
+       from tentativas_convite where usuario_id = $1
+      order by created_at desc limit 500`,
+    [usuarioId],
+  );
+  const { rows: auditoria } = await pool.query(
+    `select created_at as registrado_em, acao, entidade, entidade_id, detalhe
+       from auditoria where usuario_id = $1
+      order by created_at desc limit 2000`,
+    [usuarioId],
+  );
+  // `select *` de propósito: o esquema de `session` vem do CLI do Better
+  // Auth e muda entre versões (colunas ip/userAgent nem sempre existem).
+  // Filtrar no JS evita `column does not exist` em bancos antigos.
+  // Token nunca sai no export: só metadados.
+  // try/catch de propósito: se a coluna de ordenação não existir no banco,
+  // a sessão sai vazia em vez de derrubar o export inteiro (LGPD).
+  let sessoesBrutas: Array<Record<string, unknown>> = [];
+  try {
+    const resultado = await pool.query(
+      `select * from session where "userId" = $1
+        order by "updatedAt" desc limit 200`,
+      [usuarioId],
+    );
+    sessoesBrutas = resultado.rows;
+  } catch {
+    sessoesBrutas = [];
+  }
+  const sessoes = sessoesBrutas.map((s) => ({
+    criada_em: s.createdAt ?? null,
+    atualizada_em: s.updatedAt ?? null,
+    expira_em: s.expiresAt ?? null,
+    ip: s.ipAddress ?? s.ip ?? null,
+    agente: s.userAgent ?? null,
+  }));
   return {
     conta: conta[0] ?? null,
     turmas,
@@ -135,6 +179,9 @@ export async function getMeusDados(usuarioId: string) {
     upvotes_dados: upvotes,
     tarefas_responsavel: tarefas,
     avisos_criados: avisos,
+    tentativas_convite: tentativas,
+    auditoria,
+    sessoes,
     exportado_em: new Date().toISOString(),
   };
 }

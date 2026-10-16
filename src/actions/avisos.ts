@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
-import { pool } from "@/lib/db";
+import { pool, transacao } from "@/lib/db";
+import { consumirLimite } from "@/lib/throttle";
 import type { EstadoForm } from "./tipos";
 
 const esquemaAviso = z.object({
@@ -32,10 +33,21 @@ export async function criarAviso(
   const dados = esquemaAviso.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
 
-  await pool.query(
-    "insert into avisos (turma_id, autor_id, titulo, conteudo) values ($1, $2, $3, $4)",
-    [admin.turmaId, admin.usuarioId, dados.data.titulo, dados.data.conteudo],
+  // Teto generoso contra flood (cada aviso invalida dashboard + lista):
+  // 10/hora por turma nunca pega uso normal da comissão.
+  const livre = await transacao(
+    async (db) => {
+      const ok = await consumirLimite(db, `aviso:${admin.turmaId}`, 10, 60);
+      if (!ok) return false;
+      await db.query(
+        "insert into avisos (turma_id, autor_id, titulo, conteudo) values ($1, $2, $3, $4)",
+        [admin.turmaId, admin.usuarioId, dados.data.titulo, dados.data.conteudo],
+      );
+      return true;
+    },
+    { acao: "avisos.criar" },
   );
+  if (!livre) return { erro: "Muitos avisos em pouco tempo. Aguarde alguns minutos." };
   revalidarAvisos();
   return { ok: "Aviso publicado." };
 }
