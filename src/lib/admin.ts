@@ -111,11 +111,13 @@ export async function getCatalogoAdmin(
     ),
     pool.query(
       `select o.id, o.enquete_id, o.texto, o.exclusiva,
-              (select count(*) from votos v
-                where v.opcao_id = o.id and v.turma_id = $2)::int as votos
+              coalesce(vc.votos, 0)::int as votos
          from opcoes o
          join enquetes e on e.id = o.enquete_id
          join categorias ca on ca.id = e.categoria_id
+         left join (select opcao_id, count(*)::int as votos
+                      from votos where turma_id = $2 group by opcao_id) vc
+                on vc.opcao_id = o.id
         where ca.catalogo_id = $1 order by o.ordem`,
       [catalogoId, turmaId],
     ),
@@ -150,6 +152,23 @@ export async function getCatalogoAdmin(
         })),
     })),
   };
+}
+
+// Só o título, para `generateMetadata`: a página busca os votos cheios em
+// seguida, e o metadata com a query completa dobrava o custo.
+export async function getTituloEnquete(
+  enqueteId: string,
+  turmaId: string,
+): Promise<string | null> {
+  const { rows } = await pool.query(
+    `select e.titulo
+       from enquetes e
+       join categorias ca on ca.id = e.categoria_id
+       join catalogos c on c.id = ca.catalogo_id
+      where e.id = $1 and ${catalogoVisivelSql("$2")}`,
+    [enqueteId, turmaId],
+  );
+  return rows[0]?.titulo ?? null;
 }
 
 // Quem votou em cada opção (só os votos da turma do admin) e quem ainda não votou.

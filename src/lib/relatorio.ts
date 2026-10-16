@@ -75,13 +75,16 @@ export async function getRelatorio(
   );
 
   const categorias: CategoriaRelatorio[] = [];
+  const porCategoria = new Map<string, CategoriaRelatorio>();
+  const porEnquete = new Map<string, EnqueteRelatorio>();
   for (const l of linhas.rows) {
-    let categoria = categorias.find((c) => c.id === l.categoria_id);
+    let categoria = porCategoria.get(l.categoria_id);
     if (!categoria) {
       categoria = { id: l.categoria_id, nome: l.categoria, enquetes: [] };
+      porCategoria.set(l.categoria_id, categoria);
       categorias.push(categoria);
     }
-    let enquete = categoria.enquetes.find((e) => e.id === l.enquete_id);
+    let enquete = porEnquete.get(l.enquete_id);
     if (!enquete) {
       enquete = {
         id: l.enquete_id,
@@ -90,6 +93,7 @@ export async function getRelatorio(
         votantes: votantesPorEnquete.get(l.enquete_id) ?? 0,
         opcoes: [],
       };
+      porEnquete.set(l.enquete_id, enquete);
       categoria.enquetes.push(enquete);
     }
     enquete.opcoes.push({

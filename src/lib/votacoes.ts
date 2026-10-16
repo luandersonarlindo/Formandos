@@ -58,6 +58,20 @@ export async function listarCatalogos(
   return rows;
 }
 
+// Só o nome, para `generateMetadata`: a página já busca o catálogo cheio
+// em seguida, e o metadata com a query completa dobrava o custo.
+export async function getNomeCatalogo(
+  catalogoId: string,
+  turmaId: string,
+): Promise<string | null> {
+  const { rows } = await pool.query(
+    `select c.nome from catalogos c
+      where c.id = $1 and ${catalogoVisivelSql("$2")}`,
+    [catalogoId, turmaId],
+  );
+  return rows[0]?.nome ?? null;
+}
+
 // Catálogo com categorias, enquetes, opções e os votos atuais do usuário.
 // Devolve null se o catálogo não existe ou não é visível à turma.
 export async function getCatalogoParaVotar(

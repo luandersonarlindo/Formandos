@@ -42,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { getCatalogoAdmin } from "@/lib/admin";
+import { getNomeCatalogo } from "@/lib/votacoes";
 import { exigirAdmin } from "@/lib/dal";
 
 export async function generateMetadata(
@@ -50,9 +51,9 @@ export async function generateMetadata(
   const admin = await exigirAdmin();
   const { catalogoId } = await props.params;
   if (!z.uuid().safeParse(catalogoId).success) return {};
-  const catalogo = await getCatalogoAdmin(catalogoId, admin.turmaId);
-  if (!catalogo) return {};
-  return { title: `Gerenciar ${catalogo.nome}` };
+  const nome = await getNomeCatalogo(catalogoId, admin.turmaId);
+  if (!nome) return {};
+  return { title: `Gerenciar ${nome}` };
 }
 
 export default async function CatalogoAdminPage(

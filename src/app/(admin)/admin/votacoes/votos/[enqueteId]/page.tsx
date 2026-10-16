@@ -9,7 +9,7 @@ import { FormDialog } from "@/components/features/form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { getVotosEnquete, type Votante } from "@/lib/admin";
+import { getTituloEnquete, getVotosEnquete, type Votante } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 
 function Pessoa({ v }: { v: Votante }) {
@@ -27,9 +27,9 @@ export async function generateMetadata(
   const admin = await exigirAdmin();
   const { enqueteId } = await props.params;
   if (!z.uuid().safeParse(enqueteId).success) return {};
-  const dados = await getVotosEnquete(enqueteId, admin.turmaId);
+  const dados = await getTituloEnquete(enqueteId, admin.turmaId);
   if (!dados) return {};
-  return { title: `Quem votou: ${dados.titulo}` };
+  return { title: `Quem votou: ${dados}` };
 }
 
 export default async function VotosEnquetePage(

@@ -29,19 +29,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getEventoAdmin } from "@/lib/admin";
-import { exigirAdmin } from "@/lib/dal";
-import { listarProgramacao } from "@/lib/dashboard";
+import type { EventoAdmin as DadosEvento } from "@/lib/admin";
+import type { ItemProgramacao } from "@/lib/dashboard";
 import { formatarDiaCurto, formatarHora, paraDatetimeLocal } from "@/lib/datas";
 
 // A área de evento do administrador, embutida no dashboard: edita os dados do
 // evento e gerencia a programação da festa, que todos os membros veem abaixo.
-export async function EventoAdmin() {
-  const admin = await exigirAdmin();
-  const [evento, programacao] = await Promise.all([
-    getEventoAdmin(admin.turmaId),
-    listarProgramacao(admin),
-  ]);
+// Recebe os dados por props (buscados uma vez na página): buscar de novo aqui
+// duplicava `listarProgramacao` e somava um roundtrip ao pool no pico.
+export function EventoAdmin({
+  evento,
+  programacao,
+}: {
+  evento: DadosEvento;
+  programacao: ItemProgramacao[];
+}) {
 
   const rotulo = "flex items-center gap-1.5";
 
@@ -250,7 +252,7 @@ export async function EventoAdmin() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="titulo">Título</Label>
-                    <Input id="titulo" name="titulo" maxLength={255} placeholder="Ex.: Entrada da turma" className="h-10" required />
+                    <Input id="titulo" name="titulo" minLength={2} maxLength={255} placeholder="Ex.: Entrada da turma" className="h-10" required />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
