@@ -50,7 +50,7 @@ export async function responderPresenca(
     [membro.turmaId, membro.usuarioId, status, acompanhantes, dados.data.observacao],
   );
   revalidatePath("/dashboard");
-  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/presenca");
   return { ok: "Resposta salva." };
 }
 
@@ -86,7 +86,6 @@ export async function salvarLimiteAcompanhantes(
 
   revalidatePath("/admin/presenca");
   revalidatePath("/dashboard");
-  revalidatePath("/", "layout");
   return {
     ok:
       cortados > 0

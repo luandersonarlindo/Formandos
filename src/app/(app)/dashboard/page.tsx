@@ -31,9 +31,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { getResumoAdmin } from "@/lib/admin";
 import { exigirMembro } from "@/lib/dal";
-import { getDetalhesEvento, getResumoTurma, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
+import { getDadosEvento, getResumosDashboard, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
 import { listarUltimosAvisos } from "@/lib/avisos";
 import { linkComoChegar } from "@/lib/evento";
 import { getMinhaPresenca } from "@/lib/presenca";
@@ -92,17 +91,17 @@ function Indicador({
 
 export default async function DashboardPage() {
   const membro = await exigirMembro();
-  const [programacao, resumo, detalhes, decisoes, presenca, avisos, resumoAdmin] =
+  // Uma única leva de queries (programacao uma vez, resumos e evento em 1
+  // roundtrip cada): antes, o EventoAdmin buscava programacao de novo +
+  // exigirAdmin, os resumos eram 2 queries e os dados do evento outras 2.
+  const [programacao, { resumo, admin: resumoAdmin }, { detalhes, evento }, decisoes, presenca, avisos] =
     await Promise.all([
       listarProgramacao(membro),
-      getResumoTurma(membro),
-      getDetalhesEvento(membro),
+      getResumosDashboard(membro),
+      getDadosEvento(membro),
       listarDecisoes(membro),
       getMinhaPresenca(membro),
       listarUltimosAvisos(membro),
-      membro.papel === "admin"
-        ? getResumoAdmin(membro.turmaId)
-        : Promise.resolve(null),
     ]);
   const comoChegar = linkComoChegar({
     linkMapa: detalhes.linkMapa,
@@ -345,7 +344,7 @@ export default async function DashboardPage() {
       )}
 
       {membro.papel === "admin" ? (
-        <EventoAdmin />
+        evento ? <EventoAdmin evento={evento} programacao={programacao} /> : null
       ) : (
         <Card className="mt-4">
           <CardHeader>

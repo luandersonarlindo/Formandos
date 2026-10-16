@@ -4,11 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { FormVotacaoCatalogo } from "@/components/features/form-votacao-catalogo";
+import { EstadoVazio } from "@/components/features/estado-vazio";
+import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
-import { getCatalogoParaVotar } from "@/lib/votacoes";
+import { getCatalogoParaVotar, getNomeCatalogo } from "@/lib/votacoes";
 
 export async function generateMetadata(
   props: PageProps<"/votacoes/[catalogoId]">,
@@ -16,9 +18,9 @@ export async function generateMetadata(
   const membro = await exigirMembro();
   const { catalogoId } = await props.params;
   if (!z.uuid().safeParse(catalogoId).success) return {};
-  const catalogo = await getCatalogoParaVotar(catalogoId, membro);
-  if (!catalogo) return {};
-  return { title: catalogo.nome };
+  const nome = await getNomeCatalogo(catalogoId, membro.turmaId);
+  if (!nome) return {};
+  return { title: nome };
 }
 
 export default async function CatalogoPage(
@@ -91,6 +93,15 @@ export default async function CatalogoPage(
       )}
 
       <FormVotacaoCatalogo catalogo={catalogo} />
+
+      {enquetes.length === 0 && (
+        <EstadoVazio
+          className="mt-8"
+          ilustracao={<ChecklistAmico />}
+          titulo="Este catálogo ainda não tem perguntas."
+          descricao="A comissão ainda não cadastrou perguntas aqui. Volte em instantes ou confira os outros catálogos."
+        />
+      )}
     </div>
   );
 }

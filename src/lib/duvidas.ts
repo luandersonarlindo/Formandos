@@ -62,15 +62,17 @@ export async function listarDuvidas(
   const { rows } = await pool.query(
     `select d.id, d.conteudo, d.resposta, d.respondida, d.destaque,
             d.created_at as "criadaEm", d.autor_id as "autorId", u.name as autor,
-            (select count(*) from duvida_upvotes x
-              where x.duvida_id = d.id)::int as votos,
+            coalesce(vc.votos, 0)::int as votos,
             exists (select 1 from duvida_upvotes x
                      where x.duvida_id = d.id and x.usuario_id = $2) as votei
        from duvidas d
        join usuarios u on u.id = d.autor_id
+       left join (select duvida_id, count(*)::int as votos
+                    from duvida_upvotes group by duvida_id) vc
+              on vc.duvida_id = d.id
       where d.turma_id = $1 ${CONDICAO_FILTRO[filtro]}
       order by ${moderacao ? "d.respondida asc," : ""}
-               d.destaque desc, votos desc, d.created_at desc, d.id
+               d.destaque desc, coalesce(vc.votos, 0) desc, d.created_at desc, d.id
       limit ${POR_PAGINA_DUVIDAS} offset $3`,
     [
       membro.turmaId,
