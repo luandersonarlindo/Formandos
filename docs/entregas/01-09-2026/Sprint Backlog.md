@@ -8,22 +8,20 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+Este documento registra o backlog da Sprint 1 do Formandos, revisto em 26/09/2026. Fazem parte do backlog o login por email e senha além do Google (**A2**), a entrada em uma turma por código de convite com validação (**A3**), a participação de um administrador em várias turmas (**A6**) e o painel de administração da plataforma (**E4**); os itens marcados com **†** identificam essas histórias. O histórico de como cada decisão chegou até aqui está em **Kick-off**.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os itens marcados com **†** (A2, A3, A6 e E4) não estavam no backlog do primeiro commit: entraram depois, conforme a equipe percebeu a necessidade — login com Google sozinho dependia de configuração externa, um administrador podia precisar ajudar mais de uma turma, e faltava alguém para gerir a plataforma inteira. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
-
-## 1. Como ler este documento
+## 0. Como ler este documento
 
 - **Épico:** grande tema do produto. **História:** pedido de um usuário, no formato *"Como [papel], quero [ação], para [benefício]"*.
 - **Prioridade (MoSCoW):** **M** = deve ter (MVP), **S** = deveria ter, **C** = poderia ter, **W** = fica para depois.
 - **Estimativa relativa:** **P** (pequeno, até meio dia), **M** (médio, cerca de 1 dia), **G** (grande, 2 dias ou mais). É uma comparação entre itens, não uma promessa de horas.
 - **Status** em 26/09/2026, conferido no repositório: **Concluído**, **Em andamento** ou **Planejado**.
 
-## 2. Meta da Sprint 1
+## 1. Meta da Sprint 1
 
 > Entregar um **MVP navegável de ponta a ponta**: uma pessoa entra com a conta, entra em uma turma, vota, pergunta, acompanha o evento e a comissão administra tudo.
 
-## 3. Backlog da Sprint 1
+## 2. Backlog da Sprint 1
 
 ### Épico A — Acesso e turmas
 
@@ -84,7 +82,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os itens 
 | F5 | **Responsividade** para celular, tablet, notebook e TV | S | G | Concluído |
 | F6 | **Documentação** (README, guia de estudo e artefatos de entrega) | M | M | Em andamento |
 
-## 4. Backlog para a Sprint 2 e além
+## 3. Backlog para a Sprint 2 e além
 
 | ID | Item | Prior. | Est. | Status |
 |---|---|---|---|---|
@@ -96,7 +94,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os itens 
 | G6 | **Imagem do fornecedor** na vitrine de terceiros | C | P | Planejado |
 | G7 | Revisão de **acessibilidade** com leitor de tela e teste em **aparelhos reais** | S | M | Planejado |
 
-## 5. Acompanhamento
+## 4. Acompanhamento
 
 - **Quadro:** colunas *A fazer → Em andamento → Em revisão → Feito*. Cada história vira um cartão com o ID acima.
 - **Revisão da sprint:** demonstrar o incremento rodando (não slides).

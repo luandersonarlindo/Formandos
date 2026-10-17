@@ -8,13 +8,9 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+Este documento define dois tipos de papel: os **papéis da equipe** (quem faz o quê no projeto, no modelo Scrum) e os **papéis de usuário** (o que cada pessoa pode fazer dentro do aplicativo). Ele registra os papéis do Formandos em 26/09/2026, com três decisões marcadas por **†**: o **administrador master**, a permissão de um administrador estar em **várias turmas** e o login por **email e senha**. O histórico de como cada uma chegou até aqui está em **Kick-off**.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O papel de **administrador master**, a permissão de um administrador estar em **várias turmas** e o login por **email e senha** (marcados com **†**) só entraram no pensamento do produto depois do primeiro commit. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
-
-Este documento define dois tipos de papel: os **papéis da equipe** (quem faz o quê no projeto, no modelo Scrum) e os **papéis de usuário** (o que cada pessoa pode fazer dentro do aplicativo).
-
-## 1. Papéis da equipe (Scrum)
+## 0. Papéis da equipe (Scrum)
 
 | Papel | Responsabilidades | Quem |
 |---|---|---|
@@ -25,7 +21,7 @@ Este documento define dois tipos de papel: os **papéis da equipe** (quem faz o 
 
 > **Observação.** O documento não atribui PO e SM por decisão do grupo ainda não registrada. Recomendação: o PO e o SM serem pessoas diferentes; todos os quatro continuam no time de desenvolvimento, pois a equipe é pequena.
 
-### 1.1. Áreas de atuação sugeridas no time de desenvolvimento
+### 0.1. Áreas de atuação sugeridas no time de desenvolvimento
 
 Como o projeto é pequeno, todos programam, mas cada um cuida de uma área para não haver conflito:
 
@@ -36,7 +32,7 @@ Como o projeto é pequeno, todos programam, mas cada um cuida de uma área para 
 | Dúvidas, tarefas e terceiros | Perguntas e respostas, tarefas, fornecedores | `src/actions/duvidas.ts`, `tarefas.ts`, `terceiros.ts` |
 | Interface e qualidade | Telas, componentes, responsividade, testes | `src/components/`, `src/app/`, `scripts/teste/` |
 
-### 1.2. Cerimônias e quem participa
+### 0.2. Cerimônias e quem participa
 
 | Cerimônia | Objetivo | Participantes |
 |---|---|---|
@@ -45,7 +41,7 @@ Como o projeto é pequeno, todos programam, mas cada um cuida de uma área para 
 | Revisão da sprint | Demonstrar o incremento funcionando | Todos e o(a) professor(a) |
 | Retrospectiva | Melhorar o jeito de trabalhar | Todos |
 
-## 2. Papéis de usuário no aplicativo
+## 1. Papéis de usuário no aplicativo
 
 | Papel | Descrição | Como se torna |
 |---|---|---|
@@ -53,7 +49,7 @@ Como o projeto é pequeno, todos programam, mas cada um cuida de uma área para 
 | **Administrador da turma** | Integrante da comissão organizadora | Cria a turma ou é promovido por outro administrador |
 | **Administrador master** **†** | Gestor de toda a plataforma | Email listado na configuração `ADMIN_MASTER_EMAILS` do servidor |
 
-### 2.1. Matriz de permissões
+### 1.1. Matriz de permissões
 
 ✅ pode · ❌ não pode · **\*** o master usa o aplicativo como qualquer usuário: dentro de uma turma, vale o papel que ele tem nela.
 
@@ -77,7 +73,7 @@ Como o projeto é pequeno, todos programam, mas cada um cuida de uma área para 
 | Ver todas as turmas e usuários da plataforma | ❌ | ❌ | ✅ |
 | Excluir turma ou usuário | ❌ | ❌ | ✅ (com confirmação) |
 
-### 2.2. Regras que protegem os papéis
+### 1.2. Regras que protegem os papéis
 
 1. O painel do administrador (`/admin`) redireciona o participante para o dashboard.
 2. O painel master (`/master`) **não existe** (erro 404) para quem não é master, sem revelar que a área existe.

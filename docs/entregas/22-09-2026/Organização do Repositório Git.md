@@ -8,11 +8,9 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+Este documento registra a organização do repositório do Formandos em 26/09/2026: a estrutura de pastas, a estratégia de ramos, a convenção de commits, o `.gitignore` e os scripts. O projeto **não tem hospedagem em produção** neste ciclo — marcado com **†** — e por isso o `.gitignore` guarda a linha `.vercel`, resíduo de uma plataforma de deploy que chegou a ser cogitada antes da decisão de ficar só no GitHub. O histórico de como essa decisão chegou até aqui está em **Kick-off**.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O `.gitignore` guarda um traço dessa evolução: a linha `.vercel` (marcada com **†**) é sobra de quando o projeto chegou a preparar um deploy real (no Render, não na Vercel) antes de decidir ficar só no GitHub. A tabela completa dessa e de outras mudanças, com o commit e o porquê, está em **Kick-off** (seção 0).
-
-## 1. Visão geral
+## 0. Visão geral
 
 | Item | Situação |
 |---|---|
@@ -22,7 +20,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O `.gitig
 | Commits até 26/09/2026 | 32, no padrão *Conventional Commits* |
 | Licença de uso | Projeto acadêmico |
 
-## 2. Estrutura de pastas
+## 1. Estrutura de pastas
 
 ```
 Formandos/
@@ -44,7 +42,7 @@ Formandos/
     └── proxy.ts         checagem rápida de sessão
 ```
 
-## 3. Estratégia de ramos
+## 2. Estratégia de ramos
 
 **Hoje:** todo o trabalho é feito em `main`.
 
@@ -59,7 +57,7 @@ Formandos/
 
 Fluxo: criar o ramo a partir de `main` → commits pequenos → abrir um **Pull Request** → outra pessoa revisa → *merge* em `main` → apagar o ramo. Assim as quatro pessoas contribuem em paralelo, o histórico mostra quem fez o quê e a `main` não quebra.
 
-## 4. Convenção de commits
+## 3. Convenção de commits
 
 Formato: `tipo(escopo): descrição no imperativo, em português`. O corpo do commit explica **o porquê**.
 
@@ -80,7 +78,7 @@ Distribuição do histórico até 26/09/2026: 19 `feat`, 5 `docs`, 5 `chore`, 1 
 3. Nunca commitar segredos (`.env.local`, chaves, `client_secret_*.json`).
 4. Mensagem clara: quem lê o histórico entende o que mudou e por quê.
 
-## 5. O que o Git ignora (`.gitignore`)
+## 4. O que o Git ignora (`.gitignore`)
 
 | Padrão | Motivo |
 |---|---|
@@ -92,7 +90,7 @@ Distribuição do histórico até 26/09/2026: 19 `feat`, 5 `docs`, 5 `chore`, 1 
 
 O arquivo `.env.example` é o **modelo** das variáveis de ambiente; quem clona copia para `.env.local` e preenche.
 
-## 6. Como começar (clonar e rodar)
+## 5. Como começar (clonar e rodar)
 
 ```bash
 git clone https://github.com/luandersonarlindo/Formandos.git
@@ -107,7 +105,7 @@ npm run dev                       # http://localhost:3000
 
 Antes de cada commit: `npm run typecheck` e `npm test`.
 
-## 7. Scripts do `package.json`
+## 6. Scripts do `package.json`
 
 | Script | O que faz |
 |---|---|
@@ -117,7 +115,7 @@ Antes de cada commit: `npm run typecheck` e `npm test`.
 | `npm test` | Testes unitários (Vitest) |
 | `npm run db:auth`, `db:schema`, `db:seed` | Banco de dados |
 
-## 8. Documentação no repositório
+## 7. Documentação no repositório
 
 | Documento | Onde |
 |---|---|
@@ -127,7 +125,7 @@ Antes de cada commit: `npm run typecheck` e `npm test`.
 | Entregas do cronograma (`.md` e `.pdf`) | `docs/entregas/` |
 | Como testar as telas | `scripts/teste/README.md` |
 
-## 9. Situação e recomendações
+## 8. Situação e recomendações
 
 - **Fato:** até 26/09/2026, todos os commits partem de uma única conta (`luandersonarlindo`), e há um único ramo.
 - **Recomendação 1:** cada integrante escolher itens do *Sprint Backlog* e trabalhar em um ramo próprio, com Pull Request.

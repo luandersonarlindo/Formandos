@@ -8,11 +8,9 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+Este documento registra a arquitetura do Formandos em 26/09/2026. Três decisões marcadas com **†** delimitam o desenho: a autenticação usa Better Auth com **Google e email e senha** (**D3**), a tabela `membros` permite que um administrador participe de **várias turmas** (**D4**) e a hospedagem é **local**, com o código no GitHub (**D9**). O histórico de como cada uma chegou até aqui está em **Kick-off**.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Três decisões de arquitetura marcadas com **†** (D3, D4 e D9) não estavam no pensamento do primeiro commit: o Better Auth começou só com Google, `membros` começou com uma turma fixa por usuário, e a hospedagem chegou a ser **implementada** no Render (não só cogitada) antes de ser revertida. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
-
-## 1. Visão geral
+## 0. Visão geral
 
 O Formandos é um **monólito web** em **Next.js 16 (App Router)** com **React 19** e **PostgreSQL**. Um único projeto contém as telas, a lógica do servidor e o acesso ao banco. A escolha privilegia **simplicidade**: uma equipe pequena, um só repositório, uma só linguagem (TypeScript) e nenhum serviço extra para manter.
 
@@ -38,7 +36,7 @@ O Formandos é um **monólito web** em **Next.js 16 (App Router)** com **React 1
  Serviços externos: Google OAuth (login) e SMTP/Gmail (emails)
 ```
 
-## 2. Decisões de arquitetura
+## 1. Decisões de arquitetura
 
 | # | Decisão | Alternativas consideradas | Motivo |
 |---|---|---|---|
@@ -53,7 +51,7 @@ O Formandos é um **monólito web** em **Next.js 16 (App Router)** com **React 1
 | D9 **†** | **Sem hospedagem**: roda localmente; código no GitHub | Vercel ou Render (chegou a ser implementado no Render e depois revertido) | Decisão do grupo; reduz custo e complexidade |
 | D10 | **Anime.js** para animações | CSS puro, Framer Motion | API simples; a animação é só um acréscimo, e o conteúdo aparece sem JavaScript |
 
-## 3. Camadas e organização do código
+## 2. Camadas e organização do código
 
 | Camada | Pasta | Responsabilidade |
 |---|---|---|
@@ -67,7 +65,7 @@ O Formandos é um **monólito web** em **Next.js 16 (App Router)** com **React 1
 
 **Grupos de rotas** (pastas entre parênteses, que não aparecem na URL): `(publico)`, `(onboarding)`, `(app)`, `(admin)` e `(master)`. Cada grupo tem seu layout e sua regra de acesso.
 
-## 4. Modelo de dados
+## 3. Modelo de dados
 
 | Tabela | Conteúdo | Relações principais |
 |---|---|---|
@@ -85,23 +83,23 @@ O Formandos é um **monólito web** em **Next.js 16 (App Router)** com **React 1
 
 Todas as tabelas do domínio apagam em cascata quando a turma ou o usuário é excluído. O esquema só usa `create table if not exists` e migrações pontuais com `if exists`, para poder ser reaplicado com segurança.
 
-## 5. Fluxos principais
+## 4. Fluxos principais
 
-### 5.1. Autenticação e acesso
+### 4.1. Autenticação e acesso
 
 1. A pessoa entra por **Google** ou por **email e senha**; no cadastro por senha, o login só vale depois de **confirmar o email** pelo link.
 2. O Better Auth grava a **sessão** no PostgreSQL e devolve um cookie.
 3. O `proxy.ts` só confere se **existe** o cookie (checagem rápida). A **validação real** acontece em `lib/dal.ts`, chamada em toda página, layout e Server Action.
 4. Sem turma, a pessoa vai a `/convite`; com turma, ao `/dashboard`. A turma em uso vem do cookie `turma_ativa`, **sempre conferido** contra as turmas de que ela é membro.
 
-### 5.2. Uma ação de escrita (exemplo: votar)
+### 4.2. Uma ação de escrita (exemplo: votar)
 
 1. O formulário envia os dados para a **Server Action** `votar`.
 2. A action chama `exigirMembro()` (sessão e turma) e valida o corpo com **Zod**.
 3. Numa **transação**, apaga os votos anteriores do usuário naquela pergunta e grava os novos.
 4. A página é revalidada e a tela mostra o voto salvo.
 
-## 6. Segurança em camadas
+## 5. Segurança em camadas
 
 | Camada | Proteção |
 |---|---|
@@ -112,7 +110,7 @@ Todas as tabelas do domínio apagam em cascata quando a turma ou o usuário é e
 | Segredos | `.env.local` fora do Git; chaves lidas de variáveis de ambiente; `client_secret_*.json` no `.gitignore` |
 | Privacidade | O relatório mostra só totais; quem votou só aparece para administradores |
 
-## 7. Configuração e ambientes
+## 6. Configuração e ambientes
 
 | Variável | Uso |
 |---|---|
@@ -124,7 +122,7 @@ Todas as tabelas do domínio apagam em cascata quando a turma ou o usuário é e
 
 Ambiente atual: **um só**, o de desenvolvimento local (Node.js e PostgreSQL na máquina). Não há hospedagem.
 
-## 8. Qualidade
+## 7. Qualidade
 
 - **Tipos:** TypeScript estrito; `npm run typecheck` gera os tipos das rotas antes de conferir.
 - **Testes unitários (Vitest):** regras puras de convite, datas, vínculos e master (20 testes).
@@ -132,7 +130,7 @@ Ambiente atual: **um só**, o de desenvolvimento local (Node.js e PostgreSQL na 
 - **Auditoria de responsividade:** `scripts/teste/auditoria.mjs`.
 - **Pontos ainda ausentes:** ESLint e integração contínua (previstos para a Sprint 2).
 
-## 9. Riscos e dívidas técnicas
+## 8. Riscos e dívidas técnicas
 
 | Item | Impacto | Plano |
 |---|---|---|
@@ -141,6 +139,6 @@ Ambiente atual: **um só**, o de desenvolvimento local (Node.js e PostgreSQL na 
 | Sem integração contínua | Erros só aparecem na máquina de quem roda | Adicionar `typecheck` e `npm test` a cada `push` na Sprint 2 |
 | Sem hospedagem | Não há teste em ambiente parecido com produção | Documentar o passo a passo local; avaliar hospedagem se o grupo decidir |
 
-## 10. Evolução prevista
+## 9. Evolução prevista
 
 Ligar a integração contínua, adicionar ESLint, ampliar os testes de ponta a ponta e, se houver tempo, tema escuro e edição de perguntas (ver *Sprint Backlog*).

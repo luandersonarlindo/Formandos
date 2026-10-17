@@ -8,27 +8,25 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+Este documento registra o alinhamento inicial da equipe sobre o Formandos, revisado em 26/09/2026 à luz do que o projeto passou a exigir. Não é um retrato do que foi decidido em 01/09: é o kick-off original com as decisões atualizadas.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1, revisando a decisão tomada no dia do kick-off à luz do que a equipe aprendeu construindo o produto. Ele não é um retrato exato do que foi decidido em 01/09: é o kick-off original com uma camada de revisão por cima, porque algumas ideias do primeiro commit não sobreviveram do jeito que foram pensadas.
+**O que evoluiu desde o kick-off:**
 
-O primeiro código do projeto (commits `e9cf8c9` a `7b9ba5a`, do dia da criação do repositório) previa um produto mais enxuto do que o que existe hoje. A tabela mostra o que mudou, em que commit e por quê:
+| Ideia inicial | Evoluiu para | Por quê |
+|---|---|---|
+| Login **só** com conta Google | Google **e** email e senha | O Google exige credenciais externas configuradas; sem elas, ninguém conseguiria entrar |
+| Um formando pertence a **uma única turma**, sem exceção | Quem é **administrador** pode participar de várias turmas | Uma mesma pessoa pode ajudar a organizar mais de uma formatura ao mesmo tempo |
+| Sem nenhum papel de gestão da plataforma inteira | **Administrador master**, definido por variável de ambiente (`ADMIN_MASTER_EMAILS`) | Faltava alguém capaz de gerir turmas e usuários de fora de uma turma específica |
+| Hospedagem em produção fazia parte do plano | Projeto roda só localmente; o código fica no GitHub | O plano gratuito de hospedagem cogitado dorme e expira sozinho; não valia o esforço para o escopo da disciplina |
+| Página inicial simples, só de apresentação | Vitrine animada, com números do catálogo, perfis de acesso e equipe | A vitrine é a primeira impressão do projeto nas demonstrações e mostra o produto antes de o usuário entrar |
 
-| Pensamento original (primeiros commits) | Evoluiu para | Commit da mudança | Por quê |
-|---|---|---|---|
-| Login **só** com conta Google | Google **e** email e senha | `ecdf802` | O Google exige credenciais externas configuradas; sem elas, ninguém conseguiria entrar |
-| Um formando pertence a **uma única turma**, sem exceção | Quem é **administrador** pode participar de várias turmas | `6bde3fc` | Uma mesma pessoa pode ajudar a organizar mais de uma formatura ao mesmo tempo |
-| Sem nenhum papel de gestão da plataforma inteira | **Administrador master**, definido por variável de ambiente (`ADMIN_MASTER_EMAILS`) | `5288fe5` | Faltava alguém capaz de gerir turmas e usuários de fora de uma turma específica |
-| Hospedagem em produção fazia parte do plano; chegou a preparar o deploy | Projeto roda só localmente; o código fica no GitHub | `e23c714` → `9217239` | O plano gratuito de hospedagem cogitado dorme e expira sozinho; não valia o esforço para o escopo da disciplina |
-| Página inicial simples, só de apresentação | Vitrine animada, com números do catálogo, perfis de acesso e equipe | `ee93e30` | Decisão de UX/UI tomada mais adiante, já com o produto funcionando |
+As seções a seguir mantêm o alinhamento do dia do kick-off; os pontos marcados com **†** remetem à tabela acima. O que foi efetivamente entregue está em **Sprint 1 - Incremento funcional + Documentação**.
 
-As seções 2 a 11 abaixo mantêm o texto do kick-off original; os pontos marcados com **†** foram revistos depois e remetem a esta tabela. O histórico completo, commit a commit, está em **Sprint 1 - Incremento funcional + Documentação**.
-
-## 1. Objetivo do kick-off
+## 0. Objetivo do kick-off
 
 Alinhar a equipe sobre **o que será construído, por quê, por quem e até quando**, antes de escrever a primeira linha de código. Este documento registra o ponto de partida do projeto: problema, objetivo, escopo inicial, equipe, cronograma, forma de trabalho e riscos.
 
-## 2. O problema
+## 1. O problema
 
 A organização de uma formatura reúne muita gente e muita decisão: local, comida, música, tarefas, fornecedores e dúvidas dos formandos. Hoje isso costuma se espalhar por grupos de mensagens, planilhas e conversas soltas. Consequências típicas:
 
@@ -37,17 +35,17 @@ A organização de uma formatura reúne muita gente e muita decisão: local, com
 - tarefas sem responsável nem prazo claros;
 - informações do evento (data, local, programação) desatualizadas ou difíceis de achar.
 
-## 3. O produto em uma frase
+## 2. O produto em uma frase
 
 **Formandos** é um aplicativo web onde a comissão organizadora e os formandos de uma turma decidem, perguntam e acompanham tudo o que envolve a formatura em um só lugar: votações por categoria com relatório, perguntas e respostas com votos, tarefas, programação e fornecedores.
 
-## 4. Objetivos do projeto
+## 3. Objetivos do projeto
 
 1. Entregar um **MVP funcional** que a turma consiga usar de verdade (detalhado em *Definição do MVP*).
 2. Aplicar em um produto real os conteúdos da disciplina: desenvolvimento web com React e Next.js, banco de dados relacional, autenticação, testes e trabalho em equipe com Git.
 3. Documentar o projeto de forma que qualquer pessoa consiga entender, rodar e evoluir o código.
 
-## 5. Escopo inicial (alto nível)
+## 4. Escopo inicial (alto nível)
 
 | Área | O que entra |
 |---|---|
@@ -60,7 +58,7 @@ A organização de uma formatura reúne muita gente e muita decisão: local, com
 
 Fora do escopo do primeiro ciclo: hospedagem em produção, aplicativo móvel nativo, pagamentos e notificações por email de eventos da turma.
 
-## 6. Equipe
+## 5. Equipe
 
 | Integrante | Papel no projeto |
 |---|---|
@@ -71,7 +69,7 @@ Fora do escopo do primeiro ciclo: hospedagem em produção, aplicativo móvel na
 
 > A atribuição de *Product Owner* e *Scrum Master* entre os quatro integrantes está no documento **Papéis**.
 
-## 7. Cronograma macro
+## 6. Cronograma macro
 
 Datas do *Cronograma de Entregas – 2026* da disciplina.
 
@@ -91,7 +89,7 @@ Datas do *Cronograma de Entregas – 2026* da disciplina.
 | 17/11/2026 | Sprint Backlog + Status Report II |
 | 24/11/2026 | Entrega final do produto + documentação + pré-banca |
 
-## 8. Forma de trabalho
+## 7. Forma de trabalho
 
 - **Método:** Scrum adaptado a uma equipe pequena, com **duas sprints** (a Sprint 1 fecha em 06/10 e a Sprint 2 termina em 10/11), cada uma com planejamento, acompanhamento, revisão e retrospectiva.
 - **Backlog:** o *Product Backlog* fica no documento **Sprint Backlog** e no repositório; cada item tem prioridade e estimativa relativa.
@@ -99,7 +97,7 @@ Datas do *Cronograma de Entregas – 2026* da disciplina.
 - **Definição de pronto:** item concluído = funciona, tem validação de entrada e permissão, passa nos testes automatizados, foi visto no navegador e está documentado quando muda o comportamento.
 - **Segredos:** chaves e senhas ficam só em `.env.local`, que nunca vai para o GitHub.
 
-## 9. Decisões tomadas no início
+## 8. Decisões tomadas no início
 
 | # | Tema | Decisão |
 |---|---|---|
@@ -111,7 +109,7 @@ Datas do *Cronograma de Entregas – 2026* da disciplina.
 | 6 | Catálogos de enquetes | Um catálogo **padrão** de 8 categorias e catálogos **personalizados** por turma |
 | 7 | Hospedagem **†** | O projeto roda localmente e o código fica no GitHub |
 
-## 10. Riscos iniciais
+## 9. Riscos iniciais
 
 | Risco | Probabilidade | Impacto | Resposta |
 |---|---|---|---|
@@ -122,7 +120,7 @@ Datas do *Cronograma de Entregas – 2026* da disciplina.
 | Vazamento de segredos no GitHub | Baixa | Alto | `.gitignore` para `.env*` e credenciais, e revisão antes de cada commit |
 | Contribuição concentrada em poucas pessoas | Média | Médio | Dividir os itens da sprint entre os quatro integrantes e usar ramos e revisões |
 
-## 11. Próximos passos
+## 10. Próximos passos
 
 1. Fechar o **Sprint Backlog** e a **Definição do MVP** (documentos desta mesma entrega).
 2. Elaborar o **Termo de Abertura**, a **Visão do Produto** e os **Papéis** até 08/09.
