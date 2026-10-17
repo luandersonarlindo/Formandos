@@ -8,19 +8,17 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+Este documento registra o MVP do Formandos revisto em 26/09/2026. O escopo parte de login com Google **e** email e senha, de um administrador poder ajudar em **várias turmas** e de existir um **administrador master**; os itens marcados com **†** identificam essas decisões. O histórico de como cada uma chegou até aqui está em **Kick-off**.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1, revisando a definição do dia do kick-off. O primeiro código do projeto (commits `e9cf8c9` a `7b9ba5a`) previa um MVP mais enxuto: login só com Google, uma turma fixa por formando, sem administrador master e sem hospedagem definida. Os itens abaixo marcados com **†** só entraram no MVP depois do primeiro commit — a tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
-
-## 1. O que é o MVP
+## 0. O que é o MVP
 
 MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o problema de verdade** e permite aprender com o uso. Para o Formandos, o MVP é: *uma turma consegue decidir, perguntar e se organizar para a formatura dentro do aplicativo, sem depender de grupos de mensagens e planilhas.*
 
-## 2. Hipótese a validar
+## 1. Hipótese a validar
 
 > Se a comissão organizadora e os formandos tiverem um lugar único para **votar, perguntar e acompanhar tarefas e programação**, as decisões saem mais rápido, com mais participação, e as dúvidas param de se repetir.
 
-## 3. O que está DENTRO do MVP
+## 2. O que está DENTRO do MVP
 
 | # | Capacidade | Critério de aceite (resumido) |
 |---|---|---|
@@ -37,7 +35,7 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 | 11 | **Administração** | Membros, papéis, código de convite, dados do evento |
 | 12 | **Qualidade mínima** | Validação de entradas, checagem de permissão, telas de erro e 404, testes automatizados |
 
-## 4. O que está FORA do MVP
+## 3. O que está FORA do MVP
 
 | Item | Motivo |
 |---|---|
@@ -50,7 +48,7 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 | Pagamentos, contratos e notificações | Fora da proposta do produto |
 | Login com outros provedores (Facebook, Apple) | O Google e o email e senha bastam |
 
-## 5. Papéis de usuário no MVP
+## 4. Papéis de usuário no MVP
 
 | Papel | Quem é | O que pode |
 |---|---|---|
@@ -58,7 +56,7 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 | **Administrador da turma** | Comissão organizadora | Tudo do participante, mais gerir membros, convite, evento, tarefas, dúvidas, catálogos e fornecedores |
 | **Administrador master** **†** | Gestor da plataforma | Ver e gerir todas as turmas e usuários; definido por configuração do servidor |
 
-## 5.1. Regras de negócio essenciais
+## 4.1. Regras de negócio essenciais
 
 1. O voto é **identificado**: só os administradores da turma veem quem votou; o relatório mostra apenas totais.
 2. O formando pode **mudar o voto** quando quiser.
@@ -67,7 +65,7 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 5. Se o **último membro sair**, a turma é apagada.
 6. Erros repetidos de código de convite são **limitados** (10 tentativas a cada 15 minutos por usuário).
 
-## 6. Definição de pronto (DoD) de cada item do MVP
+## 5. Definição de pronto (DoD) de cada item do MVP
 
 - [x] Funciona no navegador, do início ao fim.
 - [x] A entrada é validada e a permissão é conferida no servidor.
@@ -76,7 +74,7 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 - [x] Foi testado em telas pequenas e grandes.
 - [x] O comportamento novo aparece na documentação.
 
-## 7. Métricas de sucesso
+## 6. Métricas de sucesso
 
 | Métrica | Meta para o MVP |
 |---|---|
@@ -86,6 +84,6 @@ MVP (*Minimum Viable Product*) é a **menor versão do produto que já resolve o
 | Erros no console do navegador nas telas principais | Nenhum |
 | Telas sem rolagem horizontal em 360, 768, 1024, 1440, 1920 e 3840 px | Todas |
 
-## 8. Situação em 26/09/2026
+## 7. Situação em 26/09/2026
 
 Os 12 itens do MVP estão implementados e conferidos no navegador. O histórico e as evidências estão no documento **Sprint 1 - Incremento funcional + Documentação**.

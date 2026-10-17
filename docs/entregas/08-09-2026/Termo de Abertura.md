@@ -8,13 +8,9 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+O Termo de Abertura autoriza formalmente o projeto e registra o que ele é, o que pretende entregar e dentro de quais limites. O escopo e os custos aqui registrados são os de 26/09/2026 e refletem três decisões marcadas por **†**: login por **email e senha**, administração de **várias turmas** por um mesmo administrador e o papel de **administrador master**. O projeto roda **apenas localmente**, com o código no GitHub. O histórico de como cada decisão chegou até aqui está em **Kick-off**.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O escopo e os custos abaixo (marcados com **†**) já refletem decisões tomadas depois do primeiro commit do projeto — login com email e senha, administração de várias turmas e o papel de master, além de uma tentativa real de hospedagem (Render) que foi revertida. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
-
-O Termo de Abertura autoriza formalmente o projeto e registra o que ele é, o que pretende entregar e dentro de quais limites.
-
-## 1. Identificação
+## 0. Identificação
 
 | Campo | Conteúdo |
 |---|---|
@@ -25,11 +21,11 @@ O Termo de Abertura autoriza formalmente o projeto e registra o que ele é, o qu
 | Término | 24/11/2026 (entrega final + documentação + pré-banca) |
 | Repositório | https://github.com/luandersonarlindo/Formandos |
 
-## 2. Justificativa
+## 1. Justificativa
 
 A organização de formaturas depende de muitas decisões coletivas e de muita informação, hoje espalhadas em grupos de mensagens e planilhas. Um aplicativo único, com participação de todos e visão gerencial para a comissão, reduz retrabalho, dá voz à turma e deixa o histórico de decisões registrado. Para a equipe, o projeto é a oportunidade de aplicar, em um produto real, desenvolvimento web moderno, banco de dados, autenticação, testes e trabalho colaborativo com Git.
 
-## 3. Objetivos
+## 2. Objetivos
 
 **Objetivo geral:** construir e entregar o **Formandos**, um aplicativo que permita a turmas e comissões organizarem uma formatura de forma participativa.
 
@@ -40,13 +36,13 @@ A organização de formaturas depende de muitas decisões coletivas e de muita i
 3. Entregar a documentação de cada marco do cronograma **na data prevista**.
 4. Apresentar o produto funcionando na **AV I (13/10/2026)** e na **entrega final (24/11/2026)**.
 
-## 4. Escopo
+## 3. Escopo
 
 **Dentro †:** acesso (Google e email e senha), turmas e convites, papéis, votações e relatório, dúvidas com votos, dashboard, tarefas, fornecedores, administração da turma e da plataforma. Detalhes em *Definição do MVP*.
 
 **Fora:** hospedagem em produção, aplicativo nativo, pagamentos e notificações. Detalhes em *Definição do MVP*.
 
-## 5. Entregas principais
+## 4. Entregas principais
 
 | Entrega | Data |
 |---|---|
@@ -60,21 +56,21 @@ A organização de formaturas depende de muitas decisões coletivas e de muita i
 | Sprint 2: integração, testes e estabilização | 10/11/2026 |
 | Entrega final do produto, documentação e pré-banca | 24/11/2026 |
 
-## 6. Premissas
+## 5. Premissas
 
 - Os quatro integrantes têm tempo semanal para o projeto e acesso ao GitHub.
 - Existe um computador com Node.js e PostgreSQL para rodar o sistema localmente.
 - O login com Google e o envio de emails usam serviços gratuitos (Google Cloud e SMTP do Gmail).
 - O *Cronograma de Entregas – 2026* da disciplina não muda.
 
-## 7. Restrições
+## 6. Restrições
 
 - **Prazo:** as datas do cronograma são fixas.
 - **Custo:** nenhum orçamento para licenças ou hospedagem; só ferramentas gratuitas e de código aberto.
 - **Tecnologia:** React, Next.js e PostgreSQL, conforme a proposta da disciplina.
 - **Conhecimento:** a equipe está aprendendo Next.js durante o projeto.
 
-## 8. Custos e recursos
+## 7. Custos e recursos
 
 | Item | Custo |
 |---|---|
@@ -84,7 +80,7 @@ A organização de formaturas depende de muitas decisões coletivas e de muita i
 | Hospedagem **†** | Não haverá |
 | Trabalho da equipe | 4 integrantes, horas do curso |
 
-## 9. Riscos de alto nível
+## 8. Riscos de alto nível
 
 | Risco | Resposta |
 |---|---|
@@ -95,17 +91,17 @@ A organização de formaturas depende de muitas decisões coletivas e de muita i
 
 A lista completa e atualizada de riscos acompanha o *Kick-off*.
 
-## 10. Critérios de sucesso
+## 9. Critérios de sucesso
 
 - O fluxo principal (entrar, votar, ver relatório, perguntar, acompanhar tarefas) funciona ao vivo na apresentação.
 - Todos os marcos do cronograma foram entregues com o documento correspondente.
 - O repositório tem README claro, histórico organizado e roda em outra máquina seguindo o passo a passo.
 
-## 11. Partes interessadas (resumo)
+## 10. Partes interessadas (resumo)
 
 Comissão organizadora, formandos, equipe de desenvolvimento, professor(a) da Fábrica e fornecedores de eventos. Análise completa no documento **Stakeholders**.
 
-## 12. Aprovação
+## 11. Aprovação
 
 | Nome | Papel | Assinatura | Data |
 |---|---|---|---|

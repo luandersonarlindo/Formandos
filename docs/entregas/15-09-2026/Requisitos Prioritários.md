@@ -8,19 +8,17 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+Este documento registra os requisitos prioritários do Formandos em 26/09/2026. Exigem login por email e senha além do Google (**RF-02**), entrada em turma por código de convite (**RF-03**), participação de um administrador em várias turmas (**RF-05**) e um painel de administração da plataforma (**RF-20**) com acesso restrito ao administrador master (**RF-21**); os requisitos marcados com **†** identificam essas decisões. O histórico de como cada uma chegou até aqui está em **Kick-off**.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requisitos marcados com **†** (RF-02, RF-03, RF-05, RF-20 e RF-21) não estavam no pensamento do primeiro commit: entraram depois, quando a equipe decidiu que o login só com Google não bastava, que um administrador podia ajudar mais de uma turma, e que faltava um papel para gerir toda a plataforma. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
-
-## 1. Como ler este documento
+## 0. Como ler este documento
 
 - **RF** = requisito funcional (o que o sistema faz). **RNF** = requisito não funcional (como o sistema se comporta). **RN** = regra de negócio.
 - **Prioridade (MoSCoW):** **M** = deve ter (MVP), **S** = deveria ter, **C** = poderia ter.
 - **Onde** indica a rota principal do requisito no aplicativo. **Situação** é a de 26/09/2026.
 
-## 2. Requisitos funcionais
+## 1. Requisitos funcionais
 
-### 2.1. Acesso e turmas
+### 1.1. Acesso e turmas
 
 | ID | Requisito | Prior. | Onde | Situação |
 |---|---|---|---|---|
@@ -30,7 +28,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requis
 | RF-04 | O usuário sem turma deve poder **entrar em uma turma com um código de convite** ou **criar uma turma** | M | `/convite` | Atendido |
 | RF-05 **†** | O administrador deve poder **participar de várias turmas** e escolher a turma em uso | S | barra lateral | Atendido |
 
-### 2.2. Votações e relatório
+### 1.2. Votações e relatório
 
 | ID | Requisito | Prior. | Onde | Situação |
 |---|---|---|---|---|
@@ -40,7 +38,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requis
 | RF-09 | O administrador deve **ver quem votou** em cada opção e quem ainda não votou | S | `/admin/votacoes/votos/[enqueteId]` | Atendido |
 | RF-10 | O administrador deve **criar, renomear e excluir catálogos personalizados**, com categorias e perguntas próprias | S | `/admin/votacoes` | Atendido |
 
-### 2.3. Dúvidas
+### 1.3. Dúvidas
 
 | ID | Requisito | Prior. | Onde | Situação |
 |---|---|---|---|---|
@@ -48,7 +46,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requis
 | RF-12 | O participante deve **votar nas dúvidas** dos colegas; a lista ordena por destaque, votos e data | S | `/duvidas` | Atendido |
 | RF-13 | O administrador deve **responder, destacar, reabrir e apagar** dúvidas | M | `/admin/duvidas` | Atendido |
 
-### 2.4. Evento, tarefas e terceiros
+### 1.4. Evento, tarefas e terceiros
 
 | ID | Requisito | Prior. | Onde | Situação |
 |---|---|---|---|---|
@@ -57,7 +55,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requis
 | RF-16 | O sistema deve permitir **tarefas** com título, descrição, responsável, prazo e status, com barra de progresso; o responsável atualiza o andamento | M | `/tarefas` | Atendido |
 | RF-17 | O sistema deve exibir uma **vitrine de fornecedores** por categoria, com contato; o administrador cadastra e remove | S | `/terceiros` | Atendido |
 
-### 2.5. Administração
+### 1.5. Administração
 
 | ID | Requisito | Prior. | Onde | Situação |
 |---|---|---|---|---|
@@ -66,7 +64,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requis
 | RF-20 **†** | O **master** deve **ver todas as turmas e usuários** e gerir os membros de qualquer turma | C | `/master` | Atendido |
 | RF-21 **†** | O **master** deve **excluir turmas e usuários**, com confirmação digitada | C | `/master/turmas`, `/master/usuarios` | Atendido |
 
-## 3. Regras de negócio
+## 2. Regras de negócio
 
 | ID | Regra | Prior. |
 |---|---|---|
@@ -80,7 +78,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requis
 | RN-08 | Em pergunta de múltipla escolha, marcar a **opção exclusiva** desmarca as demais, e vice-versa | S |
 | RN-09 | O catálogo padrão é **somente leitura** e igual para todas as turmas | M |
 
-## 4. Requisitos não funcionais
+## 3. Requisitos não funcionais
 
 | ID | Requisito | Prior. | Como é atendido e verificado |
 |---|---|---|---|
@@ -95,7 +93,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requis
 | RNF-09 | **Portabilidade:** rodar em outra máquina com Node.js e PostgreSQL seguindo o README | M | README e `.env.example` |
 | RNF-10 | **Compatibilidade:** navegadores atuais (Chrome e derivados) | S | Testado no Chrome |
 
-## 5. Matriz de rastreabilidade (resumo)
+## 4. Matriz de rastreabilidade (resumo)
 
 | Objetivo do produto | Requisitos | Cobertura de testes |
 |---|---|---|
@@ -104,6 +102,6 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os requis
 | Organização da preparação | RF-14 a RF-17 | Testes de fluxo: tarefas, evento, programação, terceiros |
 | Controle de acesso | RF-01 a RF-05, RF-18 a RF-21, RN-03 a RN-07 | Testes unitários das regras e testes de fluxo de criar conta, entrar, sair e redefinir a senha |
 
-## 6. O que ficou como requisito futuro
+## 5. O que ficou como requisito futuro
 
 Tema escuro, editar pergunta, ocultar perguntas do catálogo padrão, imagem de fornecedor, integração contínua e testes em aparelhos reais. Ver *Sprint Backlog* (itens G1 a G7).

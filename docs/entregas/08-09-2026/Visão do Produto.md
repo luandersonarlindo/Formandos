@@ -8,11 +8,7 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
-
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os pontos marcados com **†** (a persona do master, o login por email e senha e as várias turmas por administrador) só entraram no pensamento do produto depois do primeiro commit. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
-
-## 1. Declaração de visão
+## 0. Declaração de visão
 
 > **Para** comissões organizadoras e formandos de uma turma  
 > **que** precisam decidir e organizar juntos a formatura,  
@@ -21,11 +17,13 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. Os pontos
 > **Diferente de** grupos de mensagens e planilhas,  
 > **o nosso produto** dá voz a toda a turma com votos que viram relatório, responde dúvidas uma única vez e mostra à comissão quem falta participar.
 
-## 2. O problema e a oportunidade
+Esta visão registra o produto em 26/09/2026. Três pontos marcados com **†** delimitam o escopo: a persona do **gestor da plataforma** (master), o login por **email e senha** além do Google e a possibilidade de um administrador participar de **várias turmas**. O histórico de como cada decisão chegou até aqui está em **Kick-off**.
+
+## 1. O problema e a oportunidade
 
 Organizar uma formatura exige decisões coletivas (local, comida, música, traje) e muita comunicação. Em grupos de mensagens as opiniões se perdem, quem fala mais decide, as dúvidas se repetem e ninguém sabe o que já foi combinado. **A oportunidade** é transformar a preferência da turma em **dado**, organizado por categoria, e centralizar a comunicação e as tarefas.
 
-## 3. Público-alvo e personas
+## 2. Público-alvo e personas
 
 | Persona | Quem é | Dor | O que ganha |
 |---|---|---|---|
@@ -33,20 +31,20 @@ Organizar uma formatura exige decisões coletivas (local, comida, música, traje
 | **Formando** (participante) | Aluno que vai se formar | Não sabe o que foi decidido, acha que sua opinião não conta | Vota, pergunta, vê a programação e a contagem regressiva |
 | **Gestor da plataforma** (master) **†** | Quem mantém o sistema | Precisa apoiar várias turmas | Visão de todas as turmas e usuários |
 
-## 3.1. Cenários de uso
+## 2.1. Cenários de uso
 
 1. **Decidir o local:** a comissão publica as enquetes, os formandos votam em uma semana e o relatório mostra que 46% preferem salão de festas. A decisão sai com números, não com discussão.
 2. **Tirar dúvidas:** um formando pergunta o prazo para enviar as fotos; outros dez votam na mesma dúvida; a comissão responde uma vez e a resposta fica visível para todos.
 3. **Acompanhar a preparação:** a comissão cadastra a tarefa "Contratar o fotógrafo" com responsável e prazo, e todos veem o progresso no dashboard.
 
-## 4. Proposta de valor
+## 3. Proposta de valor
 
 - **Participação de todos:** votos por categoria com opções descritivas (nada de "sim ou não").
 - **Decisão baseada em dados:** relatório automático com gráficos e a opção mais votada em destaque.
 - **Transparência e organização:** dúvidas respondidas em um lugar; tarefas com responsável; programação e contagem regressiva à vista.
 - **Simplicidade:** entra-se por convite, com a conta Google ou por email e senha **†**; funciona no celular, no notebook e até na TV.
 
-## 5. Principais funcionalidades
+## 4. Principais funcionalidades
 
 | Grupo | Funcionalidades |
 |---|---|
@@ -56,14 +54,14 @@ Organizar uma formatura exige decisões coletivas (local, comida, música, traje
 | Organização | Dashboard, programação, tarefas, terceiros |
 | Administração **†** | Membros e papéis, convite, dados do evento; painel master |
 
-## 6. Diferenciais
+## 5. Diferenciais
 
 - **Voto identificado com privacidade no relatório:** a comissão vê quem votou (para cobrar participação), mas o relatório da turma só mostra totais.
 - **Catálogo padrão pronto:** toda turma começa com 16 perguntas bem pensadas, sem precisar montar do zero.
 - **Inspiração no Letmeask:** o módulo de dúvidas ordena pelas mais votadas.
 - **Um só lugar:** decisão, comunicação e organização no mesmo app.
 
-## 7. Metas do produto
+## 6. Metas do produto
 
 | Meta | Indicador |
 |---|---|
@@ -71,13 +69,13 @@ Organizar uma formatura exige decisões coletivas (local, comida, música, traje
 | Reduzir dúvidas repetidas | Dúvidas respondidas em relação às enviadas |
 | Manter a preparação em dia | Percentual de tarefas concluídas |
 
-## 8. O que o produto NÃO é
+## 7. O que o produto NÃO é
 
 - Não é um sistema de pagamentos, contratos ou venda de ingressos.
 - Não substitui o contato com fornecedores: apenas os divulga.
 - Não é uma rede social: cada turma é um espaço privado, acessado por convite.
 
-## 9. Restrições e premissas da visão
+## 8. Restrições e premissas da visão
 
 - Produto acadêmico, sem hospedagem em produção neste ciclo **†**.
 - Foco em turmas de ensino superior, mas o modelo serve a qualquer evento coletivo.

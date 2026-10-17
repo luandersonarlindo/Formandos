@@ -8,13 +8,9 @@
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
 
-## 0. Nota sobre esta versão — evolução do pensamento até a Sprint 1
+*Stakeholders* são as pessoas e os grupos que **afetam** o projeto ou **são afetados** por ele. Conhecê-los ajuda a decidir quem ouvir, quando e como. Este documento registra quem são eles em 26/09/2026, incluindo o **S7 (administrador master)**, marcado com **†**: o papel responsável pela gestão da plataforma inteira, de fora de qualquer turma específica. O histórico de como essa decisão chegou até aqui está em **Kick-off**.
 
-Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O stakeholder **S7 (administrador master)**, marcado com **†**, só passou a existir depois do primeiro commit do projeto — não havia, na ideia original, um papel de gestão de toda a plataforma. A tabela completa, com o commit de cada mudança e o porquê, está em **Kick-off** (seção 0).
-
-*Stakeholders* são as pessoas e os grupos que **afetam** o projeto ou **são afetados** por ele. Conhecê-los ajuda a decidir quem ouvir, quando e como.
-
-## 1. Registro de stakeholders
+## 0. Registro de stakeholders
 
 | ID | Stakeholder | Tipo | Interesse no projeto | Expectativa principal |
 |---|---|---|---|---|
@@ -28,14 +24,14 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O stakeho
 | S8 | **Provedores de serviço** (Google para o login, Gmail para o email) | Externo | Cumprir seus termos de uso | Uso dentro dos limites gratuitos e das regras de cada serviço |
 | S9 | **Familiares e convidados** | Indireto | Participar da festa | Informações de data, local e programação (não usam o sistema hoje) |
 
-## 2. Matriz poder × interesse
+## 1. Matriz poder × interesse
 
 | | **Interesse baixo** | **Interesse alto** |
 |---|---|---|
 | **Poder alto** | *Manter satisfeitos:* S5 Instituição, S8 Provedores | *Gerenciar de perto:* S1 Comissão, S3 Equipe, S4 Professor(a) |
 | **Poder baixo** | *Monitorar:* S9 Familiares e convidados | *Manter informados:* S2 Formandos, S6 Fornecedores, S7 Master **†** |
 
-## 3. Análise e estratégia de engajamento
+## 2. Análise e estratégia de engajamento
 
 | Stakeholder | Influência | Como envolver | Frequência |
 |---|---|---|---|
@@ -48,7 +44,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O stakeho
 | S7 Master **†** | Média | Painel próprio com confirmação em exclusões | A cada sprint |
 | S8 Provedores | Média | Respeitar limites e termos; configurar chaves em variáveis de ambiente | Na configuração |
 
-## 4. Necessidades por stakeholder e como o produto responde
+## 3. Necessidades por stakeholder e como o produto responde
 
 | Necessidade | Requisito relacionado |
 |---|---|
@@ -61,7 +57,7 @@ Este documento foi fechado em 26/09/2026, no encerramento da Sprint 1. O stakeho
 
 Os identificadores acima estão detalhados em **Requisitos Prioritários**.
 
-## 5. Plano de comunicação
+## 4. Plano de comunicação
 
 | Assunto | Para quem | Canal | Frequência |
 |---|---|---|---|
@@ -71,7 +67,7 @@ Os identificadores acima estão detalhados em **Requisitos Prioritários**.
 | Dúvidas técnicas | Equipe | Issues e mensagens | Conforme surgirem |
 | Decisões do produto | Equipe e PO | Registro no Sprint Backlog e nos documentos | A cada decisão |
 
-## 6. Riscos ligados a stakeholders
+## 5. Riscos ligados a stakeholders
 
 | Risco | Stakeholder | Resposta |
 |---|---|---|
@@ -80,8 +76,3 @@ Os identificadores acima estão detalhados em **Requisitos Prioritários**.
 | Mudança de expectativa do(a) professor(a) | S4 | Confirmar o escopo em cada marco e registrar por escrito |
 | Vazamento de dados dos alunos | S2, S5 | Validação de entradas, checagem de permissão e segredos fora do Git |
 | Fim ou mudança nos termos do Google ou do Gmail | S8 | Login por email e senha como alternativa |
-
-## 7. Itens a confirmar pelo grupo
-
-- Nome do(a) professor(a) da Fábrica e canal oficial de contato com ele(a).
-- Se haverá uma turma real para testar o produto antes da entrega final.
