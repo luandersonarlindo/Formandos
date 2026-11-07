@@ -53,10 +53,12 @@ describe("endereço no email", () => {
 
   beforeEach(() => {
     delete process.env.BETTER_AUTH_URL;
+    delete process.env.EMAIL_LINKS_LOCAIS;
   });
   afterEach(() => {
     if (urlOriginal === undefined) delete process.env.BETTER_AUTH_URL;
     else process.env.BETTER_AUTH_URL = urlOriginal;
+    delete process.env.EMAIL_LINKS_LOCAIS;
   });
 
   const todos = () => [
@@ -105,6 +107,21 @@ describe("endereço no email", () => {
       expect(email.html).not.toContain("localhost");
       expect(email.html).not.toContain("href=");
     }
+  });
+
+  it("no Docker com Mailpit (EMAIL_LINKS_LOCAIS=1), mostra botão e link para localhost", () => {
+    process.env.BETTER_AUTH_URL = "http://localhost:3000";
+    process.env.EMAIL_LINKS_LOCAIS = "1";
+    const html = emailRedefinirSenha("Ana", "http://localhost:3000/redefinir?token=x").html;
+    expect(html).toContain('href="http://localhost:3000/redefinir?token=x"');
+    expect(html).toContain("Definir senha");
+    expect(html).toContain("copie este endereço");
+  });
+
+  it("EMAIL_LINKS_LOCAIS com outro valor não libera o link", () => {
+    process.env.BETTER_AUTH_URL = "http://localhost:3000";
+    process.env.EMAIL_LINKS_LOCAIS = "true";
+    expect(emailVerificacao("Ana", "http://localhost:3000/v").html).not.toContain("href=");
   });
 
   it("o texto puro continua levando o endereço: é o reserva sem HTML", () => {

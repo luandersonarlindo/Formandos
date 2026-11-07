@@ -112,6 +112,11 @@ export function urlDoSite(caminho = "") {
 // Por isso o HTML só mostra endereço quando o site está publicado. O texto
 // puro continua levando: ele é o reserva para cliente que não mostra HTML, e é
 // de onde os testes de ponta a ponta tiram o link de confirmação.
+//
+// Exceção: EMAIL_LINKS_LOCAIS="1", que o compose.yaml liga junto com o
+// Mailpit. Lá o email nunca sai da máquina e é lido nela mesma, então o link
+// para localhost é exatamente o que serve; sem ele o HTML pedia para usar "o
+// botão abaixo" e não havia botão.
 const HOSTS_LOCAIS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "[::1]"]);
 function sitePublicado() {
   const url = process.env.BETTER_AUTH_URL;
@@ -121,6 +126,10 @@ function sitePublicado() {
   } catch {
     return false;
   }
+}
+
+function linksNoHtml() {
+  return sitePublicado() || process.env.EMAIL_LINKS_LOCAIS === "1";
 }
 
 function escapar(s: string) {
@@ -155,7 +164,7 @@ function caixaEmail({
   const site = urlDoSite("/");
   const corA = acento === "aviso" ? TINTA.aviso : TINTA.marca;
   const corB = acento === "aviso" ? TINTA.avisoClara : TINTA.marcaClara;
-  const assinatura = sitePublicado()
+  const assinatura = linksNoHtml()
     ? `Formandos &middot; <a href="${escapar(site)}" style="color:${TINTA.marca};text-decoration:none">${escapar(site)}</a>`
     : "Formandos";
   return `<!doctype html>
@@ -192,14 +201,14 @@ ${corpo}
 
 function botao(url: string, rotulo: string) {
   // Email sem botão é melhor que email com botão para localhost.
-  if (!sitePublicado()) return "";
+  if (!linksNoHtml()) return "";
   return `<p style="margin:22px 0"><a href="${escapar(url)}" style="display:inline-block;padding:12px 22px;background:${TINTA.marca};color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px">${escapar(rotulo)}</a></p>`;
 }
 
 // Botão é ignorado por uma parte boa dos clientes e por metade das contas,
 // então o endereço cru vai sempre junto, visível.
 function linkCru(url: string) {
-  if (!sitePublicado()) return "";
+  if (!linksNoHtml()) return "";
   return pApagado(
     `Se o botão não funcionar, copie este endereço:<br><span style="color:${TINTA.texto};word-break:break-all">${escapar(url)}</span>`,
   );
