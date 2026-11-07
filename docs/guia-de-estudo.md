@@ -4,9 +4,9 @@ Guia para quem está criando o primeiro projeto com Next.js e React. Cobre os as
 
 Fontes analisadas: `README.md`, `docs/catalogos-modelo/catalogo-enquetes.md` e a documentação embarcada do Next.js instalado (`node_modules/next/dist/docs/`).
 
-> **Situação (26/09/2026):** o MVP está implementado (etapas 0 a 11 do roteiro da seção 4). O projeto **não será hospedado**: o código fica no GitHub e roda localmente. Este guia continua útil como material de estudo: cada assunto aponta para o arquivo do projeto onde ele foi aplicado.
+> **Situação (07/11/2026):** o MVP está implementado (etapas 0 a 12 do roteiro da seção 4), com o deploy na Vercel (banco Neon) já documentado no README, além de LGPD/SGSI (privacidade, auditoria, exportação de dados). Este guia continua útil como material de estudo: cada assunto aponta para o arquivo do projeto onde ele foi aplicado.
 
-> **Regra do projeto (`AGENTS.md`):** este é o Next.js **16.3.6** com React **19.2.8**. Ele tem mudanças que quebram o que se aprende em tutoriais antigos. Na dúvida, leia a doc local em `node_modules/next/dist/docs/01-app/` antes de copiar código da internet.
+> **Regra do projeto (`AGENTS.md`):** este é o Next.js **16.3.8** com React **19.2.8**. Ele tem mudanças que quebram o que se aprende em tutoriais antigos. Na dúvida, leia a doc local em `node_modules/next/dist/docs/01-app/` antes de copiar código da internet.
 
 ---
 
@@ -14,16 +14,19 @@ Fontes analisadas: `README.md`, `docs/catalogos-modelo/catalogo-enquetes.md` e a
 
 | Item | Situação |
 |---|---|
-| Next.js 16.3.6 + React 19.2.8 + TypeScript + Tailwind v4 | Em uso; React Compiler ativo em `next.config.ts` |
+| Next.js 16.3.8 + React 19.2.8 + TypeScript + Tailwind v4 | Em uso; React Compiler ativo em `next.config.ts` |
 | Login com Google e com e-mail e senha (Better Auth) | Pronto: `src/lib/auth.ts`, `src/proxy.ts`, `src/lib/dal.ts`. Confirmação de e-mail, "esqueci a senha" e e-mail de boas-vindas via SMTP (`src/lib/email.ts`) |
-| Banco PostgreSQL (SQL puro com `pg`) | Pronto: `db/schema.sql` e o login do Better Auth (17 tabelas no total) e `db/seed.mjs` |
+| Banco PostgreSQL (SQL puro com `pg`) | Pronto: `db/schema.sql` (18 tabelas do domínio) e o login do Better Auth (4 tabelas) e `db/seed.mjs` |
 | Turmas, convites e papéis | Pronto (admin e participante; participante em uma turma, admin em várias) |
 | Votações e relatório com gráficos | Pronto (`/votacoes`, `/votacoes/relatorio`) |
-| Dúvidas com upvote e moderação | Pronto (`/duvidas`, `/admin/duvidas`) |
+| Dúvidas com upvote e moderação | Pronto, tudo em `/duvidas` (autor edita/apaga a própria; admin modera na mesma tela) |
 | Dashboard, tarefas e terceiros | Pronto |
-| Painel do administrador | Pronto: membros, convite, evento, programação, catálogos personalizados e quem votou |
-| Acabamento | Telas de erro, carregamento e 404; cabeçalhos de segurança (HSTS, CSP); limite de tentativas de convite; testes unitários (`npm test`, 14 arquivos e 157 testes); E2E com 73 passos (`scripts/teste/fluxos.mjs`) |
-| ESLint, testes de ponta a ponta, alternância de tema escuro | **Não existem** |
+| Painel do administrador | Pronto: `/admin/membros` (inclui convite), edição do evento e programação movida para `/dashboard`, `/admin/presenca`, `/admin/turma`, catálogos personalizados e quem votou |
+| Acabamento | Telas de erro, carregamento e 404; cabeçalhos de segurança (HSTS, CSP); limite de tentativas de convite; testes unitários (`npm test`, 14 arquivos e 158 testes); E2E com 73 passos (`scripts/teste/fluxos.mjs`) |
+| Tema claro/escuro/sistema | Pronto: `src/lib/tema.ts` + `features/alternador-tema.tsx` |
+| Deploy em produção (Vercel + banco Neon) | Pronto: ver "Deploy na Vercel com o Neon" no README |
+| LGPD e SGSI (privacidade, termos, exportação de dados, auditoria, bloqueio de email descartável) | Pronto: ver seção "Segurança e Acessibilidade" no README e `docs/auditoria-direitos/` |
+| ESLint | **Não existe** (o `package.json` não tem script `lint`) |
 | `.mcp.json` do `next-devtools-mcp` | **Não criado** |
 
 ---
@@ -203,7 +206,7 @@ Conceitos que mais confundem iniciantes:
 ### 3.4 Estilo: Tailwind CSS v4 e shadcn/ui
 - Tailwind v4 configura o tema em CSS (`@theme` no `globals.css`), não mais em `tailwind.config.js`. O projeto já segue isso.
 - shadcn/ui **não é uma biblioteca instalada**: um comando copia o código dos componentes para `src/components/ui`, e o código passa a ser seu. Depende de Radix UI, `class-variance-authority`, `clsx` e `tailwind-merge`.
-- Componentes em uso: `Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`, `Sidebar`, `Sheet`, `Collapsible`, `Separator`, `Tooltip`, `NativeSelect`.
+- Componentes em uso: `Button`, `Card`, `Badge`, `Input`, `Label`, `Textarea`, `Progress`, `Skeleton`, `Sidebar`, `Sheet`, `Collapsible`, `Separator`, `Tooltip`, `DropdownMenu`, `NativeSelect`.
 - Design responsivo: o público usa celular. Comece pelo layout mobile.
 - Acessibilidade: o Radix já cuida de foco e teclado, mas use `label` nos campos e contraste adequado.
 
@@ -215,47 +218,54 @@ Conceitos que mais confundem iniciantes:
 - Migrações: `db/schema.sql` usa `create table if not exists`, então repete sem erro, mas **não altera tabelas que já existem**. Quando o esquema mudar depois do MVP em uso, passe a numerar arquivos (`001_init.sql`, `002_...`) para o grupo aplicar as mudanças na mesma ordem.
 - Onde rodar o banco: o PostgreSQL 18 já roda localmente nesta máquina (conexão por socket Unix, sem senha). O Docker **não está instalado**. Cada pessoa do grupo roda um PostgreSQL local (instalado pelo sistema) e cria o próprio banco com os scripts `db:*`.
 
-**Modelo de dados** (implementado em `db/schema.sql`; as tabelas do Better Auth vêm de `npm run db:auth`):
+**Modelo de dados** (implementado em `db/schema.sql`; as tabelas do Better Auth vêm de `npm run db:migrate`):
 
 ```
-usuarios        (id uuid, name, email, emailVerified, image, createdAt, updatedAt)   -- do Better Auth (modelName "usuarios"; colunas em camelCase, exigem aspas no SQL)
+usuarios        (id uuid, name, email, emailVerified, image, createdAt, updatedAt, consentimento_em)   -- do Better Auth (modelName "usuarios"; colunas em camelCase, exigem aspas no SQL)
+                -- consentimento_em: hora do aceite de Termos+Privacidade no cadastro por senha; nulo em contas Google
 session, account, verification                                                       -- do Better Auth
 
 turmas          (id, nome, codigo_convite UNIQUE, data_evento, data_fim_evento, local_evento, endereco, link_mapa, traje,
-                 descricao, observacoes_local, arquivada_em, criado_por -> usuarios.id)
+                 descricao, observacoes_local, arquivada_em, max_acompanhantes, usar_catalogo_padrao, criado_por -> usuarios.id)
                 -- arquivada_em preenchido = turma só para leitura (as Server Actions recusam alterações)
+                -- max_acompanhantes (0-20, padrão 5): teto de acompanhantes por presença; usar_catalogo_padrao: liga/desliga o catálogo padrão
 membros         (turma_id, usuario_id -> usuarios.id, papel CHECK ('admin','participante'))   PK (turma_id, usuario_id)
                 -- sem UNIQUE em usuario_id: admin pode ter várias turmas (regra na aplicação, src/lib/vinculos.ts)
-tentativas_convite (id, usuario_id, created_at)        -- códigos inválidos, para limitar tentativas (10 a cada 15 min)
+tentativas_convite (id, usuario_id, ip, created_at)    -- códigos inválidos, para limitar tentativas (10 a cada 15 min, por usuário e por IP)
 
 catalogos       (id, turma_id NULL, nome)              -- turma_id NULL = catálogo padrão (global); preenchido = personalizado
-categorias      (id, catalogo_id, nome, ordem)
-enquetes        (id, categoria_id, titulo, tipo CHECK ('unica','multipla'), ordem)
+categorias      (id, catalogo_id, nome, ordem)         -- ordem: reordenável por moverCategoria
+enquetes        (id, categoria_id, titulo, tipo CHECK ('unica','multipla'), ordem)   -- editável (atualizarEnquete) e reordenável (moverEnquete)
 opcoes          (id, enquete_id, texto, exclusiva BOOL, ordem)
 decisoes        (turma_id, enquete_id, opcao_id, decidido_por, created_at)   PK (turma_id, opcao_id)
                 -- opção(ões) fixada(s) pela comissão; com decisão a enquete não aceita votos. É por turma porque o catálogo padrão é compartilhado
 votos           (turma_id, opcao_id, usuario_id)       PK (opcao_id, usuario_id)
                 -- votos identificados; mudar voto = apagar os antigos do usuário nessa enquete e inserir os novos, em uma transação
 
-avisos          (id, turma_id, autor_id, titulo, conteudo, created_at)   -- mural; só cria e apaga, sem editar
+avisos          (id, turma_id, autor_id, titulo, conteudo, created_at)   -- mural; admin cria, edita (atualizarAviso) e apaga
 presencas       (turma_id, usuario_id, status CHECK ('vou','talvez','nao'), acompanhantes, observacao, updated_at)   PK (turma_id, usuario_id)
-                -- só 'vou' tem acompanhantes contados (normalizado em src/lib/presenca-regras.ts)
+                -- só 'vou' tem acompanhantes contados, até turmas.max_acompanhantes (normalizado em src/lib/presenca-regras.ts)
 duvidas         (id, turma_id, autor_id, conteudo, resposta, respondida BOOL, destaque BOOL, created_at)
+                -- autor edita/apaga a própria; admin modera (responde, destaca, reabre, apaga qualquer uma)
 duvida_upvotes  (duvida_id, usuario_id)                PK (duvida_id, usuario_id)
                 -- respondida e destaque são independentes: uma dúvida respondida também pode estar em destaque
 
 tarefas         (id, turma_id, titulo, descricao, status CHECK ('pendente','em_andamento','concluida'), responsavel_id, prazo)
 fornecedores    (id, turma_id, nome, categoria, descricao, contato, imagem_url, valor_orcado, status)   -- por turma; imagem_url existe mas não é usada
-                -- status CHECK ('cotando','contratado','descartado'); valor_orcado e status só aparecem para admin (lib/terceiros.ts)
-programacao     (id, turma_id, horario, titulo, descricao)                        -- programação da festa, mostrada no dashboard
+                -- status CHECK ('cotando','contratado','descartado'); valor_orcado e status só aparecem para admin (lib/terceiros.ts); admin edita tudo (atualizarFornecedor)
+programacao     (id, turma_id, horario, titulo, descricao)             -- programação da festa; admin adiciona, edita (atualizarItemProgramacao) e remove
+
+auditoria       (id, usuario_id, turma_id, acao, entidade, entidade_id, detalhe jsonb, created_at)
+                -- trilha de auditoria (troca de papel, remoção, exclusão de conta/turma); só o servidor escreve, nunca edita ou apaga; retenção de 5 anos
+throttle        (id, chave, created_at)                -- limita a frequência de Server Actions sensíveis no pico; limpa linhas com +1 dia a cada uso
 ```
 
 **Comandos do banco** (leem o `.env.local` se ele existir; podem ser repetidos sem duplicar dados):
 
 | Comando | O que faz |
 |---|---|
-| `npm run db:auth` | Cria as tabelas do Better Auth (`usuarios`, `session`, `account`, `verification`). **Rodar primeiro.** |
-| `npm run db:schema` | Aplica `db/schema.sql` (13 tabelas do domínio). |
+| `npm run db:migrate` | Tabelas do Better Auth (`usuarios`, `session`, `account`, `verification`) **+** `db/schema.sql`. É o que o `prebuild` roda na Vercel; localmente usa `MIGRATION_DATABASE_URL` (ou sai sem avisar erro, se faltar). |
+| `npm run db:schema` | Só `db/schema.sql` (18 tabelas do domínio), no `DATABASE_URL` do `.env.local`. Para desenvolvimento local, depois das tabelas do Better Auth já existirem. |
 | `npm run db:seed` | Insere o catálogo padrão (10 categorias, 23 enquetes, 129 opções) lendo `docs/catalogos-modelo/catalogo-enquetes.md`; se já existir, acrescenta só o que falta. `-- --dry` só mostra o que leria. |
 
 Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.env.local`. Isso permite testar em um banco descartável.
@@ -298,23 +308,38 @@ Pontos-chave:
 - **Seleção múltipla:** vários votos por usuário. Opção `exclusiva` limpa as demais. Ao mudar, o conjunto novo substitui o antigo.
 - **Voto identificado:** o ADM vê quem votou em cada opção. O formando vê só os totais (defina se ele também vê a porcentagem antes de votar).
 - **Upvote:** um por usuário por dúvida, alternável. A lista ordena por votos, com dúvidas em destaque fixadas no topo.
-- **Dúvida:** `respondida` e `destaque` são indicadores independentes; só o admin muda. Responder com texto marca como respondida; salvar em branco remove a resposta.
+- **Dúvida:** `respondida` e `destaque` são indicadores independentes; só o admin muda. Responder com texto marca como respondida; salvar em branco remove a resposta. O autor pode **editar** (`editarDuvida`) ou **excluir** (`excluirDuvida`) a própria dúvida; o admin modera (responde, destaca, reabre, apaga) qualquer dúvida da turma. Demais formandos não tocam na dúvida alheia.
 - **Seed do catálogo padrão:** script que lê `catalogo-enquetes.md` (10 categorias, 23 perguntas) e insere no banco, com `turma_id` nulo. Rodar de novo só acrescenta o que faltar, sem apagar votos. Todas as turmas enxergam esse catálogo.
 - **Barra lateral (sidebar):** componente oficial do shadcn (`src/components/ui/sidebar.tsx`, de `ui.shadcn.com/docs/components/base/sidebar`, copiado à mão para não sobrescrever `button.tsx`/`input.tsx`, já customizados). Fica sempre aberta em computador, tablet e TV (a partir de 768px, o breakpoint `md` do próprio componente); abaixo disso vira uma gaveta (`Sheet`). Lembra se está aberta ou recolhida a só ícones num cookie (`sidebar_state`); sem cookie ainda, começa aberta (`AppShell` inverte o padrão do componente, que começa fechado). "Minhas turmas" é um `SidebarMenuItem` com as turmas dentro de um `SidebarMenuSub`. `SidebarAutoClose` fecha a gaveta do celular ao navegar (senão ela fica aberta atrás da página nova, já que o componente não faz isso sozinho).
 - **Turma arquivada:** `exigirMembroEditavel` e `exigirAdminEditavel` (em `dal.ts`) trocam as versões antigas em toda ação que altera dados; ficam de fora desarquivar, excluir e sair da turma. Na tela, uma faixa avisa e um `<fieldset disabled>` desativa os campos, por fora do `AnimarPagina`. Só a trava do servidor é segurança.
 - **Decisão da turma:** o admin fixa a opção vencedora em `/admin/votacoes/votos/[enqueteId]`; `votar` recusa voto em pergunta decidida. Reabrir apaga a decisão.
 - **Orçamento de fornecedores:** `listarFornecedores` (participante) nem seleciona valor_orcado/status do banco; `listarFornecedoresAdmin` traz os dois. A página só passa esses campos ao JSX quando `ehAdmin`, então nunca chegam ao RSC payload de quem não é admin.
-- **Catálogos personalizados:** só o admin da turma cria e edita (categorias e perguntas; não dá para editar o texto de uma pergunta depois de criada). Aparecem só para aquela turma. Podem nascer de um **catálogo-modelo**: quatro arquivos em `docs/catalogos-modelo/` (Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, Área da Saúde) que a Server Action `criarCatalogoDeModelo` copia para a turma. Os modelos não passam pelo seed e só aparecem para votar depois de copiados.
-- **Tarefas:** o admin cria, edita e exclui; o responsável muda só o andamento da própria tarefa.
-- **Terceiros:** o admin cadastra fornecedores da turma; o contato só vira link se começar com `http://` ou `https://`.
-- **Convite:** 8 caracteres aleatórios; no máximo 10 códigos inválidos a cada 15 minutos por usuário.
-- **Turma:** ao criar, o usuário vira admin. Ao entrar por código, vira participante. Não pode sair sendo o último admin.
+- **Catálogos personalizados:** só o admin da turma cria e edita. `atualizarEnquete` edita título, tipo e opções de uma pergunta já criada, preservando o id (e os votos) de quem não mudou: o **tipo** só muda enquanto a pergunta não tiver voto nenhum, e uma **opção** só é removida se ainda não tiver voto (senão a mudança naquela opção é ignorada, para não apagar voto já registrado). `renomearCategoria`, `moverCategoria` e `moverEnquete` renomeiam e reordenam categorias e perguntas no lugar. Catálogos personalizados aparecem só para aquela turma e podem nascer de um **catálogo-modelo**: quatro arquivos em `docs/catalogos-modelo/` (Ensino Médio, Educação Infantil e ABC, Pós-graduação e MBA, Área da Saúde) que a Server Action `criarCatalogoDeModelo` copia para a turma. Os modelos não passam pelo seed e só aparecem para votar depois de copiados.
+- **Catálogo padrão por turma:** cada turma liga ou desliga o catálogo padrão global em `/admin/votacoes` (`alternarCatalogoPadrao`, coluna `turmas.usar_catalogo_padrao`). Desligado, ele some das votações, do relatório e do dashboard, mas nada é apagado: `src/lib/catalogo-visibilidade.ts` monta o trecho de SQL que decide, em toda consulta, se o catálogo padrão entra na lista.
+- **Avisos:** o admin cria, edita (`atualizarAviso`) e exclui recados do mural.
+- **Tarefas:** o admin cria, edita (título, descrição, status, responsável e prazo, em `atualizarTarefa`) e exclui; o responsável muda só o andamento da própria tarefa (`atualizarStatusTarefa`).
+- **Programação da festa:** o admin adiciona, edita (`atualizarItemProgramacao`) e remove itens.
+- **Terceiros:** o admin cadastra e edita (`atualizarFornecedor`) fornecedores da turma; o contato só vira link se começar com `http://` ou `https://`. Valor orçado e status só aparecem para admin.
+- **Convite:** 8 caracteres aleatórios; no máximo 10 códigos inválidos a cada 15 minutos por usuário (e por IP).
+- **Turma:** ao criar, o usuário vira admin. Ao entrar por código, vira participante. Não pode sair sendo o último admin. Sair ou ser removido apaga, numa transação, o rastro da pessoa **naquela turma** (votos, presença, dúvida própria e upvotes); tarefas, avisos e decisões ficam sem autor (`src/lib/saida-turma.ts`).
+
+### 3.11 LGPD e segurança da informação (SGSI)
+
+Assunto adicionado depois do MVP inicial, em resposta a exigências de proteção de dados:
+
+- **Base legal e consentimento:** cadastro por email/senha exige aceitar Termos e Privacidade (checkbox obrigatório); a hora fica em `usuarios.consentimento_em`. Conta Google não passa por isso (consentimento via tela do próprio Google).
+- **Direitos do titular:** `/conta` mostra e corrige o nome, baixa os dados em JSON (`/conta/exportar`) e tem o canal do DPO; excluir a conta é autosserviço.
+- **Páginas públicas:** `/privacidade` e `/termos`, linkadas no cadastro e no rodapé.
+- **Email descartável:** `src/lib/email-validacao.ts` + pacote `disposable-domains` bloqueiam domínios de email temporário (e sugerem a correção de erro de digitação comum) no cadastro, no cliente e no servidor.
+- **Trilha de auditoria:** tabela `auditoria` (`src/lib/auditoria.ts`), só escrita pelo servidor, nunca editada: troca de papel, remoção de membro, exclusão de conta, arquivar/desarquivar/excluir turma. Retenção de 5 anos, sem apagar automático.
+- **Documentação do SGSI:** `docs/auditoria-direitos/PSI.md` (política), `SoA.md` (93 controles), `riscos.md` (matriz probabilidade × impacto) e `auditoria.md`.
+- **Operação:** `src/lib/throttle.ts` limita a frequência de Server Actions sensíveis no pico; `/api/healthz` é o healthcheck usado pela hospedagem.
 
 ### 3.10 Qualidade, Git e trabalho em equipe
 - Git com branches por funcionalidade e Pull Requests, já que são 4 pessoas.
 - Commits pequenos e com mensagem clara (padrão *Conventional Commits*: `feat:`, `fix:`).
 - ESLint e Prettier. **O projeto ainda não tem ESLint** (o `package.json` não tem script `lint`). Considere adicionar.
-- Testes: existe `npm test` (Vitest, 157 testes em 14 arquivos) para `src/lib` (`auth-config`, `busca`, `convite`, `datas`, `email`, `email-validacao`, `evento`, `master`, `modelos`, `orcamento`, `paginacao`, `presenca-regras`, `tema`, `vinculos`). Fluxos de ponta a ponta no Chrome real: `scripts/teste/fluxos.mjs` (73 passos, ver `scripts/teste/README.md`).
+- Testes: existe `npm test` (Vitest, 158 testes em 14 arquivos) para `src/lib` (`auth-config`, `busca`, `convite`, `datas`, `email`, `email-validacao`, `evento`, `master`, `modelos`, `orcamento`, `paginacao`, `presenca-regras`, `tema`, `vinculos`). Fluxos de ponta a ponta no Chrome real: `scripts/teste/fluxos.mjs` (73 passos, ver `scripts/teste/README.md`).
 - Variáveis de ambiente: nunca comite `.env.local`. Crie um `.env.example` sem segredos para o grupo.
 
 
@@ -338,7 +363,8 @@ Cada etapa termina com algo que você consegue ver funcionando. Faça uma de cad
 | **9. Dashboard, tarefas, terceiros** | Restante do MVP. | MVP completo | Feito |
 | **10. Admin** | Edição do evento, programação, enquetes personalizadas, quem votou. | Painel admin | Feito |
 | **11. Acabamento** | Erros, carregamento (`loading.tsx`), acessibilidade, limite de convite, testes. | Pronto para uso | Feito |
-| **12. Deploy** | Publicar em uma hospedagem. | URL pública | **Fora do escopo**: o projeto fica no GitHub |
+| **12. Deploy** | Publicar em uma hospedagem (Vercel + banco Neon). | URL pública | Feito: ver "Deploy na Vercel com o Neon" no README |
+| **13. LGPD e SGSI** | Consentimento, páginas de Termos/Privacidade, exportação de dados, DPO, trilha de auditoria, bloqueio de email descartável. | Conformidade documentada | Feito: ver `docs/auditoria-direitos/` |
 
 Sugestão de divisão para 4 pessoas depois da etapa 1: uma pessoa por área (votações, dúvidas, admin/turmas, dashboard/tarefas/terceiros), com a etapa 3–5 (banco, login, turmas) feitas juntas, porque tudo depende delas.
 

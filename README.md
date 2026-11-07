@@ -2,7 +2,7 @@
 
 **Formandos** é uma aplicação de gestão administrativa de formaturas e eventos desenvolvida com React e Next.js. O app proporciona autonomia, praticidade e organização para que turmas e comissões organizadoras planeiem todos os recursos necessários para a realização do evento.
 
-> **Estado do projeto:** o MVP está implementado e roda localmente (veja "Como Executar o Projeto"). O projeto não está hospedado: o código fica no GitHub.
+> **Estado do projeto:** o MVP está implementado. Roda localmente para desenvolvimento (veja "Como Executar o Projeto") e também pode ser publicado na Vercel com banco Neon (veja "Deploy na Vercel com o Neon").
 
 ---
 
@@ -83,7 +83,7 @@ As URLs **não** levam o identificador da turma: o servidor descobre a turma em 
 | `(app)` | Autenticado, com turma | `/dashboard`, `/avisos`, `/tarefas`, `/votacoes`, `/votacoes/[catalogoId]`, `/votacoes/relatorio`, `/duvidas`, `/terceiros` |
 | `(master)` | Administrador master (`ADMIN_MASTER_EMAILS`); para os demais a página não existe (404) | `/master`, `/master/turmas`, `/master/turmas/[turmaId]`, `/master/usuarios` |
 | `(admin)` | Administrador da turma | `/admin` (redireciona para `/dashboard`, onde ficam os indicadores e a edição do evento), `/admin/membros` (inclui o código de convite), `/admin/turma` (arquivar, desarquivar e excluir), `/admin/presenca`, `/admin/votacoes`, `/admin/votacoes/nova`, `/admin/votacoes/[catalogoId]`, `/admin/votacoes/votos/[enqueteId]` |
-| API | — | `/api/auth/[...all]` (Better Auth) e `/conta/exportar` (download dos dados em JSON) |
+| API | — | `/api/auth/[...all]` (Better Auth), `/conta/exportar` (download dos dados em JSON) e `/api/healthz` (healthcheck) |
 
 * `/dashboard` - Visão geral da turma, contagem decrescente e programação oficial da festa. Para administradores, traz indicadores de gestão e edição dos dados e da programação do evento.
 * `/tarefas` - Lista e acompanhamento do progresso das tarefas organizacionais.
@@ -107,7 +107,7 @@ O projeto adota uma arquitetura em camadas focada em simplicidade e eficácia:
 * **`/src/components/ilustracoes`:** Ilustrações Amico em JSX (`EquipeAmico`, `ChecklistAmico`, `PerguntasAmico`, `ColaboracaoAmico`, `AprendizadoAmico`). Vieram do [Storyset](https://storyset.com/amico), com os *ids* do Storyset trocados por classes `.amico-*` — *id* repetido é inválido em SVG — e a paleta ligada a variáveis CSS, para inverter com o tema.
 * **`/src/components/animacao`:** Animações de página (`AnimarPagina`) e a animação das ilustrações (`animarAmico`), com [anime.js](https://animejs.com). Quem tem *reduced-motion* ligado no sistema vê a ilustração parada, nunca invisível.
 * **`/src/lib/tema.ts` e `features/alternador-tema.tsx`:** Modo claro, escuro ou *sistema*. A escolha vai para o `localStorage` e vira a classe `.dark` no `<html>`, que é o que o Tailwind e o shadcn já esperam. Um script inline, o primeiro do `<body>`, aplica a escolha **antes da primeira pintura** — sem ele, quem escolhesse "escuro" veria a página clara e depois escura. O mesmo script já marca `data-sem-animacao`, o que também elimina o piscar de quem pede menos movimento.
-* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `presenca.ts`, `avisos.ts`, `terceiros.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
+* **`/src/actions` (Server Actions):** Mutações e execução de *queries* SQL puras diretamente no PostgreSQL, por área: `turmas.ts`, `gestao-turma.ts`, `conta.ts`, `votos.ts`, `decisoes.ts`, `duvidas.ts`, `tarefas.ts`, `terceiros.ts`, `evento.ts`, `presenca.ts`, `avisos.ts`, `catalogos.ts`, `admin.ts` e `master.ts`. **Toda Server Action valida a entrada (Zod) e confere a permissão do utilizador.**
 * **`/src/lib/db.ts`:** Conexão direta com o PostgreSQL (`Pool` do `pg`) e a função `transacao`.
 * **`/src/lib/auth.ts` e `auth-client.ts`:** Configuração do Better Auth (Google e email e senha) no servidor e no navegador. A tabela de utilizadores chama-se `usuarios`.
 * **`/src/lib/email.ts`:** Envio de emails por SMTP e os textos dos emails. Sem `SMTP_HOST`, o email é escrito no terminal do servidor.
@@ -211,7 +211,7 @@ As 10 categorias do catálogo padrão:
    ```bash
    npm test
    ```
-   Os testes unitários (157, em 14 arquivos) cobrem as funções puras de `src/lib`: autenticação/config, busca (sem acento), convite, datas, email (aparência e contraste), validação de email (descartável e erro de digitação), evento, master, modelos de catálogo, orçamento, paginação, presença, tema e vínculos (uma turma por aluno).
+   Os testes unitários (158, em 14 arquivos) cobrem as funções puras de `src/lib`: autenticação/config, busca (sem acento), convite, datas, email (aparência e contraste), validação de email (descartável e erro de digitação), evento, master, modelos de catálogo, orçamento, paginação, presença, tema e vínculos (uma turma por aluno).
 
 7. **Executar o ambiente de desenvolvimento:**
    ```bash
