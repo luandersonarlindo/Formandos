@@ -238,6 +238,53 @@ Se `DATABASE_URL` já estiver definida no shell, ela tem prioridade sobre o `.en
 
 ---
 
+## 🐳 Rodar com Docker (tudo local)
+
+Alternativa ao passo a passo acima: sobe o PostgreSQL, cria as tabelas, carrega o catálogo padrão e roda o `next dev` com hot reload, sem instalar Node nem PostgreSQL na máquina. Precisa só do Docker com o Compose.
+
+1. **Primeira vez:**
+   ```bash
+   cp .env.example .env.local
+   # preencha BETTER_AUTH_SECRET (openssl rand -base64 32); o resto é opcional
+   docker compose up --build
+   ```
+   Abra `http://localhost:3000`. As variáveis de banco do `.env.local` são ignoradas: o `compose.yaml` aponta o app para o PostgreSQL do container.
+
+2. **No dia a dia:** `docker compose up -d` sobe tudo em segundo plano e `docker compose logs -f app` mostra o log do Next. Salvar um arquivo em `src/` recarrega a página sozinho, sem rebuild.
+
+3. **O que sobe:**
+
+   | Serviço | O que faz |
+   |---|---|
+   | `db` | PostgreSQL 18. Dados no volume `banco-local`; abra num cliente com `psql "postgres://formandos:formandos@127.0.0.1:5433/formandos"` |
+   | `migrate` | Roda a cada `up` e sai: `db/migrate.mjs` (Better Auth + `db/schema.sql`) e `db/seed.mjs`. Os dois só criam o que falta |
+   | `app` | `next dev` na porta 3000, com a pasta do projeto montada em `/app` |
+   | `tunnel` | Opcional (perfil `tunnel`): endereço HTTPS público pelo Cloudflare |
+
+4. **Celular, tablet ou TV na mesma rede:** descubra o IP com `hostname -I`, coloque `LAN_ORIGIN="http://SEU-IP:3000"` no `.env.local` e rode `docker compose up -d app` (recria o container com a variável nova). Abra `http://SEU-IP:3000` no aparelho.
+
+5. **Fora da rede (túnel):**
+   ```bash
+   docker compose --profile tunnel up -d tunnel
+   docker compose logs tunnel        # procure https://<aleatorio>.trycloudflare.com
+   ```
+   Coloque esse endereço em `BETTER_AUTH_URL` no `.env.local` e rode `docker compose up -d app`. A URL muda toda vez que o túnel reinicia. O login com Google só funciona se essa URL exata estiver cadastrada como redirect URI no Google Cloud Console; email e senha funcionam sempre. Para desligar: `docker compose --profile tunnel stop tunnel` e volte `BETTER_AUTH_URL` para `http://localhost:3000`.
+
+6. **Email:** sem `SMTP_HOST`, o link de confirmação de conta aparece em `docker compose logs app`.
+
+7. **Comandos úteis:**
+
+   | Comando | O que faz |
+   |---|---|
+   | `docker compose down` | Para tudo e mantém o banco |
+   | `docker compose down -v` | Para tudo e **apaga** o banco do container (o PostgreSQL instalado na máquina não é afetado) |
+   | `docker compose build && docker compose up -d -V` | Depois de mudar o `package.json`: reinstala as dependências (`-V` renova o volume de `node_modules`) |
+   | `docker compose exec app npm test` | Testes unitários dentro do container |
+
+   Se a porta 3000 estiver ocupada, pare o `npm run dev` rodando fora do Docker.
+
+---
+
 ## ☁️ Deploy na Vercel com o Neon
 
 ### O que é preciso ter antes
