@@ -3,7 +3,8 @@
 #
 #   docker compose up --build         # primeira vez (ou depois de mudar package.json)
 #   docker compose up                 # nas próximas
-#   docker compose logs -f app        # log do Next (links de email sem SMTP caem aqui)
+#   docker compose logs -f app        # log do Next
+#   http://localhost:8025             # caixa de entrada dos emails (Mailpit)
 #   docker compose down               # para tudo, mantém o banco
 #   docker compose down -v            # para tudo e APAGA o banco do container
 #
@@ -15,6 +16,18 @@ x-banco: &banco
   # presa em 127.0.0.1. Não use estes valores fora do Docker local.
   DATABASE_URL: postgres://formandos:formandos@db:5432/formandos
   MIGRATION_DATABASE_URL: postgres://formandos:formandos@db:5432/formandos
+
+x-email: &email
+  # Todo email do app vai para o Mailpit (serviço `mail`), nunca para a
+  # internet, mesmo que o .env.local tenha um SMTP real (Gmail). Caixa de
+  # entrada em http://localhost:8025. SMTP_USER vazio = sem autenticação.
+  SMTP_HOST: mail
+  SMTP_PORT: "1025"
+  SMTP_USER: ""
+  SMTP_PASS: ""
+  # Com o Mailpit o email é lido nesta máquina, então o HTML pode levar botão
+  # e link para localhost (fora do Docker eles somem, ver src/lib/email.ts).
+  EMAIL_LINKS_LOCAIS: "1"
 
 services:
   db:
@@ -66,7 +79,12 @@ services:
     env_file:
       - path: .env.local
         required: false
-    environment: *banco
+    environment:
+      <<: [*banco, *email]
+      # Endereço público do app no Docker, independente do BETTER_AUTH_URL do
+      # .env.local (que pode apontar para outra porta do `npm run dev` no host).
+      # Para o túnel: APP_URL=https://<aleatorio>.trycloudflare.com docker compose up -d app
+      BETTER_AUTH_URL: ${APP_URL:-http://localhost:3000}
     volumes:
       # Código do host montado no container: é isso que dá o hot reload.
       # `:z` reetiqueta a pasta para o SELinux (Fedora e afins); sem ele o
@@ -79,6 +97,16 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      mail:
+        condition: service_started
+
+  # Caixa de email falsa: recebe tudo o que o app envia (confirmação de conta,
+  # redefinir senha, boas-vindas) e mostra em http://localhost:8025.
+  mail:
+    image: axllent/mailpit:v1.21.8
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
 
   # Opcional: endereço HTTPS público (Cloudflare quick tunnel), sem conta e sem
   # abrir porta no roteador. Só sobe com o perfil:

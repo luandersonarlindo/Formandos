@@ -248,7 +248,7 @@ Alternativa ao passo a passo acima: sobe o PostgreSQL, cria as tabelas, carrega 
    # preencha BETTER_AUTH_SECRET (openssl rand -base64 32); o resto é opcional
    docker compose up --build
    ```
-   Abra `http://localhost:3000`. As variáveis de banco do `.env.local` são ignoradas: o `compose.yaml` aponta o app para o PostgreSQL do container.
+   Abra `http://localhost:3000`. O `compose.yaml` define por conta própria o banco (PostgreSQL do container), o email (Mailpit) e o endereço do app (`http://localhost:3000`): os valores de `DATABASE_URL`, `SMTP_*` e `BETTER_AUTH_URL` do `.env.local` não valem dentro do Docker.
 
 2. **No dia a dia:** `docker compose up -d` sobe tudo em segundo plano e `docker compose logs -f app` mostra o log do Next. Salvar um arquivo em `src/` recarrega a página sozinho, sem rebuild.
 
@@ -259,6 +259,7 @@ Alternativa ao passo a passo acima: sobe o PostgreSQL, cria as tabelas, carrega 
    | `db` | PostgreSQL 18. Dados no volume `banco-local`; abra num cliente com `psql "postgres://formandos:formandos@127.0.0.1:5433/formandos"` |
    | `migrate` | Roda a cada `up` e sai: `db/migrate.mjs` (Better Auth + `db/schema.sql`) e `db/seed.mjs`. Os dois só criam o que falta |
    | `app` | `next dev` na porta 3000, com a pasta do projeto montada em `/app` |
+   | `mail` | Mailpit: caixa de email falsa em `http://localhost:8025`. Recebe todo email do app; nada sai para a internet |
    | `tunnel` | Opcional (perfil `tunnel`): endereço HTTPS público pelo Cloudflare |
 
 4. **Celular, tablet ou TV na mesma rede:** descubra o IP com `hostname -I`, coloque `LAN_ORIGIN="http://SEU-IP:3000"` no `.env.local` e rode `docker compose up -d app` (recria o container com a variável nova). Abra `http://SEU-IP:3000` no aparelho.
@@ -268,9 +269,11 @@ Alternativa ao passo a passo acima: sobe o PostgreSQL, cria as tabelas, carrega 
    docker compose --profile tunnel up -d tunnel
    docker compose logs tunnel        # procure https://<aleatorio>.trycloudflare.com
    ```
-   Coloque esse endereço em `BETTER_AUTH_URL` no `.env.local` e rode `docker compose up -d app`. A URL muda toda vez que o túnel reinicia. O login com Google só funciona se essa URL exata estiver cadastrada como redirect URI no Google Cloud Console; email e senha funcionam sempre. Para desligar: `docker compose --profile tunnel stop tunnel` e volte `BETTER_AUTH_URL` para `http://localhost:3000`.
+   Recrie o app com esse endereço: `APP_URL=https://<aleatorio>.trycloudflare.com docker compose up -d app`. A URL muda toda vez que o túnel reinicia. Para desligar: `docker compose --profile tunnel stop tunnel` e `docker compose up -d app` (sem `APP_URL`, volta para `http://localhost:3000`).
 
-6. **Email:** sem `SMTP_HOST`, o link de confirmação de conta aparece em `docker compose logs app`.
+6. **Email:** confirmação de conta, "Esqueci a senha" e boas-vindas caem no Mailpit, em `http://localhost:8025`, mesmo que o `.env.local` tenha um Gmail configurado. Dá para criar contas com qualquer email inventado e clicar no botão do email direto no Mailpit (o compose liga `EMAIL_LINKS_LOCAIS=1`; fora do Docker o HTML esconde links para localhost). Os emails ficam só na memória: somem quando o serviço `mail` reinicia.
+
+   **Login com Google:** no Docker, só pelo `http://localhost:3000`. Preencha `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` no `.env.local` e cadastre `http://localhost:3000/api/auth/callback/google` como redirect URI no Google Cloud Console. No celular e no túnel, use email e senha.
 
 7. **Comandos úteis:**
 

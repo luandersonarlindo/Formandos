@@ -47,3 +47,6 @@ docs/image.png
 
 # Cookies e capturas dos scripts de teste
 scripts/teste/.tmp/
+
+# backups locais do banco (pg_dump), com dados de pessoas
+/db/backups/
