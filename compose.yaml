@@ -1,0 +1,99 @@
+# Ambiente local completo em Docker: PostgreSQL + migração/seed + next dev com
+# hot reload. Nada sai da máquina (o túnel é opcional, ver o fim do arquivo).
+#
+#   docker compose up --build         # primeira vez (ou depois de mudar package.json)
+#   docker compose up                 # nas próximas
+#   docker compose logs -f app        # log do Next (links de email sem SMTP caem aqui)
+#   docker compose down               # para tudo, mantém o banco
+#   docker compose down -v            # para tudo e APAGA o banco do container
+#
+# Segredos (BETTER_AUTH_SECRET, SMTP_PASS, Google) continuam no .env.local, que
+# nunca é versionado. A conexão do banco é definida aqui e vence a do .env.local.
+
+x-banco: &banco
+  # Senha fixa de propósito: o banco só existe nesta máquina e a porta fica
+  # presa em 127.0.0.1. Não use estes valores fora do Docker local.
+  DATABASE_URL: postgres://formandos:formandos@db:5432/formandos
+  MIGRATION_DATABASE_URL: postgres://formandos:formandos@db:5432/formandos
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: formandos
+      POSTGRES_PASSWORD: formandos
+      POSTGRES_DB: formandos
+    volumes:
+      # A partir do PostgreSQL 18 o volume vai em /var/lib/postgresql: o
+      # entrypoint recusa /var/lib/postgresql/data e não sobe.
+      - banco-local:/var/lib/postgresql
+    # A 5432 do host costuma ser de um PostgreSQL instalado no sistema. Para
+    # abrir o banco do container num cliente:
+    #   psql "postgres://formandos:formandos@127.0.0.1:5433/formandos"
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U formandos -d formandos"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Roda uma vez a cada `up` e sai: tabelas do Better Auth + db/schema.sql e o
+  # catálogo padrão. Os dois scripts são idempotentes (só criam o que falta).
+  migrate:
+    build: .
+    image: formandos-dev
+    command: sh -c "node db/migrate.mjs && node db/seed.mjs"
+    env_file:
+      - path: .env.local
+        required: false
+    environment: *banco
+    volumes:
+      - .:/app:z
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build: .
+    image: formandos-dev
+    restart: unless-stopped
+    ports:
+      # 0.0.0.0 para o celular/tablet/TV na mesma rede alcançarem o app.
+      - "0.0.0.0:3000:3000"
+    env_file:
+      - path: .env.local
+        required: false
+    environment: *banco
+    volumes:
+      # Código do host montado no container: é isso que dá o hot reload.
+      # `:z` reetiqueta a pasta para o SELinux (Fedora e afins); sem ele o
+      # container não consegue ler os arquivos. Em outros sistemas é ignorado.
+      - .:/app:z
+      # Volumes anônimos por cima: node_modules e .next ficam só no container,
+      # não se misturam com os do host e não criam arquivos de root no projeto.
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Opcional: endereço HTTPS público (Cloudflare quick tunnel), sem conta e sem
+  # abrir porta no roteador. Só sobe com o perfil:
+  #   docker compose --profile tunnel up -d tunnel
+  #   docker compose logs tunnel       # procure https://<aleatorio>.trycloudflare.com
+  # A URL muda a cada reinício do túnel. Veja o README antes de usar.
+  tunnel:
+    image: cloudflare/cloudflared:2025.8.1
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://app:3000
+    depends_on:
+      - app
+
+volumes:
+  # Nome diferente do volume "pgdata" do Docker antigo (outubro), que tem
+  # outra senha: reaproveitá-lo faria a migração falhar com 28P01.
+  banco-local:

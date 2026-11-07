@@ -39,12 +39,17 @@ const cabecalhosDeSeguranca = [
   { key: "Content-Security-Policy", value: csp },
 ];
 
-// Acesso pelo IP da rede local (celular, tablet, TV): defina LAN_ORIGIN no
-// .env.local (ex. "http://SEU-IP-LOCAL:3000", o IP muda a cada pessoa/rede).
+// Acesso por outro endereço além do localhost, em desenvolvimento:
+// - LAN_ORIGIN: IP da rede local (celular, tablet, TV), ex. "http://SEU-IP-LOCAL:3000";
+// - BETTER_AUTH_URL, quando não é localhost: o túnel do Docker
+//   (https://<aleatorio>.trycloudflare.com, ver README).
 // Sem isso o Next bloqueia, em desenvolvimento, os assets e as Server
 // Actions vindos de um host que não seja "localhost" (proteção contra DNS
 // rebinding).
-const origemDaRede = process.env.LAN_ORIGIN ? new URL(process.env.LAN_ORIGIN) : null;
+const origensExtras = [process.env.LAN_ORIGIN, process.env.BETTER_AUTH_URL]
+  .filter((origem): origem is string => Boolean(origem))
+  .map((origem) => new URL(origem))
+  .filter((url) => url.hostname !== "localhost");
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -54,14 +59,14 @@ const nextConfig: NextConfig = {
   // import nomeado puxa o pacote inteiro para o chunk da página.
   experimental: {
     optimizePackageImports: ["radix-ui", "recharts", "lucide-react", "animejs"],
-    ...(origemDaRede && {
+    ...(origensExtras.length > 0 && {
       serverActions: {
-        allowedOrigins: [origemDaRede.host],
+        allowedOrigins: origensExtras.map((url) => url.host),
       },
     }),
   },
-  ...(origemDaRede && {
-    allowedDevOrigins: [origemDaRede.hostname],
+  ...(origensExtras.length > 0 && {
+    allowedDevOrigins: origensExtras.map((url) => url.hostname),
   }),
   async headers() {
     return [{ source: "/:path*", headers: cabecalhosDeSeguranca }];
