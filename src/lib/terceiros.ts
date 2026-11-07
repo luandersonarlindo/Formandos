@@ -29,6 +29,8 @@ export type Fornecedor = {
   categoria: string;
   descricao: string | null;
   contato: string | null;
+  // URL de uma imagem já hospedada em outro lugar (sem upload no app).
+  imagemUrl: string | null;
   // Só a página de terceiros filtra para quem não é admin: participantes nunca
   // recebem esses dois campos na consulta.
   valorOrcado: number | null;
@@ -85,7 +87,7 @@ export async function listarFornecedores(
   const totalPaginas = calcularPaginas(total, POR_PAGINA_FORNECEDORES);
   const paginaAtual = limitarPagina(pagina, totalPaginas);
   const { rows } = await pool.query(
-    `select id, nome, categoria, descricao, contato
+    `select id, nome, categoria, descricao, contato, imagem_url as "imagemUrl"
        from fornecedores
       where turma_id = $1 ${filtro}
       order by categoria, nome, id
@@ -112,7 +114,7 @@ export async function listarFornecedoresAdmin(
   const totalPaginas = calcularPaginas(total, POR_PAGINA_FORNECEDORES);
   const paginaAtual = limitarPagina(pagina, totalPaginas);
   const { rows } = await pool.query(
-    `select id, nome, categoria, descricao, contato,
+    `select id, nome, categoria, descricao, contato, imagem_url as "imagemUrl",
             valor_orcado::float8 as "valorOrcado", status
        from fornecedores
       where turma_id = $1 ${filtro}

@@ -271,6 +271,18 @@ create index if not exists idx_duvidas_turma_resp on duvidas (turma_id, respondi
 create index if not exists idx_tarefas_turma_status on tarefas (turma_id, status);
 create index if not exists idx_fornecedores_turma_cat on fornecedores (turma_id, categoria);
 
+-- Perguntas do catálogo padrão (global) que uma turma escolheu não ver. O
+-- catálogo em si continua compartilhado e intacto; só essa turma deixa de
+-- enxergar a pergunta nas votações, no relatório e no dashboard. Diferente
+-- de `usar_catalogo_padrao` (liga/desliga o catálogo inteiro): aqui é por
+-- pergunta.
+create table if not exists enquetes_ocultas (
+  turma_id   uuid not null references turmas(id) on delete cascade,
+  enquete_id uuid not null references enquetes(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (turma_id, enquete_id)
+);
+
 -- Throttle genérico de Server Actions (flood no pico): cada consumo grava uma
 -- linha com a chave da ação; a contagem na janela decide se passa. Limpeza de
 -- linhas com +1 dia roda junto de cada consumo (delete barato por índice).

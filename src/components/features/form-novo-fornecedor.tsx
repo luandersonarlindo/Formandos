@@ -47,6 +47,16 @@ export function FormNovoFornecedor({ categorias }: { categorias: readonly string
           placeholder="Telefone, e-mail ou endereço do site"
         />
       </div>
+      <div className="flex flex-col gap-1.5 md:col-span-2">
+        <Label htmlFor="imagemUrl">Imagem (opcional)</Label>
+        <Input
+          id="imagemUrl"
+          name="imagemUrl"
+          type="url"
+          maxLength={500}
+          placeholder="https://… (link de uma imagem já hospedada em outro lugar)"
+        />
+      </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="valorOrcado">Valor orçado (opcional)</Label>
         <Input

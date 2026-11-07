@@ -5,6 +5,7 @@ import { z } from "zod";
 import { exigirMembroEditavel } from "@/lib/dal";
 import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
 import { pool, transacao } from "@/lib/db";
+import { validarSelecao } from "@/lib/votos-regras";
 import type { EstadoForm } from "./tipos";
 
 const uuid = z.uuid();
@@ -88,20 +89,8 @@ export async function salvarVotos(
     const tipo = encontradas.get(enqueteId);
     if (!tipo) return { erro: "Catálogo foi alterado. Recarregue a página." };
     if (decididas.has(enqueteId)) continue;
-    const unicas = new Set(opcaoIds);
-    if (unicas.size !== opcaoIds.length) {
-      return { erro: "Escolha apenas uma vez cada opção." };
-    }
-    const exclusiva = (id: string) => porOpcao.get(id)?.exclusiva;
-    if (opcaoIds.some((id) => !porOpcao.get(id) || porOpcao.get(id)!.enqueteId !== enqueteId)) {
-      return { erro: "Opção inválida para esta pergunta." };
-    }
-    if (tipo === "unica" && opcaoIds.length !== 1) {
-      return { erro: "Escolha apenas uma opção." };
-    }
-    if (opcaoIds.length > 1 && opcaoIds.some((id) => exclusiva(id))) {
-      return { erro: "Essa opção não pode ser combinada com as outras." };
-    }
+    const erro = validarSelecao(enqueteId, tipo, opcaoIds, porOpcao);
+    if (erro) return { erro };
     validos.set(enqueteId, opcaoIds);
   }
 

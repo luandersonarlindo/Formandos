@@ -1,6 +1,7 @@
 import "server-only";
 import { pool } from "./db";
 import type { EventoAdmin } from "./admin";
+import { enqueteVisivelSql } from "./catalogo-visibilidade";
 import type { Membro } from "./dal";
 
 export type ItemProgramacao = {
@@ -73,11 +74,13 @@ export async function getResumosDashboard(
           from enquetes e
           join categorias ca on ca.id = e.categoria_id
           join catalogos c on c.id = ca.catalogo_id
-         where c.turma_id is null or c.turma_id = $1)::int as "enquetesTotal",
+         where (c.turma_id is null or c.turma_id = $1) and ${enqueteVisivelSql("$1")})::int as "enquetesTotal",
        (select count(distinct o.enquete_id)
           from votos v
           join opcoes o on o.id = v.opcao_id
-          where v.usuario_id = $2 and v.turma_id = $1)::int as "enquetesRespondidas",
+          join enquetes e on e.id = o.enquete_id
+         where v.usuario_id = $2 and v.turma_id = $1
+           and ${enqueteVisivelSql("$1")})::int as "enquetesRespondidas",
        (select count(*) from duvidas
          where turma_id = $1 and not respondida)::int as "duvidasAbertas"
        ${

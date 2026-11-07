@@ -14,3 +14,11 @@ export function catalogoVisivelSql(turmaParam: string): string {
             select 1 from turmas t
              where t.id = ${turmaParam} and t.usar_catalogo_padrao)))`;
 }
+
+// Pergunta que a turma não ocultou (tabela `enquetes_ocultas`). Usa o alias
+// `e` (enquetes) e o número do parâmetro que carrega o id da turma.
+export function enqueteVisivelSql(turmaParam: string): string {
+  return `not exists (
+            select 1 from enquetes_ocultas eo
+             where eo.turma_id = ${turmaParam} and eo.enquete_id = e.id)`;
+}

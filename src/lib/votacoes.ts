@@ -1,6 +1,6 @@
 import "server-only";
 import { pool } from "./db";
-import { catalogoVisivelSql } from "./catalogo-visibilidade";
+import { catalogoVisivelSql, enqueteVisivelSql } from "./catalogo-visibilidade";
 import type { Membro } from "./dal";
 
 export type CatalogoResumo = {
@@ -43,13 +43,14 @@ export async function listarCatalogos(
             (select count(*)
                from enquetes e
                join categorias ca on ca.id = e.categoria_id
-              where ca.catalogo_id = c.id)::int as total,
+              where ca.catalogo_id = c.id and ${enqueteVisivelSql("$2")})::int as total,
              (select count(distinct e.id)
                from votos v
                join opcoes o on o.id = v.opcao_id
                join enquetes e on e.id = o.enquete_id
                join categorias ca on ca.id = e.categoria_id
-              where ca.catalogo_id = c.id and v.usuario_id = $1)::int as votadas
+              where ca.catalogo_id = c.id and v.usuario_id = $1
+                and ${enqueteVisivelSql("$2")})::int as votadas
        from catalogos c
       where ${catalogoVisivelSql("$2")}
       order by (c.turma_id is null) desc, c.nome`,
@@ -95,9 +96,9 @@ export async function getCatalogoParaVotar(
       `select e.id, e.categoria_id, e.titulo, e.tipo
          from enquetes e
          join categorias ca on ca.id = e.categoria_id
-        where ca.catalogo_id = $1
+        where ca.catalogo_id = $1 and ${enqueteVisivelSql("$2")}
         order by e.ordem`,
-      [catalogoId],
+      [catalogoId, membro.turmaId],
     ),
     pool.query(
       `select o.id, o.enquete_id, o.texto, o.exclusiva

@@ -644,3 +644,46 @@ export async function excluirEnquete(formData: FormData) {
   );
   revalidarCatalogo();
 }
+
+const esquemaVisibilidadeEnquete = z.object({ enqueteId: z.uuid(), catalogoId: z.uuid() });
+
+// Só vale para o catálogo PADRÃO (global, somente leitura): como ele não pode
+// ser editado nem excluído, cada turma esconde a pergunta para si mesma, sem
+// tocar no catálogo compartilhado. Para o catálogo personalizado da turma já
+// existe `excluirEnquete`.
+export async function ocultarEnquete(formData: FormData) {
+  const admin = await exigirAdminEditavel();
+  const dados = esquemaVisibilidadeEnquete.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+  const { enqueteId, catalogoId } = dados.data;
+
+  const { rowCount } = await pool.query(
+    `select 1 from enquetes e
+       join categorias ca on ca.id = e.categoria_id
+       join catalogos c on c.id = ca.catalogo_id
+      where e.id = $1 and ca.catalogo_id = $2 and c.turma_id is null`,
+    [enqueteId, catalogoId],
+  );
+  if (!rowCount) return;
+
+  await pool.query(
+    "insert into enquetes_ocultas (turma_id, enquete_id) values ($1, $2) on conflict do nothing",
+    [admin.turmaId, enqueteId],
+  );
+  revalidarCatalogo(catalogoId);
+  revalidatePath("/dashboard");
+}
+
+export async function mostrarEnquete(formData: FormData) {
+  const admin = await exigirAdminEditavel();
+  const dados = esquemaVisibilidadeEnquete.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+  const { enqueteId, catalogoId } = dados.data;
+
+  await pool.query("delete from enquetes_ocultas where turma_id = $1 and enquete_id = $2", [
+    admin.turmaId,
+    enqueteId,
+  ]);
+  revalidarCatalogo(catalogoId);
+  revalidatePath("/dashboard");
+}

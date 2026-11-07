@@ -34,6 +34,8 @@ export type EnqueteAdmin = {
   tipo: "unica" | "multipla";
   votantes: number;
   opcoes: OpcaoAdmin[];
+  // Só vale para o catálogo padrão: pergunta que esta turma escolheu não ver.
+  oculta: boolean;
 };
 export type CategoriaAdmin = { id: string; nome: string; enquetes: EnqueteAdmin[] };
 export type CatalogoDetalhe = {
@@ -104,10 +106,12 @@ export async function getCatalogoAdmin(
   const [categorias, enquetes, opcoes, votantes] = await Promise.all([
     pool.query("select id, nome from categorias where catalogo_id = $1 order by ordem", [catalogoId]),
     pool.query(
-      `select e.id, e.categoria_id, e.titulo, e.tipo
+      `select e.id, e.categoria_id, e.titulo, e.tipo,
+              exists (select 1 from enquetes_ocultas eo
+                       where eo.turma_id = $2 and eo.enquete_id = e.id) as oculta
          from enquetes e join categorias ca on ca.id = e.categoria_id
         where ca.catalogo_id = $1 order by e.ordem`,
-      [catalogoId],
+      [catalogoId, turmaId],
     ),
     pool.query(
       `select o.id, o.enquete_id, o.texto, o.exclusiva,
@@ -146,6 +150,7 @@ export async function getCatalogoAdmin(
           titulo: e.titulo,
           tipo: e.tipo,
           votantes: n.get(e.id) ?? 0,
+          oculta: e.oculta,
           opcoes: opcoes.rows
             .filter((o) => o.enquete_id === e.id)
             .map((o) => ({ id: o.id, texto: o.texto, exclusiva: o.exclusiva, votos: o.votos })),

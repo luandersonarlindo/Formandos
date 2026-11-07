@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CircleDot,
   Eye,
+  EyeOff,
   Folder,
   ListChecks,
   Lock,
@@ -19,8 +20,10 @@ import {
   excluirCatalogo,
   excluirCategoria,
   excluirEnquete,
+  mostrarEnquete,
   moverCategoria,
   moverEnquete,
+  ocultarEnquete,
   renomearCatalogo,
   renomearCategoria,
 } from "@/actions/catalogos";
@@ -261,7 +264,14 @@ export default async function CatalogoAdminPage(
                 <Card>
                   <CardContent className="flex flex-col gap-3">
                     <div>
-                      <p className="font-medium wrap-break-word">{e.titulo}</p>
+                      <p className="flex flex-wrap items-center gap-2 font-medium wrap-break-word">
+                        {e.titulo}
+                        {e.oculta && (
+                          <Badge variant="secondary">
+                            <EyeOff aria-hidden /> Oculta para sua turma
+                          </Badge>
+                        )}
+                      </p>
                       <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1.5">
                           {e.tipo === "unica" ? (
@@ -305,6 +315,16 @@ export default async function CatalogoAdminPage(
                         posicao={categoria.enquetes.indexOf(e) + 1}
                         total={categoria.enquetes.length}
                       />
+                      {!editavel && (
+                        <form action={e.oculta ? mostrarEnquete : ocultarEnquete}>
+                          <input type="hidden" name="enqueteId" value={e.id} />
+                          <input type="hidden" name="catalogoId" value={catalogo.id} />
+                          <Button type="submit" size="sm" variant="outline">
+                            {e.oculta ? <Eye aria-hidden /> : <EyeOff aria-hidden />}
+                            {e.oculta ? "Mostrar pra minha turma" : "Ocultar da minha turma"}
+                          </Button>
+                        </form>
+                      )}
                       {editavel && (
                         <>
                           <FormDialog

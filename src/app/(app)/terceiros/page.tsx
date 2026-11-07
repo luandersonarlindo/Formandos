@@ -32,6 +32,7 @@ import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
 import { CamposOrcamento } from "@/components/features/form-orcamento";
+import { ImagemFornecedor } from "@/components/features/imagem-fornecedor";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
 import { Badge } from "@/components/ui/badge";
@@ -217,6 +218,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
               <li key={f.id}>
                 <Card className="vitrine-cartao h-full">
                   <CardContent className="flex h-full flex-col gap-3">
+                    {f.imagemUrl && <ImagemFornecedor src={f.imagemUrl} alt={f.nome} />}
                     <div className="flex items-start gap-3">
                       <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-[var(--vitrine-a)]">
                         <Icone className="size-5" aria-hidden />
@@ -272,6 +274,10 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                           <div className="flex flex-col gap-1">
                             <Label htmlFor={`contato-${f.id}`} className="text-xs">Contato</Label>
                             <Input id={`contato-${f.id}`} name="contato" defaultValue={f.contato ?? ""} maxLength={255} />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`imagemUrl-${f.id}`} className="text-xs">Imagem (link)</Label>
+                            <Input id={`imagemUrl-${f.id}`} name="imagemUrl" type="url" defaultValue={f.imagemUrl ?? ""} maxLength={500} />
                           </div>
                           <CamposOrcamento
                             fornecedorId={f.id}

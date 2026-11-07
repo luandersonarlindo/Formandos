@@ -1,6 +1,6 @@
 import "server-only";
 import { pool } from "./db";
-import { catalogoVisivelSql } from "./catalogo-visibilidade";
+import { catalogoVisivelSql, enqueteVisivelSql } from "./catalogo-visibilidade";
 import type { Membro } from "./dal";
 
 export type OpcaoRelatorio = {
@@ -50,7 +50,7 @@ export async function getRelatorio(
          join enquetes e on e.categoria_id = ca.id
          join opcoes o on o.enquete_id = e.id
          left join votos v on v.opcao_id = o.id and v.turma_id = $2
-        where ca.catalogo_id = $1
+        where ca.catalogo_id = $1 and ${enqueteVisivelSql("$2")}
         group by ca.id, e.id, o.id
         order by ca.ordem, e.ordem, o.ordem`,
       [catalogoId, membro.turmaId],
