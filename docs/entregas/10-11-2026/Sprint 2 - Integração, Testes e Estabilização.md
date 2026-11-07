@@ -4,9 +4,16 @@
 |---|---|
 | **Projeto** | Formandos — gestão administrativa de formaturas e eventos |
 | **Marco do cronograma** | 10/11/2026 (Sprint 2: integração, testes e estabilização) |
-| **Versão** | 1.0 — elaborada em 10/11/2026 |
+| **Versão** | 1.1 — elaborada em 10/11/2026, revisada em 07/11/2026 |
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
+
+> **Nota de revisão (07/11/2026):** na versão 1.0, os itens **G1**, **G5** e **G6**
+> estavam marcados "Pronto" sem o código correspondente existir no repositório
+> (sem `.github/workflows`, sem tabela de perguntas ocultas, sem uso da coluna
+> `imagem_url`). Implementados agora. Os números de teste e do inventário
+> também estavam acima do que o repositório media; corrigidos contra uma
+> contagem real nesta data.
 
 Este documento fecha a Sprint 2. A sprint foi planejada em 20/10/2026 com um objetivo só: fechar o que a AV I deixou aberto. Não entrou funcionalidade nova para o usuário — entrou teste escrito, integração contínua, acessibilidade conferida e estabilidade sob uso concorrente.
 
@@ -30,11 +37,11 @@ Este documento fecha a Sprint 2. A sprint foi planejada em 20/10/2026 com um obj
 | ID | Item | Estado no fechamento |
 |---|---|---|
 | **G1** | `typecheck` e testes a cada `push` | **Pronto** — `.github/workflows/ci.yml` |
-| **G2** | Ampliar testes de ponta a ponta e escrever o plano de casos | **Pronto** — 186 testes, 81 passos de fluxo, plano escrito |
+| **G2** | Ampliar testes de ponta a ponta e escrever o plano de casos | **Pronto** — 165 testes, 78 passos de fluxo, plano escrito |
 | **G3** | Tema escuro com alternância | **Pronto** — modo claro, escuro e sistema |
 | **G4** | Editar uma pergunta já criada | **Pronto** — editor de opções em lista e renomeação no lugar |
-| **G5** | Ocultar perguntas do catálogo padrão | **Pronto** — foco, duplicados e pré-visualização |
-| **G6** | Imagem do fornecedor na vitrine de terceiros | **Pronto** |
+| **G5** | Ocultar perguntas do catálogo padrão | **Pronto** — tabela `enquetes_ocultas` por turma; admin alterna a visibilidade na tela do catálogo padrão sem alterar o catálogo compartilhado |
+| **G6** | Imagem do fornecedor na vitrine de terceiros | **Pronto** — link `https` de imagem já hospedada (sem upload no app), com fallback se o link quebrar |
 | **G7** | Revisão de acessibilidade com leitor de ecrã | **Parcial** — código pronto, aparelho físico pendente |
 
 ### 1.2 Estabilidade e operação
@@ -62,16 +69,16 @@ Nenhuma delas é visível na primeira tela, e essa foi a intenção. O que muda 
 
 ## 2. Integração e testes
 
-| Indicador | Sprint 1 (26/09) | Sprint 2 (10/11) | Variação |
+| Indicador | Sprint 1 (26/09) | Sprint 2 (07/11) | Variação |
 |---|---|---|---|
-| Commits | 50 | **205** | +155 |
-| Arquivos TypeScript/TSX | 130 | **205** | +75 |
-| Linhas de código | 9.200 | **16.200** | +7.000 |
+| Commits | 50 | **140** | +90 |
+| Arquivos TypeScript/TSX | 130 | **169** | +39 |
+| Linhas de código | 9.200 | **20.900** | +11.700 |
 | Rotas de tela | 25 | **31** | +6 |
 | Tabelas no banco | 17 | **19** | +2 |
-| Testes unitários | 20 | **186** | +166 |
-| Arquivos de teste | 1 | **17** | +16 |
-| Passos de teste de fluxo | 59 | **81** | +22 |
+| Testes unitários | 20 | **165** | +145 |
+| Arquivos de teste | 1 | **15** | +14 |
+| Passos de teste de fluxo | 59 | **78** | +19 |
 | Grupos de teste de fluxo | 4 | **6** | +2 |
 
 ### 2.1 Cobertura por requisito
@@ -118,7 +125,7 @@ A Sprint 1 entregou o produto sem exercitar duas pessoas ao mesmo tempo. A Sprin
 |---|---|
 | **Escrever o plano de testes antes** | O plano de 03/11 revelou que faltava teste de limite e de concorrência — os dois problemas que a sprint encontrou |
 | **Pull Request pequeno** | A fila de revisão caiu de 4 h para 2 h sem reduzir o ritmo de entrega |
-| **Teste de fluxo reparado antes de ampliar** | Com 73 passos consertados, os 8 novos entraram sem quebrar o que já existia |
+| **Teste de fluxo reparado antes de ampliar** | Com 73 passos consertados, os 5 novos entraram sem quebrar o que já existia |
 | **Congelar por variável de ambiente** | Nenhum deploy para pausar votação; a equipe ganhou minutos de reação |
 
 ### O que não funcionou
@@ -169,9 +176,9 @@ A Sprint 1 entregou o produto sem exercitar duas pessoas ao mesmo tempo. A Sprin
 |---|---|
 | Rotas de tela | 31 |
 | Tabelas no banco | 19 |
-| Testes unitários | 186 em 17 arquivos |
-| Passos de teste de fluxo | 81 em 6 grupos |
+| Testes unitários | 165 em 15 arquivos |
+| Passos de teste de fluxo | 78 em 6 grupos |
 | Documentos de entrega | 17, cada um em `.md`, `.pdf` e `.doc` |
 | Documentos de segurança da informação | 5 |
 | Controles mapeados na SoA | 93 |
-| Commits | 205 |
+| Commits | 140 |
