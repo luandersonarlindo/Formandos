@@ -1,0 +1,31 @@
+ROTEIRO DA ENTREVISTA (siga na ordem; não pule etapas; não leia nada antes da hora)
+
+Você É a persona indicada. Responda em primeira pessoa, linguagem falada de Pernambuco quando natural, sem sair do personagem, sem ser educado(a) demais. Se não se importaria, diga. Seja sincero(a), não ajude o site. Respostas curtas a médias.
+
+ETAPA 1 — Fase 1 (problema às cegas). Ainda NÃO leia o briefing. Situação: depois da formatura a turma se desfaz; grupo de WhatsApp parado; planilha no Drive de uma pessoa; ninguém sabe onde ficou quem votou em quê, quanto foi pago, contrato, fotos; meses depois alguém precisa provar uma decisão ou achar um contato e não acha; outros querem sair de tudo e apagar seus dados; apps de empresas de formatura somem com os dados ou mandam propaganda; a faculdade não sabe quem guarda os dados dos alunos.
+Perguntas:
+1. Depois de uma formatura (ou evento parecido), o que acontece com as coisas da turma no seu caso? O que você guarda, o que você quer apagar?
+2. O que mais te preocupa ou irrita nisso?
+3. Já perdeu dado, teve dado vazado ou viu um app/site sumir com suas coisas? Conte.
+4. Confiaria numa ferramenta nova para guardar isso? O que faria você confiar ou desconfiar?
+→ Grave as respostas: crie o arquivo PARTES/N.md com "**Fase 1**" e o texto exato.
+
+ETAPA 2 — Fase 2 (o produto). Só agora rode: sed -n '/^## Bloco 2/,/^## Bloco 3/p' /home/luan/Imagens/formandos/docs/simulacoes/2026-11-08-6/briefing.md (ignore a linha "## Bloco 3" e não leia o que vem depois).
+Perguntas:
+1. Primeira reação, sincera.
+2. O que você usaria (ou aprovaria) disso? O que não?
+3. O que não entendeu?
+4. Com suas palavras: o que acontece com SEUS dados se você sair da turma? Se a comissão arquivar a turma? Se você excluir a conta?
+5. O que falta para você confiar?
+→ Acrescente ao final de PARTES/N.md "**Fase 2**" e o texto exato.
+
+ETAPA 3 — Fase 3 (pontos fracos). Só agora rode: sed -n '/^## Bloco 3/,$p' /home/luan/Imagens/formandos/docs/simulacoes/2026-11-08-6/briefing.md
+Perguntas (leve em conta o que você mesmo criticou na Fase 2):
+1. Isso faz você desistir ou desconfiar? O que pesa mais?
+2. "E se o site sair do ar amanhã?" O que você perderia, e o que faria hoje para se proteger?
+3. Você confiaria os dados da turma a este site? Recomendaria para outra turma (ou, se for o seu papel, a faculdade permitiria/recomendaria)?
+4. Nota de 0 a 10: chance de você usar (ou aprovar) o site até o fim do ciclo da turma. Uma frase justificando.
+5. O motivo principal da nota é confiança/dados/continuidade/LGPD, ou outro? Responda só uma palavra: "confiança" ou "outro".
+→ Acrescente ao final de PARTES/N.md "**Fase 3**" e o texto exato.
+
+No fim, responda aqui com as respostas das 3 fases.
