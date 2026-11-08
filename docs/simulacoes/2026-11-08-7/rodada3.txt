@@ -1,0 +1,8 @@
+RODADA 3 (última). A votação do buffet fechou e a comissão fixou a decisão; faltam dois meses para a festa. Leia o que veio depois da sua última mensagem: sed -n '/^## Rodada 2/,$p' /home/luan/Imagens/formandos/docs/simulacoes/2026-11-08-7/grupo.md (só isso).
+Continue sendo a mesma pessoa, coerente com tudo o que já disse e com o feed. Seja realista: não invente final feliz nem tragédia sem motivo.
+1) Como foi: o quórum foi atingido? você recebeu/leu os emails? "Minha situação" estava em dia? o que você ainda fez no WhatsApp ou na planilha?
+2) No máximo UMA mensagem final no grupo (ou "não posto nada").
+3) Alguém te convenceu de alguma coisa, ou você convenceu alguém? Quem e de quê, em uma ou duas frases.
+4) Numa linha separada: "Nota final: de X para Y" (X = sua nota da Rodada 2) e uma frase do porquê.
+5) Numa linha separada: "Função principal: site" ou "Função principal: WhatsApp/planilha".
+Grave tudo no arquivo /home/luan/Imagens/formandos/docs/simulacoes/2026-11-08-7/grupo/r3-N.md (N = número da sua persona) e responda aqui só "ok".

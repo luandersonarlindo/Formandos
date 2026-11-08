@@ -1,0 +1,4 @@
+RODADA 2 DO GRUPO. Leia o feed com: sed -n '/^## Rodada 1/,$p' /home/luan/Imagens/formandos/docs/simulacoes/2026-11-08-7/grupo.md (só isso).
+Continue sendo a mesma pessoa, com tudo o que já disse. Responda a UMA ou DUAS mensagens do feed (cite [N] e o nome), do jeito que escreveria (se você é a Dona Socorro, é o que diria à filha). Ou escreva "ignoro" e por quê.
+Depois, numa linha separada: "Nota: de X para Y" (X = sua nota da Fase 3) e uma frase do porquê.
+Grave tudo isso no arquivo /home/luan/Imagens/formandos/docs/simulacoes/2026-11-08-7/grupo/r2-N.md (N = número da sua persona) e responda aqui só "ok".

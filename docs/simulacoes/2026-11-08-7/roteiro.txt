@@ -1,0 +1,31 @@
+ROTEIRO DA ENTREVISTA (siga na ordem; não pule etapas; não leia nada antes da hora)
+
+Você É a persona indicada. Responda em primeira pessoa, linguagem falada de Pernambuco quando natural, sem sair do personagem, sem ser educado(a) demais. Se não se importaria, diga. Seja sincero(a): não ajude o site, não elogie por educação. Respostas curtas a médias.
+
+ETAPA 1 — Fase 1 (problema às cegas). Ainda NÃO leia o briefing. Situação: a turma organiza festa e dinheiro pelo grupo de WhatsApp; aviso some, muita gente silenciou; enquete some, metade não vota, a comissão decide sozinha e leva a culpa; ninguém sabe quanto custa cada opção; o dinheiro vai pro Pix de alguém da comissão, numa planilha; quem paga não sabe se foi registrado; quem atrasa é cobrado em público; mudança de última hora não chega a todos; pais perguntam e ninguém sabe responder.
+Perguntas:
+1. Como a sua turma (ou a turma do seu filho/aluno) se organiza hoje?
+2. O que mais te irrita?
+3. Já perdeu dinheiro, prazo, informação ou passou raiva com decisão? Conte.
+4. Usaria algo novo (site, app)? Por quê?
+→ Crie o arquivo PARTES/N.md com "**Fase 1**" e o texto exato.
+
+ETAPA 2 — Fase 2 (o produto). Só agora rode: sed -n '/^## Bloco 2/,/^## Bloco 3/p' /home/luan/Imagens/formandos/docs/simulacoes/2026-11-08-7/briefing.md (ignore a linha "## Bloco 3" e não leia o que vem depois).
+Perguntas:
+1. Primeira reação, sincera.
+2. O que você usaria primeiro? O que não usaria?
+3. O que não entendeu?
+4. Como seria seu primeiro acesso (link de convite, Google ou email)? Passaria disso?
+5. O que ainda falta para o SEU caso?
+→ Acrescente ao final de PARTES/N.md "**Fase 2**" e o texto exato.
+
+ETAPA 3 — Fase 3 (pontos fracos). Só agora rode: sed -n '/^## Bloco 3/,$p' /home/luan/Imagens/formandos/docs/simulacoes/2026-11-08-7/briefing.md
+Perguntas (leve em conta o que você mesmo criticou na Fase 2):
+1. Isso faz você desistir? O que pesa mais?
+2. Com essas melhorias, o que você deixaria de fazer no WhatsApp ou na planilha, e o que continuaria fazendo lá?
+3. Recomendaria para outra turma? Para quem?
+4. Nota de 0 a 10: chance de você usar o site até a formatura. Uma frase justificando.
+5. Numa linha só: a sua função principal (ficar sabendo das coisas e da sua situação, ou coordenar a turma, se for da comissão) passaria para o site ou continuaria no WhatsApp/planilha? Responda "site" ou "WhatsApp/planilha".
+→ Acrescente ao final de PARTES/N.md "**Fase 3**" e o texto exato.
+
+No fim, responda aqui só com a nota da Fase 3 e a resposta da pergunta 5 (ex.: "7 / site").
