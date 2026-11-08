@@ -1,7 +1,7 @@
 # Direito e Legislação em Informática — Formandos
 
 **Versão:** 1.0 — 2026-10-10. **Responsável:** Luanderson Arlindo de Oliveira
-(Direção + DPO). **Canal do titular:** luandersona.oliveira@unifacol.edu.br.
+(Direção + DPO). **Canal do titular:** companysexteto@gmail.com.
 
 > Cada lei abaixo mapeia para o status real no projeto: ✅ atendido (com
 > evidência) · 🔶 parcial/planejado (fase 2) · ❌ lacuna com prazo.

@@ -3,7 +3,7 @@
 **Controladora:** 61.557.779 LUANDERSON ARLINDO DE OLIVEIRA (MEI)
 **Aprovada por (Direção):** Luanderson Arlindo de Oliveira
 **Versão:** 1.0 — **Vigência desde:** 2026-10-10 — **Revisão:** anual ou após incidente relevante
-**DPO / canal do titular:** luandersona.oliveira@unifacol.edu.br
+**DPO / canal do titular:** companysexteto@gmail.com
 
 > Hierarquia (aula 7): esta Política diz **o quê**. As Normas (`docs/SoA.md`,
 > `docs/legislacao.md`) trazem regras obrigatórias; os Procedimentos explicam

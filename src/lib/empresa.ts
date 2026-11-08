@@ -8,5 +8,5 @@ export const EMPRESA = {
 
 export const DPO = {
   nome: "Luanderson Arlindo de Oliveira",
-  email: "luandersona.oliveira@unifacol.edu.br",
+  email: "companysexteto@gmail.com",
 } as const;
