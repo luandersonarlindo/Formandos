@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { EventoAdmin as DadosEvento } from "@/lib/admin";
 import { MandarParaGrupo } from "@/components/features/mandar-para-grupo";
+import { LinkPublicoEvento } from "@/components/features/link-publico-evento";
 import type { ItemProgramacao } from "@/lib/dashboard";
 import { formatarDiaCurto, formatarHora, paraDatetimeLocal } from "@/lib/datas";
 
@@ -157,10 +158,12 @@ export function EventoAdmin({
                   data: evento.dataLocal ? new Date(`${evento.dataLocal}:00-03:00`) : null,
                   local: evento.local,
                   endereco: evento.endereco,
+                  tokenPublico: evento.tokenPublico,
                 },
               }}
             />
           )}
+          <LinkPublicoEvento token={evento.tokenPublico} />
         </CardContent>
       </Card>
 

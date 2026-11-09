@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
-import { pool } from "@/lib/db";
+import { pool, transacao } from "@/lib/db";
+import { registrarAuditoria } from "@/lib/auditoria";
 import { ehLinkHttps } from "@/lib/evento";
 import { lerValorOrcado, STATUS_ORCAMENTO } from "@/lib/orcamento";
 import { CATEGORIAS_FORNECEDOR } from "@/lib/terceiros";
@@ -78,14 +79,40 @@ export async function atualizarFornecedor(
     return { erro: "Informe um valor válido, maior ou igual a zero." };
   }
 
-  const { rowCount } = await pool.query(
-    `update fornecedores
-       set nome = $1, categoria = $2, descricao = $3, contato = $4,
-           imagem_url = $5, status = $6, valor_orcado = $7
-     where id = $8 and turma_id = $9`,
-    [nome, categoria, descricao, contato, imagemUrl, status, valor, id, admin.turmaId],
-  );
-  if (!rowCount) return { erro: "Fornecedor não encontrado." };
+  // Valor e situação ficam no histórico da comissão (ADR-0008).
+  const achou = await transacao(async (db) => {
+    const { rows } = await db.query(
+      `select valor_orcado::float8 as valor, status from fornecedores
+        where id = $1 and turma_id = $2 for update`,
+      [id, admin.turmaId],
+    );
+    if (rows.length === 0) return false;
+    await db.query(
+      `update fornecedores
+         set nome = $1, categoria = $2, descricao = $3, contato = $4,
+             imagem_url = $5, status = $6, valor_orcado = $7
+       where id = $8 and turma_id = $9`,
+      [nome, categoria, descricao, contato, imagemUrl, status, valor, id, admin.turmaId],
+    );
+    if (rows[0].valor !== valor || rows[0].status !== status) {
+      await registrarAuditoria(db, {
+        usuarioId: admin.usuarioId,
+        turmaId: admin.turmaId,
+        acao: "fornecedor.alterado",
+        entidade: "fornecedor",
+        entidadeId: id,
+        detalhe: {
+          fornecedor: nome,
+          valorAntes: rows[0].valor,
+          valorDepois: valor,
+          statusAntes: rows[0].status,
+          statusDepois: status,
+        },
+      });
+    }
+    return true;
+  });
+  if (!achou) return { erro: "Fornecedor não encontrado." };
   revalidatePath("/terceiros");
   return { ok: "Fornecedor atualizado." };
 }

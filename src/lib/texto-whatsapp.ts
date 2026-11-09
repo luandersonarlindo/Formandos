@@ -99,6 +99,9 @@ export type DadosEvento = {
   data: Date | null;
   local: string;
   endereco: string;
+  // Código da página pública (ADR-0008): com ele, o link serve à família e
+  // aos convidados, sem login.
+  tokenPublico?: string | null;
 };
 
 export function textoEvento(e: DadosEvento, origem: string): string {
@@ -107,7 +110,9 @@ export function textoEvento(e: DadosEvento, origem: string): string {
     `*${umaLinha(e.nome) ? `Formatura: ${umaLinha(e.nome)}` : "Nossa formatura"}*`,
     e.data && `Quando: ${quandoLongo(e.data)}`,
     onde && `Onde: ${onde}`,
-    `Ver detalhes no Formandos: ${origem}/dashboard`,
+    e.tokenPublico
+      ? `Detalhes para a família e os convidados: ${origem}/evento/${e.tokenPublico}`
+      : `Ver detalhes no Formandos: ${origem}/dashboard`,
   ]);
 }
 

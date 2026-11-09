@@ -1,7 +1,12 @@
 import "server-only";
 import type { Pool, PoolClient } from "pg";
 import { pool } from "./db";
-import { ACOES_VISIVEIS_TURMA, type AcaoAuditoria } from "./auditoria-acoes";
+import {
+  ACOES_VISIVEIS_TURMA,
+  acoesVisiveis,
+  type AcaoAuditoria,
+  type PublicoHistorico,
+} from "./auditoria-acoes";
 
 // Trilha de auditoria (SoA 8.15, Marco Civil arts. 13–15). Tabela `auditoria`:
 // só INSERT pelo servidor; nada na aplicação edita ou apaga.
@@ -91,3 +96,66 @@ export async function listarMudancasPlano(turmaId: string): Promise<MudancaPlano
   );
   return rows;
 }
+
+// Histórico completo da turma (ADR-0008), filtrado pelo que cada público pode
+// ver (acoesVisiveis) e por assunto. `alvo` é o nome da pessoa citada: o
+// membro (papel, remoção) ou quem pagou (pagamentos).
+export const ASSUNTOS_HISTORICO = {
+  decisoes: ["decisao.fixada", "decisao.reaberta", "regra.alterada", "opcao.valor_alterado"],
+  evento: ["evento.alterado", "evento.link_publico"],
+  dinheiro: [
+    "plano.alterado",
+    "fornecedor.alterado",
+    "pagamento.lancado",
+    "pagamento.informado",
+    "pagamento.confirmado",
+    "pagamento.recusado",
+    "pagamento.editado",
+    "pagamento.excluido",
+  ],
+  membros: ["papel.trocado", "papel.tesouraria", "membro.removido"],
+  turma: ["turma.arquivada", "turma.desarquivada", "turma.excluida", "turma.exportada"],
+} as const satisfies Record<string, readonly AcaoAuditoria[]>;
+export type AssuntoHistorico = keyof typeof ASSUNTOS_HISTORICO;
+
+export const POR_PAGINA_HISTORICO = 30;
+
+export async function listarHistoricoTurma(
+  turmaId: string,
+  publico: PublicoHistorico,
+  opcoes: { assunto?: AssuntoHistorico; pagina: number },
+) {
+  const visiveis = acoesVisiveis(publico);
+  const acoes = opcoes.assunto
+    ? visiveis.filter((a) => (ASSUNTOS_HISTORICO[opcoes.assunto!] as readonly string[]).includes(a))
+    : visiveis;
+  const { rows: total } = await pool.query(
+    "select count(*)::int as n from auditoria where turma_id = $1 and acao = any($2::text[])",
+    [turmaId, acoes],
+  );
+  const totalPaginas = Math.max(1, Math.ceil(total[0].n / POR_PAGINA_HISTORICO));
+  const pagina = Math.min(Math.max(1, opcoes.pagina), totalPaginas);
+  const { rows } = await pool.query(
+    `select a.id::text, a.created_at as quando, a.acao, u.name as autor, alvo.name as alvo, a.detalhe
+       from auditoria a
+       left join usuarios u on u.id = a.usuario_id
+       left join usuarios alvo on alvo.id = case
+              when a.entidade = 'membro' then a.entidade_id
+              when a.detalhe ? 'membro' then (a.detalhe->>'membro')::uuid
+            end
+      where a.turma_id = $1 and a.acao = any($2::text[])
+      order by a.created_at desc, a.id desc
+      limit $3 offset $4`,
+    [turmaId, acoes, POR_PAGINA_HISTORICO, (pagina - 1) * POR_PAGINA_HISTORICO],
+  );
+  return { itens: rows as ItemHistoricoCompleto[], pagina, totalPaginas, total: total[0].n as number };
+}
+
+export type ItemHistoricoCompleto = {
+  id: string;
+  quando: Date;
+  acao: AcaoAuditoria;
+  autor: string | null;
+  alvo: string | null;
+  detalhe: Record<string, unknown>;
+};

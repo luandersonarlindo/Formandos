@@ -148,7 +148,8 @@ export async function getDadosEvento(
                              'YYYY-MM-DD"T"HH24:MI'), '') as "dataLocal",
             coalesce(to_char(data_fim_evento at time zone 'America/Sao_Paulo',
                              'YYYY-MM-DD"T"HH24:MI'), '') as "dataFimLocal",
-            coalesce(local_evento, '') as "localPreenchido"
+            coalesce(local_evento, '') as "localPreenchido",
+            token_publico as "tokenPublico"
        from turmas where id = $1`,
     [membro.turmaId],
   );
@@ -175,6 +176,7 @@ export async function getDadosEvento(
             linkMapa: r.linkMapa ?? "",
             traje: r.traje ?? "",
             observacoesLocal: r.observacoesLocal ?? "",
+            tokenPublico: r.tokenPublico ?? null,
           }
         : null,
   };

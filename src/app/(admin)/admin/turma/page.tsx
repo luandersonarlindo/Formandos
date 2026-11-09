@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Archive, ArchiveRestore, FileDown, FileText, TriangleAlert } from "lucide-react";
+import { Archive, ArchiveRestore, FileDown, FileText, History, TriangleAlert } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ROTULO_EXPORTACAO, TIPOS_EXPORTACAO } from "@/lib/exportacao";
 import { arquivarTurma, desarquivarTurma, excluirTurmaDoAdmin } from "@/actions/gestao-turma";
@@ -42,9 +42,14 @@ export default async function GestaoTurmaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Link href="/admin/turma/registro" className={buttonVariants({ className: "self-start" })}>
-            <FileText aria-hidden /> Ver e salvar o registro em PDF
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/turma/registro" className={buttonVariants()}>
+              <FileText aria-hidden /> Ver e salvar o registro em PDF
+            </Link>
+            <Link href="/admin/turma/historico" className={buttonVariants({ variant: "outline" })}>
+              <History aria-hidden /> Histórico: quem mudou o quê
+            </Link>
+          </div>
           <div className="flex flex-wrap gap-2">
             {TIPOS_EXPORTACAO.filter((t) => t !== "pagamentos" || admin.tesouraria).map((t) => (
               <a

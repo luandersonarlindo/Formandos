@@ -1,11 +1,13 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { ehLinkHttps } from "@/lib/evento";
+import { registrarAuditoria } from "@/lib/auditoria";
 import { emailEventoMudou, urlDoSite } from "@/lib/email";
 import { destinatariosDaTurma, enviarParaTurma } from "@/lib/email-turma";
 import { listarRotulos, mudancasEvento, type EstadoEvento } from "@/lib/lembretes-regras";
@@ -67,6 +69,11 @@ function revalidarEvento() {
   revalidatePath("/dashboard");
 }
 
+// A programação também é "o evento" para a página pública (ADR-0008).
+async function marcarEventoAtualizado(turmaId: string) {
+  await pool.query("update turmas set evento_atualizado_em = now() where id = $1", [turmaId]);
+}
+
 export async function salvarEvento(
   _estado: EstadoForm,
   formData: FormData,
@@ -94,9 +101,19 @@ export async function salvarEvento(
            from turmas where id = $1 for update`,
         [admin.turmaId],
       );
+      // evento_atualizado_em (ADR-0008) só muda se algum dado mudou de fato:
+      // salvar sem mexer em nada não pode dizer "Atualizado agora".
       await db.query(
         `update turmas
-            set nome = $1,
+            set evento_atualizado_em = case
+                  when (nome, data_evento, data_fim_evento, local_evento, descricao, endereco,
+                        link_mapa, traje, observacoes_local)
+                       is distinct from
+                       ($1::varchar, $2::timestamp at time zone 'America/Sao_Paulo',
+                        $3::timestamp at time zone 'America/Sao_Paulo', $4::varchar, $5::text,
+                        $6::varchar, $7::varchar, $8::varchar, $9::text)
+                  then now() else evento_atualizado_em end,
+                nome = $1,
                 data_evento = $2::timestamp at time zone 'America/Sao_Paulo',
                 data_fim_evento = $3::timestamp at time zone 'America/Sao_Paulo',
                 local_evento = $4, descricao = $5, endereco = $6, link_mapa = $7,
@@ -109,12 +126,27 @@ export async function salvarEvento(
         local: localEvento ?? "",
         endereco: endereco ?? "",
       };
-      return mudancasEvento(rows[0] as EstadoEvento, depois);
+      const lista = mudancasEvento(rows[0] as EstadoEvento, depois);
+      // Data, horário, local ou endereço mudaram: fica no histórico, visível à
+      // turma e na página pública (ADR-0008).
+      if (lista.length > 0) {
+        await registrarAuditoria(db, {
+          usuarioId: admin.usuarioId,
+          turmaId: admin.turmaId,
+          acao: "evento.alterado",
+          entidade: "turma",
+          entidadeId: admin.turmaId,
+          detalhe: { mudancas: lista },
+        });
+      }
+      return lista;
     },
     { acao: "evento.salvar" },
   );
   if (mudancas.length > 0) {
     after(async () => {
+      const { rows: t } = await pool.query("select token_publico from turmas where id = $1", [admin.turmaId]);
+      const linkPublico = t[0]?.token_publico ? urlDoSite(`/evento/${t[0].token_publico}`) : null;
       const destinatarios = await destinatariosDaTurma(admin.turmaId, admin.usuarioId);
       await enviarParaTurma(destinatarios, (d) =>
         emailEventoMudou({
@@ -123,6 +155,7 @@ export async function salvarEvento(
           oQue: listarRotulos(mudancas),
           mudancas,
           url: urlDoSite("/dashboard"),
+          linkPublico,
         }),
       );
     });
@@ -160,6 +193,7 @@ export async function adicionarItemProgramacao(
   if (!total) {
     return { erro: `A programação pode ter no máximo ${MAX_ITENS_PROGRAMACAO} itens.` };
   }
+  await marcarEventoAtualizado(admin.turmaId);
   revalidarEvento();
   return { ok: "Item adicionado." };
 }
@@ -182,6 +216,7 @@ export async function atualizarItemProgramacao(
     [horario, titulo, descricao, id, admin.turmaId],
   );
   if (!rowCount) return { erro: "Item não encontrado." };
+  await marcarEventoAtualizado(admin.turmaId);
   revalidarEvento();
   return { ok: "Item atualizado." };
 }
@@ -194,5 +229,43 @@ export async function removerItemProgramacao(formData: FormData) {
     dados.data.id,
     admin.turmaId,
   ]);
+  await marcarEventoAtualizado(admin.turmaId);
   revalidarEvento();
+}
+
+// ---- Link público do evento (ADR-0008) ------------------------------------
+
+// 128 bits em base64url: 22 caracteres, impossível de adivinhar. Diferente do
+// código de convite, que dá entrada na turma.
+const novoToken = () => randomBytes(16).toString("base64url");
+
+async function mudarLinkPublico(estado: "criado" | "trocado" | "desligado") {
+  const admin = await exigirAdminEditavel();
+  await transacao(async (db) => {
+    await db.query("update turmas set token_publico = $1 where id = $2", [
+      estado === "desligado" ? null : novoToken(),
+      admin.turmaId,
+    ]);
+    await registrarAuditoria(db, {
+      usuarioId: admin.usuarioId,
+      turmaId: admin.turmaId,
+      acao: "evento.link_publico",
+      entidade: "turma",
+      entidadeId: admin.turmaId,
+      detalhe: { estado },
+    });
+  });
+  revalidarEvento();
+}
+
+export async function ligarPaginaPublica() {
+  await mudarLinkPublico("criado");
+}
+
+export async function trocarLinkPublico() {
+  await mudarLinkPublico("trocado");
+}
+
+export async function desligarPaginaPublica() {
+  await mudarLinkPublico("desligado");
 }

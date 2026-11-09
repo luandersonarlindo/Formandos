@@ -137,6 +137,16 @@ describe("textoEvento", () => {
   });
 });
 
+describe("textoEvento com página pública", () => {
+  it("usa o link público quando ligado", () => {
+    expect(
+      textoEvento({ nome: "SI", data: null, local: "", endereco: "", tokenPublico: "abcdefghijklmnopqrstuv" }, ORIGEM),
+    ).toBe(
+      "*Formatura: SI*\nDetalhes para a família e os convidados: https://formandos.example.com/evento/abcdefghijklmnopqrstuv",
+    );
+  });
+});
+
 describe("linkWhatsApp", () => {
   it("codifica o texto na URL", () => {
     expect(linkWhatsApp("*Oi* & tchau\nlinha")).toBe(

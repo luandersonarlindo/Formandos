@@ -410,3 +410,10 @@ create table if not exists convites_email (
   enviado_em  timestamptz not null default now(),
   primary key (turma_id, email)
 );
+
+-- Página pública do evento (ADR-0008): código próprio, diferente do código de
+-- convite (que dá entrada na turma). Nulo = página desligada. A comissão liga,
+-- troca e desliga. evento_atualizado_em muda só quando algo do evento ou da
+-- programação muda de fato.
+alter table turmas add column if not exists token_publico varchar(32) unique;
+alter table turmas add column if not exists evento_atualizado_em timestamptz;

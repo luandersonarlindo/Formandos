@@ -13,6 +13,7 @@ import {
   Navigation,
   Shirt,
   StickyNote,
+  TriangleAlert,
   UserCheck,
   Users,
   Vote,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { listarHistoricoDecisoes } from "@/lib/auditoria";
+import { getUltimaMudancaEvento } from "@/lib/evento-publico";
 import { exigirMembro } from "@/lib/dal";
 import { getDadosEvento, getResumosDashboard, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
 import { listarUltimosAvisos } from "@/lib/avisos";
@@ -97,7 +99,7 @@ export default async function DashboardPage() {
   // Uma única leva de queries (programacao uma vez, resumos e evento em 1
   // roundtrip cada): antes, o EventoAdmin buscava programacao de novo +
   // exigirAdmin, os resumos eram 2 queries e os dados do evento outras 2.
-  const [programacao, { resumo, admin: resumoAdmin }, { detalhes, evento }, decisoes, historico, presenca, avisos] =
+  const [programacao, { resumo, admin: resumoAdmin }, { detalhes, evento }, decisoes, historico, presenca, avisos, mudancaEvento] =
     await Promise.all([
       listarProgramacao(membro),
       getResumosDashboard(membro),
@@ -106,6 +108,7 @@ export default async function DashboardPage() {
       listarHistoricoDecisoes(membro.turmaId),
       getMinhaPresenca(membro),
       listarUltimosAvisos(membro),
+      getUltimaMudancaEvento(membro.turmaId),
     ]);
   const comoChegar = linkComoChegar({
     linkMapa: detalhes.linkMapa,
@@ -145,6 +148,28 @@ export default async function DashboardPage() {
             </p>
           )}
         </div>
+
+        {/* Mudança de data, horário, local ou endereço nos últimos 14 dias
+            (ADR-0008): quem já sabia o antigo precisa ver que mudou. */}
+        {mudancaEvento && (
+          <div
+            role="status"
+            className="mt-6 flex gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+          >
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
+            <div>
+              <p className="font-medium">Mudou em {formatarDataHora.format(mudancaEvento.quando)}</p>
+              <ul>
+                {mudancaEvento.mudancas.map((m) => (
+                  <li key={m.rotulo}>
+                    {m.rotulo[0].toUpperCase() + m.rotulo.slice(1)}: era <s>{m.antes}</s>, agora é{" "}
+                    <strong>{m.depois}</strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         <dl className="mt-6 grid gap-3 sm:grid-cols-2">
           <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">

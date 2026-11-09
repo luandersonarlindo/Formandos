@@ -453,6 +453,8 @@ export function emailEventoMudou(d: {
   oQue: string;
   mudancas: { rotulo: string; antes: string; depois: string }[];
   url: string;
+  // Página pública do evento (ADR-0008), para repassar à família.
+  linkPublico?: string | null;
 }): Omit<Email, "para"> {
   const linhas = d.mudancas.map((m) => `${m.rotulo[0].toUpperCase()}${m.rotulo.slice(1)}: era ${m.antes}, agora é ${m.depois}`);
   return {
@@ -461,8 +463,11 @@ export function emailEventoMudou(d: {
       `Olá, ${d.nome}! A comissão da turma ${d.turma} mudou ${d.oQue} da formatura.`,
       linhas.join("\n"),
       `Tudo sobre o evento: ${d.url}`,
+      d.linkPublico ? `Link para repassar à família e aos convidados: ${d.linkPublico}` : "",
       rodapeTexto(d.turma),
-    ].join("\n\n"),
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
     html: caixaEmail({
       preheader: linhas[0] ?? "",
       titulo: `Mudou: ${d.oQue} da formatura`,
@@ -474,7 +479,10 @@ export function emailEventoMudou(d: {
           )
           .join("") +
         botao(d.url, "Ver o evento") +
-        linkCru(d.url),
+        linkCru(d.url) +
+        (d.linkPublico
+          ? pApagado(`Para repassar à família e aos convidados: <span style="word-break:break-all">${escapar(d.linkPublico)}</span>`)
+          : ""),
     }),
   };
 }

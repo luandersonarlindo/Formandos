@@ -24,6 +24,10 @@ export const ACOES_AUDITORIA = [
   "pagamento.excluido",
   // ADR-0007: download de planilha da turma (quem levou a lista de emails?).
   "turma.exportada",
+  // ADR-0008: mudança no evento, link público e fornecedor.
+  "evento.alterado",
+  "evento.link_publico",
+  "fornecedor.alterado",
 ] as const;
 export type AcaoAuditoria = (typeof ACOES_AUDITORIA)[number];
 
@@ -38,4 +42,32 @@ export const ACOES_VISIVEIS_TURMA = [
   "opcao.valor_alterado",
   // ADR-0005: mudança no plano de parcelas (vale para todos; sem dado de pessoa).
   "plano.alterado",
+  // ADR-0008: data, horário, local ou endereço do evento.
+  "evento.alterado",
 ] as const satisfies readonly AcaoAuditoria[];
+
+// Pagamentos individuais: só a tesouraria vê no histórico (ADR-0005). Os
+// outros admins não veem valor de ninguém.
+export const ACOES_SO_TESOURARIA = [
+  "pagamento.lancado",
+  "pagamento.informado",
+  "pagamento.confirmado",
+  "pagamento.recusado",
+  "pagamento.editado",
+  "pagamento.excluido",
+] as const satisfies readonly AcaoAuditoria[];
+
+// Nunca aparece em tela de turma: não tem turma e guarda o email da conta.
+export const ACOES_FORA_DO_HISTORICO = ["conta.excluida"] as const satisfies readonly AcaoAuditoria[];
+
+// Ações que cada público vê no histórico da turma (ADR-0008, tabela "quem vê o quê").
+export type PublicoHistorico = "turma" | "comissao" | "tesouraria";
+
+export function acoesVisiveis(publico: PublicoHistorico): AcaoAuditoria[] {
+  if (publico === "turma") return [...ACOES_VISIVEIS_TURMA];
+  const fora = new Set<string>([
+    ...ACOES_FORA_DO_HISTORICO,
+    ...(publico === "comissao" ? ACOES_SO_TESOURARIA : []),
+  ]);
+  return ACOES_AUDITORIA.filter((a) => !fora.has(a));
+}
