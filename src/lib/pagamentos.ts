@@ -248,3 +248,26 @@ export async function listarInformados(turmaId: string): Promise<Informe[]> {
   );
   return rows;
 }
+
+// Caixa da turma (ADR-0005, parte 3): só totais, para todos os membros. Entra
+// tudo o que foi confirmado, inclusive de quem já saiu (usuario_id nulo).
+// Nunca nomes nem quantas pessoas estão em atraso: numa turma pequena, a
+// contagem identifica quem deve.
+export async function getCaixa(turmaId: string) {
+  const { rows } = await pool.query(
+    `select
+       coalesce((select sum(case when tipo = 'devolucao' then -valor else valor end)
+                   from pagamentos where turma_id = $1 and status = 'confirmado'), 0)::float8 as arrecadado,
+       coalesce((select sum(valor) from parcelas where turma_id = $1), 0)::float8 as "planoPorPessoa",
+       (select count(*) from membros where turma_id = $1)::int as membros,
+       (select regras_dinheiro from turmas where id = $1) as "regrasDinheiro"`,
+    [turmaId],
+  );
+  const r = rows[0];
+  return {
+    arrecadado: r.arrecadado as number,
+    previsto: Math.round(r.planoPorPessoa * r.membros * 100) / 100,
+    membros: r.membros as number,
+    regrasDinheiro: (r.regrasDinheiro as string | null) ?? "",
+  };
+}

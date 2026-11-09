@@ -34,4 +34,6 @@ export const ACOES_VISIVEIS_TURMA = [
   "decisao.reaberta",
   "regra.alterada",
   "opcao.valor_alterado",
+  // ADR-0005: mudança no plano de parcelas (vale para todos; sem dado de pessoa).
+  "plano.alterado",
 ] as const satisfies readonly AcaoAuditoria[];

@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
-import { HandCoins, Info, Lock, Wallet, X } from "lucide-react";
+import { HandCoins, History, Info, Landmark, Lock, ScrollText, Wallet, X } from "lucide-react";
 import { cancelarInforme, informarPagamento } from "@/actions/tesouraria";
 import { CamposLancamento } from "@/components/features/campos-lancamento";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { FormDialog } from "@/components/features/form-dialog";
+import { MudancasPlano } from "@/components/features/mudancas-plano";
+import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { listarMudancasPlano } from "@/lib/auditoria";
 import { exigirMembro } from "@/lib/dal";
 import { formatarDataHora } from "@/lib/datas";
 import { formatarReal } from "@/lib/orcamento";
-import { ROTULO_FORMA, ROTULO_TIPO, getMinhaSituacao } from "@/lib/pagamentos";
+import { ROTULO_FORMA, ROTULO_TIPO, getCaixa, getMinhaSituacao } from "@/lib/pagamentos";
 import { ROTULO_ESTADO, ROTULO_PARCELA, dataBr, hojeBrasil, type EstadoGeral } from "@/lib/situacao-regras";
 
 export const metadata: Metadata = { title: "Minha situação" };
@@ -35,13 +38,12 @@ const ROTULO_STATUS = {
 // parcela. Só a própria pessoa e a tesouraria veem estes valores.
 export default async function MinhaSituacaoPage() {
   const membro = await exigirMembro();
-  const { situacao: s, lancamentos, ultimaAtualizacao, tesouraria } = await getMinhaSituacao(
-    membro.turmaId,
-    membro.usuarioId,
-    hojeBrasil(),
-  );
-
   const hoje = hojeBrasil();
+  const [{ situacao: s, lancamentos, ultimaAtualizacao, tesouraria }, caixa, mudancas] = await Promise.all([
+    getMinhaSituacao(membro.turmaId, membro.usuarioId, hoje),
+    getCaixa(membro.turmaId),
+    listarMudancasPlano(membro.turmaId),
+  ]);
   const editavel = !membro.arquivadaEm;
   const pct = s.totalPlano > 0 ? Math.min(100, Math.max(0, (s.pago / s.totalPlano) * 100)) : 0;
 
@@ -204,6 +206,61 @@ export default async function MinhaSituacaoPage() {
             </ul>
           </CardContent>
         </Card>
+      )}
+
+      {/* Transparência (ADR-0005, parte 3): totais da turma, regras e
+          mudanças no plano. Nada aqui identifica quem pagou ou deve. */}
+      {caixa.previsto > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Landmark className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Caixa da turma
+            </CardTitle>
+            <CardDescription>Total confirmado pela tesouraria, somando todos os membros. Sem nomes.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <p className="text-2xl font-semibold tabular-nums">
+              {formatarReal.format(caixa.arrecadado)}{" "}
+              <span className="text-base font-normal text-muted-foreground">
+                arrecadados de {formatarReal.format(caixa.previsto)} previstos
+              </span>
+            </p>
+            <Progress
+              className="h-2"
+              value={Math.min(100, Math.max(0, (caixa.arrecadado / caixa.previsto) * 100))}
+              aria-label="Quanto do previsto a turma já arrecadou"
+            />
+            <p className="text-xs text-muted-foreground">
+              Previsto = plano de {formatarReal.format(caixa.previsto / caixa.membros)} por pessoa ×{" "}
+              {caixa.membros} {caixa.membros === 1 ? "membro" : "membros"}.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {caixa.regrasDinheiro && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ScrollText className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Regras do dinheiro
+            </CardTitle>
+            <CardDescription>Desistência, devolução e multa, combinadas pela turma.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm wrap-break-word">{caixa.regrasDinheiro}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {mudancas.length > 0 && (
+        <PainelRecolhivel className="mt-4 rounded-xl border p-4">
+          <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+            <History className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Mudanças no plano ({mudancas.length})
+          </summary>
+          <div className="mt-3">
+            <MudancasPlano itens={mudancas} />
+          </div>
+        </PainelRecolhivel>
       )}
     </div>
   );

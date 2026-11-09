@@ -47,6 +47,12 @@ export async function apagarUsuario(
   for (const turmaId of vazias) {
     await db.query("delete from turmas where id = $1", [turmaId]);
   }
+  // Dinheiro (ADR-0005): informes não conferidos e recusados somem; os
+  // confirmados ficam no caixa da turma e perdem o nome pelo `on delete set
+  // null` de pagamentos.usuario_id.
+  await db.query("delete from pagamentos where usuario_id = $1 and status <> 'confirmado'", [
+    usuarioId,
+  ]);
   // Apaga em cascata sessões, contas, participação, votos e dúvidas dele.
   await db.query("delete from usuarios where id = $1", [usuarioId]);
   return { ok: true as const, turmas };
@@ -131,6 +137,25 @@ export async function getMeusDados(usuarioId: string) {
       limit 2000`,
     [usuarioId],
   );
+  // Dinheiro (ADR-0005): os lançamentos da pessoa e o plano de cada turma dela.
+  const { rows: pagamentos } = await pool.query(
+    `select t.nome as turma, p.tipo, p.valor::float8 as valor,
+            to_char(p.pago_em, 'YYYY-MM-DD') as pago_em, p.forma, p.pago_por,
+            p.referencia, p.status, p.motivo_recusa, p.created_at as registrado_em
+       from pagamentos p join turmas t on t.id = p.turma_id
+      where p.usuario_id = $1 order by p.pago_em, p.created_at
+      limit 2000`,
+    [usuarioId],
+  );
+  const { rows: planos } = await pool.query(
+    `select t.nome as turma, pa.numero, pa.valor::float8 as valor,
+            to_char(pa.vencimento, 'YYYY-MM-DD') as vencimento
+       from parcelas pa
+       join turmas t on t.id = pa.turma_id
+       join membros m on m.turma_id = pa.turma_id and m.usuario_id = $1
+      order by t.nome, pa.numero`,
+    [usuarioId],
+  );
   // Trilhas que também guardam dado da pessoa: tentativas de convite,
   // auditoria (só as linhas dele) e sessões (sem token, só metadados).
   // Sem isso o JSON saía parcial (LGPD art. 18, II e V).
@@ -179,6 +204,8 @@ export async function getMeusDados(usuarioId: string) {
     upvotes_dados: upvotes,
     tarefas_responsavel: tarefas,
     avisos_criados: avisos,
+    pagamentos,
+    planos_de_parcelas: planos,
     tentativas_convite: tentativas,
     auditoria,
     sessoes,

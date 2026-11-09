@@ -68,3 +68,26 @@ export async function listarHistoricoDecisoes(
   );
   return rows;
 }
+
+// Mudanças no plano de parcelas, para "Minha situação" (ADR-0005). Só a ação
+// plano.alterado, que é visível à turma: o detalhe leva parcelas (número,
+// valor, vencimento), nunca dado de pessoa.
+export type MudancaPlano = {
+  id: string;
+  quando: Date;
+  autor: string | null;
+  detalhe: Record<string, unknown>;
+};
+
+export async function listarMudancasPlano(turmaId: string): Promise<MudancaPlano[]> {
+  const { rows } = await pool.query(
+    `select a.id::text, a.created_at as quando, u.name as autor, a.detalhe
+       from auditoria a
+       left join usuarios u on u.id = a.usuario_id
+      where a.turma_id = $1 and a.acao = 'plano.alterado'
+      order by a.created_at desc, a.id desc
+      limit 50`,
+    [turmaId],
+  );
+  return rows;
+}

@@ -7,12 +7,25 @@ describe("ACOES_VISIVEIS_TURMA", () => {
       "decisao.fixada",
       "decisao.reaberta",
       "opcao.valor_alterado",
+      "plano.alterado",
       "regra.alterada",
     ]);
   });
 
   it("nunca mostra ações sobre pessoas ou contas", () => {
-    const restritas = ["papel.trocado", "membro.removido", "conta.excluida", "turma.excluida"];
+    const restritas = [
+      "papel.trocado",
+      "membro.removido",
+      "conta.excluida",
+      "turma.excluida",
+      "papel.tesouraria",
+      "pagamento.lancado",
+      "pagamento.informado",
+      "pagamento.confirmado",
+      "pagamento.recusado",
+      "pagamento.editado",
+      "pagamento.excluido",
+    ];
     for (const acao of restritas) {
       expect(ACOES_AUDITORIA).toContain(acao);
       expect(ACOES_VISIVEIS_TURMA as readonly string[]).not.toContain(acao);

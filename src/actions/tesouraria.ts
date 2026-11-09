@@ -447,3 +447,25 @@ export async function recusarPagamento(_estado: EstadoForm, formData: FormData):
   revalidarDinheiro();
   return { ok: "Informe recusado. A pessoa vê o motivo em “Minha situação”." };
 }
+
+// ---- Regras do dinheiro (ADR-0005, parte 3) ----------------------------------
+
+const MAX_REGRAS = 2000;
+
+// Texto livre da tesouraria: desistência, devolução, multa. Aparece para a
+// turma em "Minha situação".
+export async function salvarRegrasDinheiro(_estado: EstadoForm, formData: FormData): Promise<EstadoForm> {
+  const tesouraria = await exigirTesourariaEditavel();
+  const texto = String(formData.get("regras") ?? "").trim();
+  if (texto.length > MAX_REGRAS) {
+    return { erro: `O texto pode ter no máximo ${MAX_REGRAS} caracteres.`, valores: { regras: texto } };
+  }
+  await transacao(async (db) => {
+    await db.query("update turmas set regras_dinheiro = $1 where id = $2", [
+      texto || null,
+      tesouraria.turmaId,
+    ]);
+  });
+  revalidarDinheiro();
+  return { ok: "Regras salvas. A turma vê em “Minha situação”." };
+}

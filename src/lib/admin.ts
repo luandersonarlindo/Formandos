@@ -325,6 +325,9 @@ export type LinhaMembro = {
   papel: "admin" | "participante";
   // Cuida do dinheiro da turma (ADR-0005). Só admin pode ser.
   tesouraria: boolean;
+  // Total confirmado que a pessoa pagou. A página só mostra o valor para a
+  // tesouraria; para os outros admins vira "tem pagamentos registrados".
+  pagou: number;
 };
 
 export const POR_PAGINA_MEMBROS = 10;
@@ -373,7 +376,11 @@ export async function listarMembrosAdmin(
   const paginaAtual = limitarPagina(pagina, totalPaginas);
 
   const { rows } = await pool.query<LinhaMembro>(
-    `select u.id, u.name, u.email, u.image, m.papel, (m.papel = 'admin' and m.tesouraria) as tesouraria
+    `select u.id, u.name, u.email, u.image, m.papel, (m.papel = 'admin' and m.tesouraria) as tesouraria,
+            coalesce((select sum(case when p.tipo = 'devolucao' then -p.valor else p.valor end)
+                        from pagamentos p
+                       where p.turma_id = m.turma_id and p.usuario_id = m.usuario_id
+                         and p.status = 'confirmado'), 0)::float8 as pagou
        from membros m
        join usuarios u on u.id = m.usuario_id
       where m.turma_id = $1 ${filtro}

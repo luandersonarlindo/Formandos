@@ -19,6 +19,7 @@ import { listarMembrosAdmin } from "@/lib/admin";
 import { lerBusca } from "@/lib/busca";
 import { exigirAdmin } from "@/lib/dal";
 import { pool } from "@/lib/db";
+import { formatarReal } from "@/lib/orcamento";
 import { lerPagina } from "@/lib/paginacao";
 
 export const metadata: Metadata = { title: "Membros" };
@@ -212,7 +213,13 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
                           campos={{ usuarioId: m.id }}
                           alvo="o membro"
                           nome={`${m.name} (${m.email})`}
-                          aviso="Some da turma junto com o que ele deixou nela."
+                          aviso={
+                            m.pagou > 0
+                              ? `Some da turma junto com o que ele deixou nela. ${
+                                  admin.tesouraria ? `Pagou ${formatarReal.format(m.pagou)}: ` : "Tem pagamentos registrados: "
+                                }os confirmados continuam no caixa da turma, sem o nome. Se houver devolução, a tesouraria deve lançar antes.`
+                              : "Some da turma junto com o que ele deixou nela."
+                          }
                           rotulo="Remover"
                           descricao={`Remover ${m.name}`}
                           icone={<UserMinus aria-hidden />}

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarRange, HandCoins, Lock, Pencil, Plus, Search } from "lucide-react";
+import { CalendarRange, HandCoins, Lock, Pencil, Plus, ScrollText, Search } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { AcoesInforme } from "@/components/features/acoes-informe";
-import { atualizarParcela, lancarPagamento, salvarPlano } from "@/actions/tesouraria";
+import { atualizarParcela, lancarPagamento, salvarPlano, salvarRegrasDinheiro } from "@/actions/tesouraria";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { CamposLancamento } from "@/components/features/campos-lancamento";
 import { EstadoVazio } from "@/components/features/estado-vazio";
@@ -18,7 +19,7 @@ import { lerBusca } from "@/lib/busca";
 import { exigirTesouraria } from "@/lib/dal";
 import { formatarReal } from "@/lib/orcamento";
 import { lerPagina } from "@/lib/paginacao";
-import { ROTULO_FORMA, listarInformados, listarSituacoes, type FiltroTesouraria } from "@/lib/pagamentos";
+import { ROTULO_FORMA, getCaixa, listarInformados, listarSituacoes, type FiltroTesouraria } from "@/lib/pagamentos";
 import { ROTULO_ESTADO, dataBr, hojeBrasil } from "@/lib/situacao-regras";
 
 export const metadata: Metadata = { title: "Tesouraria" };
@@ -40,9 +41,10 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
   const busca = lerBusca(params.busca);
   const hoje = hojeBrasil();
   const editavel = !tesouraria.arquivadaEm;
-  const [{ plano, contagem, itens, pagina, totalPaginas }, informes] = await Promise.all([
+  const [{ plano, contagem, itens, pagina, totalPaginas }, informes, caixa] = await Promise.all([
     listarSituacoes(tesouraria.turmaId, hoje, { filtro, busca, pagina: lerPagina(params.pagina) }),
     listarInformados(tesouraria.turmaId),
+    getCaixa(tesouraria.turmaId),
   ]);
   const totalPlano = plano.reduce((s, p) => s + p.valor, 0);
   const link = (f: FiltroTesouraria) => {
@@ -177,6 +179,46 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
                 <Label htmlFor="plano-primeira" className="text-xs">Vencimento da primeira</Label>
                 <Input id="plano-primeira" name="primeira" type="date" defaultValue={plano[0]?.vencimento ?? hoje} required />
                 <p className="text-xs text-muted-foreground">As outras vencem no mesmo dia dos meses seguintes.</p>
+              </div>
+            </FormDialog>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ScrollText className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Caixa e regras
+          </CardTitle>
+          <CardDescription className="text-pretty tabular-nums">
+            Arrecadado: {formatarReal.format(caixa.arrecadado)} de {formatarReal.format(caixa.previsto)} previstos. A
+            turma vê só estes totais, sem nomes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground wrap-break-word">
+            {caixa.regrasDinheiro || "Nenhuma regra de desistência, devolução ou multa escrita ainda."}
+          </p>
+          {editavel && (
+            <FormDialog
+              rotulo={caixa.regrasDinheiro ? "Editar regras do dinheiro" : "Escrever regras do dinheiro"}
+              icone={<ScrollText aria-hidden />}
+              titulo="Regras do dinheiro"
+              descricao="Desistência, devolução e multa. A turma lê este texto em “Minha situação”."
+              acao={salvarRegrasDinheiro}
+              rotuloSubmit="Salvar regras"
+              dialogClassName="sm:max-w-xl"
+            >
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="regras-dinheiro" className="text-xs">Texto</Label>
+                <Textarea
+                  id="regras-dinheiro"
+                  name="regras"
+                  rows={8}
+                  maxLength={2000}
+                  defaultValue={caixa.regrasDinheiro}
+                  placeholder="Ex.: quem desistir até 31/03 recebe de volta o que pagou, menos a parte já gasta com o espaço."
+                />
               </div>
             </FormDialog>
           )}

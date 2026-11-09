@@ -2,9 +2,10 @@ import "server-only";
 import type { PoolClient } from "pg";
 
 // Sai da turma (ou é expulso dela) não pode deixar rastro: nem voto, nem
-// dúvida, nem confirmação de presença, nem voto de reação. As duas únicas
-// coisas que ficam são as decisões e os avisos da comissão, que são registro da
-// turma, não da pessoa: só o "quem fez" é esvaziado.
+// dúvida, nem confirmação de presença, nem voto de reação. O que fica é
+// registro da turma, não da pessoa, e só o "quem fez" é esvaziado: as decisões,
+// os avisos da comissão e os pagamentos confirmados (ADR-0005), sem os quais o
+// caixa da turma mudaria sozinho.
 //
 // Sempre dentro de uma transação de quem chama (src/lib/db.ts).
 
@@ -33,6 +34,25 @@ export async function apagarDadosDoMembro(db: PoolClient, turmaId: string, usuar
     turmaId,
     usuarioId,
   ]);
+  // Dinheiro (ADR-0005): informe não conferido ou recusado some; o confirmado
+  // fica no caixa da turma, sem o nome de quem pagou.
+  await db.query(
+    "delete from pagamentos where turma_id = $1 and usuario_id = $2 and status <> 'confirmado'",
+    [turmaId, usuarioId],
+  );
+  await db.query("update pagamentos set usuario_id = null where turma_id = $1 and usuario_id = $2", [
+    turmaId,
+    usuarioId,
+  ]);
+  // Quem lançou ou conferiu (tesouraria que saiu) também deixa de aparecer.
+  await db.query("update pagamentos set lancado_por = null where turma_id = $1 and lancado_por = $2", [
+    turmaId,
+    usuarioId,
+  ]);
+  await db.query(
+    "update pagamentos set confirmado_por = null where turma_id = $1 and confirmado_por = $2",
+    [turmaId, usuarioId],
+  );
   // Tarefa sem responsável continua na turma, mas ninguém "responde" por ela.
   await db.query(
     "update tarefas set responsavel_id = null where turma_id = $1 and responsavel_id = $2",
