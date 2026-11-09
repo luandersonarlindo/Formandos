@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarRange, Lock, Pencil, Plus, Search } from "lucide-react";
+import { CalendarRange, HandCoins, Lock, Pencil, Plus, Search } from "lucide-react";
+import { AcoesInforme } from "@/components/features/acoes-informe";
 import { atualizarParcela, lancarPagamento, salvarPlano } from "@/actions/tesouraria";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { CamposLancamento } from "@/components/features/campos-lancamento";
@@ -17,7 +18,7 @@ import { lerBusca } from "@/lib/busca";
 import { exigirTesouraria } from "@/lib/dal";
 import { formatarReal } from "@/lib/orcamento";
 import { lerPagina } from "@/lib/paginacao";
-import { listarSituacoes, type FiltroTesouraria } from "@/lib/pagamentos";
+import { ROTULO_FORMA, listarInformados, listarSituacoes, type FiltroTesouraria } from "@/lib/pagamentos";
 import { ROTULO_ESTADO, dataBr, hojeBrasil } from "@/lib/situacao-regras";
 
 export const metadata: Metadata = { title: "Tesouraria" };
@@ -39,11 +40,10 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
   const busca = lerBusca(params.busca);
   const hoje = hojeBrasil();
   const editavel = !tesouraria.arquivadaEm;
-  const { plano, contagem, itens, pagina, totalPaginas } = await listarSituacoes(tesouraria.turmaId, hoje, {
-    filtro,
-    busca,
-    pagina: lerPagina(params.pagina),
-  });
+  const [{ plano, contagem, itens, pagina, totalPaginas }, informes] = await Promise.all([
+    listarSituacoes(tesouraria.turmaId, hoje, { filtro, busca, pagina: lerPagina(params.pagina) }),
+    listarInformados(tesouraria.turmaId),
+  ]);
   const totalPlano = plano.reduce((s, p) => s + p.valor, 0);
   const link = (f: FiltroTesouraria) => {
     const q = new URLSearchParams();
@@ -61,6 +61,42 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
         Plano de parcelas e pagamentos de cada membro. Só a tesouraria vê esta página; cada pessoa vê a
         própria situação em “Minha situação”.
       </p>
+
+      {/* "Já paguei" esperando conferência fica no topo (ADR-0005, parte 2). */}
+      {informes.length > 0 && (
+        <Card className="mt-6 border border-[var(--vitrine-a)]/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <HandCoins className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Aguardando sua confirmação
+              <Badge variant="secondary" className="tabular-nums">{informes.length}</Badge>
+            </CardTitle>
+            <CardDescription>Pagamentos que os membros informaram. Confira no extrato antes de confirmar.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {informes.map((i) => (
+                <li key={i.id} data-informe={i.nome} className="flex flex-col gap-2 py-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Link href={`/admin/tesouraria/${i.usuarioId}`} className="font-medium underline-offset-2 hover:underline">
+                      {i.nome}
+                    </Link>
+                    <span className="font-medium tabular-nums">{formatarReal.format(i.valor)}</span>
+                    <span className="text-muted-foreground">
+                      {ROTULO_FORMA[i.forma]} · {dataBr(i.pagoEm)}
+                    </span>
+                  </div>
+                  {(i.pagoPor || i.referencia) && (
+                    <p className="text-xs text-muted-foreground wrap-break-word">
+                      {[i.pagoPor && `Pago por ${i.pagoPor}`, i.referencia].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {editavel && <AcoesInforme id={i.id} />}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-6">
         <CardHeader>

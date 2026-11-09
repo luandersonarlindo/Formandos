@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { Info, Lock, Wallet } from "lucide-react";
+import { HandCoins, Info, Lock, Wallet, X } from "lucide-react";
+import { cancelarInforme, informarPagamento } from "@/actions/tesouraria";
+import { CamposLancamento } from "@/components/features/campos-lancamento";
+import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { FormDialog } from "@/components/features/form-dialog";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +40,9 @@ export default async function MinhaSituacaoPage() {
     membro.usuarioId,
     hojeBrasil(),
   );
+
+  const hoje = hojeBrasil();
+  const editavel = !membro.arquivadaEm;
   const pct = s.totalPlano > 0 ? Math.min(100, Math.max(0, (s.pago / s.totalPlano) * 100)) : 0;
 
   return (
@@ -88,6 +95,24 @@ export default async function MinhaSituacaoPage() {
               </div>
             </CardHeader>
           </Card>
+
+          {editavel && (
+            <div className="mt-4">
+              <FormDialog
+                rotulo="Já paguei"
+                icone={<HandCoins aria-hidden />}
+                variante="default"
+                tamanho="default"
+                titulo="Informar um pagamento"
+                descricao="Conte à tesouraria o que você pagou. O valor entra na sua situação depois que ela conferir."
+                acao={informarPagamento}
+                rotuloSubmit="Informar pagamento"
+                rotuloPendente="Enviando…"
+              >
+                <CamposLancamento prefixo="informe" hoje={hoje} semTipo />
+              </FormDialog>
+            </div>
+          )}
 
           <p className="mt-3 flex items-start gap-1.5 text-sm text-muted-foreground text-pretty">
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -156,7 +181,23 @@ export default async function MinhaSituacaoPage() {
                     </p>
                   )}
                   {l.status === "recusado" && l.motivoRecusa && (
-                    <p className="text-xs text-amber-700 dark:text-amber-400">Motivo: {l.motivoRecusa}</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      Motivo da tesouraria: {l.motivoRecusa}
+                    </p>
+                  )}
+                  {l.status === "informado" && editavel && (
+                    <div>
+                      <ConfirmarExclusao
+                        acao={cancelarInforme}
+                        campos={{ id: l.id }}
+                        alvo="o informe"
+                        nome={`${formatarReal.format(l.valor)} de ${dataBr(l.pagoEm)}`}
+                        aviso="A tesouraria deixa de ver este informe."
+                        rotulo="Cancelar informe"
+                        descricao={`Cancelar o informe de ${formatarReal.format(l.valor)}`}
+                        icone={<X aria-hidden />}
+                      />
+                    </div>
                   )}
                 </li>
               ))}

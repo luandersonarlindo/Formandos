@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { editarPagamento, excluirPagamento, lancarPagamento } from "@/actions/tesouraria";
+import { AcoesInforme } from "@/components/features/acoes-informe";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { CamposLancamento } from "@/components/features/campos-lancamento";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
@@ -141,6 +142,10 @@ export default async function PessoaTesourariaPage(props: PageProps<"/admin/teso
                         .join(" · ")}
                     </p>
                   )}
+                  {l.status === "recusado" && l.motivoRecusa && (
+                    <p className="text-xs text-amber-700 dark:text-amber-400">Recusado: {l.motivoRecusa}</p>
+                  )}
+                  {editavel && l.status === "informado" && <AcoesInforme id={l.id} />}
                   {editavel && (
                     <div className="flex flex-wrap gap-2">
                       <FormDialog

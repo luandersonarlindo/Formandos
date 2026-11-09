@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { exigirAdminEditavel, exigirTesourariaEditavel } from "@/lib/dal";
+import { exigirAdminEditavel, exigirMembroEditavel, exigirTesourariaEditavel } from "@/lib/dal";
+import { consumirLimite } from "@/lib/throttle";
 import { transacao } from "@/lib/db";
 import { lerValorPessoa } from "@/lib/opcao-detalhe";
 import { MAX_PARCELAS, gerarPlano } from "@/lib/situacao-regras";
@@ -308,4 +309,141 @@ export async function excluirPagamento(formData: FormData) {
     { acao: "tesouraria.excluir" },
   );
   revalidarDinheiro();
+}
+
+// ---- "Já paguei" (ADR-0005, parte 2) -----------------------------------------
+
+// Arquivo "use server" só pode exportar funções async.
+const MAX_INFORMES_POR_DIA = 10;
+
+// O formando informa um pagamento que fez. Entra como "informado" e só conta
+// na situação depois que a tesouraria confirma. Tipo é sempre pagamento.
+export async function informarPagamento(_estado: EstadoForm, formData: FormData): Promise<EstadoForm> {
+  const membro = await exigirMembroEditavel();
+  formData.set("usuarioId", membro.usuarioId);
+  formData.set("tipo", "pagamento");
+  const lido = lerLancamento(formData);
+  if ("erro" in lido) return { erro: lido.erro, valores: lido.enviados };
+  const l = lido.lancamento;
+
+  const resultado = await transacao(
+    async (db) => {
+      const livre = await consumirLimite(
+        db,
+        `informe:${membro.usuarioId}:${membro.turmaId}`,
+        MAX_INFORMES_POR_DIA,
+        24 * 60,
+      );
+      if (!livre) return "limite" as const;
+      const { rows } = await db.query(
+        `insert into pagamentos
+           (turma_id, usuario_id, tipo, valor, pago_em, forma, pago_por, referencia, status, lancado_por)
+         values ($1, $2, 'pagamento', $3, $4, $5, $6, $7, 'informado', $2)
+         returning id`,
+        [membro.turmaId, membro.usuarioId, l.valor, l.pagoEm, l.forma, l.pagoPor, l.referencia],
+      );
+      await registrarAuditoria(db, {
+        usuarioId: membro.usuarioId,
+        turmaId: membro.turmaId,
+        acao: "pagamento.informado",
+        entidade: "pagamento",
+        entidadeId: rows[0].id,
+        detalhe: { valor: l.valor, pagoEm: l.pagoEm },
+      });
+      return "ok" as const;
+    },
+    { acao: "tesouraria.informar" },
+  );
+  if (resultado === "limite") {
+    return { erro: `Você já informou ${MAX_INFORMES_POR_DIA} pagamentos hoje. Tente amanhã ou fale com a tesouraria.` };
+  }
+  revalidarDinheiro();
+  return { ok: "Pagamento informado. Ele conta depois que a tesouraria confirmar." };
+}
+
+// O próprio formando desiste de um informe que ainda não foi conferido.
+export async function cancelarInforme(formData: FormData) {
+  const membro = await exigirMembroEditavel();
+  const dados = z.object({ id: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+  await transacao(async (db) => {
+    const { rows } = await db.query(
+      `delete from pagamentos
+        where id = $1 and turma_id = $2 and usuario_id = $3 and status = 'informado'
+        returning valor::float8 as valor`,
+      [dados.data.id, membro.turmaId, membro.usuarioId],
+    );
+    if (rows.length === 0) return;
+    await registrarAuditoria(db, {
+      usuarioId: membro.usuarioId,
+      turmaId: membro.turmaId,
+      acao: "pagamento.excluido",
+      entidade: "pagamento",
+      entidadeId: dados.data.id,
+      detalhe: { cancelado: true, valor: rows[0].valor },
+    });
+  });
+  revalidarDinheiro();
+}
+
+export async function confirmarPagamento(formData: FormData) {
+  const tesouraria = await exigirTesourariaEditavel();
+  const dados = z.object({ id: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+  await transacao(async (db) => {
+    const { rows } = await db.query(
+      `update pagamentos
+          set status = 'confirmado', confirmado_por = $3, motivo_recusa = null, updated_at = now()
+        where id = $1 and turma_id = $2 and status = 'informado'
+        returning usuario_id, valor::float8 as valor`,
+      [dados.data.id, tesouraria.turmaId, tesouraria.usuarioId],
+    );
+    if (rows.length === 0) return;
+    await registrarAuditoria(db, {
+      usuarioId: tesouraria.usuarioId,
+      turmaId: tesouraria.turmaId,
+      acao: "pagamento.confirmado",
+      entidade: "pagamento",
+      entidadeId: dados.data.id,
+      detalhe: { membro: rows[0].usuario_id, valor: rows[0].valor },
+    });
+  });
+  revalidarDinheiro();
+}
+
+const esquemaRecusa = z.object({
+  id: z.uuid(),
+  motivo: z
+    .string()
+    .trim()
+    .min(3, "Escreva o motivo, para a pessoa saber o que fazer.")
+    .max(255, "O motivo pode ter no máximo 255 caracteres."),
+});
+
+export async function recusarPagamento(_estado: EstadoForm, formData: FormData): Promise<EstadoForm> {
+  const tesouraria = await exigirTesourariaEditavel();
+  const dados = esquemaRecusa.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+  const resultado = await transacao(async (db) => {
+    const { rows } = await db.query(
+      `update pagamentos
+          set status = 'recusado', motivo_recusa = $3, confirmado_por = $4, updated_at = now()
+        where id = $1 and turma_id = $2 and status = 'informado'
+        returning usuario_id, valor::float8 as valor`,
+      [dados.data.id, tesouraria.turmaId, dados.data.motivo, tesouraria.usuarioId],
+    );
+    if (rows.length === 0) return "inexistente" as const;
+    await registrarAuditoria(db, {
+      usuarioId: tesouraria.usuarioId,
+      turmaId: tesouraria.turmaId,
+      acao: "pagamento.recusado",
+      entidade: "pagamento",
+      entidadeId: dados.data.id,
+      detalhe: { membro: rows[0].usuario_id, valor: rows[0].valor, motivo: dados.data.motivo },
+    });
+    return "ok" as const;
+  });
+  if (resultado === "inexistente") return { erro: "Esse informe já foi conferido." };
+  revalidarDinheiro();
+  return { ok: "Informe recusado. A pessoa vê o motivo em “Minha situação”." };
 }

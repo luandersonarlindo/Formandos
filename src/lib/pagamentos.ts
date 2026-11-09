@@ -229,3 +229,22 @@ export async function listarTesouraria(turmaId: string): Promise<string[]> {
   );
   return rows.map((r) => r.usuario_id);
 }
+
+// Informes "Já paguei" esperando a tesouraria conferir, do mais antigo para o
+// mais novo (ADR-0005, parte 2).
+export type Informe = LancamentoDetalhe & { usuarioId: string; nome: string };
+
+export async function listarInformados(turmaId: string): Promise<Informe[]> {
+  const { rows } = await pool.query(
+    `select p.id, p.usuario_id as "usuarioId", u.name as nome, p.tipo, p.valor::float8 as valor,
+            to_char(p.pago_em, 'YYYY-MM-DD') as "pagoEm", p.forma, p.pago_por as "pagoPor",
+            p.referencia, p.status, p.motivo_recusa as "motivoRecusa", u.name as "lancadoPor",
+            p.updated_at as "atualizadoEm"
+       from pagamentos p
+       join usuarios u on u.id = p.usuario_id
+      where p.turma_id = $1 and p.status = 'informado'
+      order by p.created_at`,
+    [turmaId],
+  );
+  return rows;
+}

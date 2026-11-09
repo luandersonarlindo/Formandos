@@ -9,23 +9,28 @@ export function CamposLancamento({
   prefixo,
   hoje,
   inicial,
+  semTipo = false,
 }: {
   prefixo: string;
   hoje: string;
   inicial?: LancamentoDetalhe;
+  /** "Já paguei" do formando: é sempre pagamento, sem escolher tipo. */
+  semTipo?: boolean;
 }) {
   const id = (campo: string) => `${prefixo}-${campo}`;
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={id("tipo")} className="text-xs">Tipo</Label>
-          <NativeSelect id={id("tipo")} name="tipo" defaultValue={inicial?.tipo ?? "pagamento"}>
-            {Object.entries(ROTULO_TIPO).map(([valor, rotulo]) => (
-              <option key={valor} value={valor}>{rotulo}</option>
-            ))}
-          </NativeSelect>
-        </div>
+        {!semTipo && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={id("tipo")} className="text-xs">Tipo</Label>
+            <NativeSelect id={id("tipo")} name="tipo" defaultValue={inicial?.tipo ?? "pagamento"}>
+              {Object.entries(ROTULO_TIPO).map(([valor, rotulo]) => (
+                <option key={valor} value={valor}>{rotulo}</option>
+              ))}
+            </NativeSelect>
+          </div>
+        )}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={id("valor")} className="text-xs">Valor (R$)</Label>
           <Input
@@ -57,7 +62,11 @@ export function CamposLancamento({
         <Input id={id("pagoPor")} name="pagoPor" maxLength={120} placeholder="mãe, tio…" defaultValue={inicial?.pagoPor ?? ""} />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={id("referencia")} className="text-xs">Referência: id do Pix ou observação (no ajuste, o motivo)</Label>
+        <Label htmlFor={id("referencia")} className="text-xs">
+          {semTipo
+            ? "Id da transação do Pix ou observação (opcional, ajuda a tesouraria a achar)"
+            : "Referência: id do Pix ou observação (no ajuste, o motivo)"}
+        </Label>
         <Input id={id("referencia")} name="referencia" maxLength={120} defaultValue={inicial?.referencia ?? ""} />
       </div>
     </>
