@@ -1138,6 +1138,57 @@ await grupo("admin", async () => {
       sql("delete from avisos where titulo='Reunião ADR-0004'");
     }
   });
+  await passo("ADR-0005: tesouraria monta o plano, lança e o formando vê a própria situação", async () => {
+    const turma = turmaTeste();
+    try {
+      // Sem marcação, a tesouraria não aparece nem para admin.
+      await nav.abrir("/admin/tesouraria");
+      await nav.esperar("location.pathname !== '/admin/tesouraria' && document.readyState === 'complete'", 15000, "admin sem tesouraria não entra");
+
+      await nav.abrir("/admin/membros");
+      await nav.esperarTexto("Maria Souza");
+      await nav.clicar("Pôr na tesouraria", { escopo: "Maria Souza", seletor: "button" });
+      await nav.esperarTexto("Tirar da tesouraria");
+      igual(sql(`select tesouraria from membros m join usuarios u on u.id=m.usuario_id where m.turma_id='${turma}' and u.email='teste-sh@example.invalid'`), "t", "marcada no banco");
+
+      await nav.abrir("/admin/tesouraria");
+      await nav.esperarTexto("Ainda não há plano");
+      await nav.clicar("Montar plano", { seletor: "button" });
+      await nav.preencher("#plano-quantidade", "3");
+      await nav.preencher("#plano-valor", "100");
+      await nav.preencher("#plano-primeira", "2026-10-10");
+      await nav.clicar("Salvar plano", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperarTexto("3 parcelas, R$\u00a0300,00 por pessoa");
+      igual(sql(`select string_agg(to_char(vencimento,'DD/MM'), ',' order by numero) from parcelas where turma_id='${turma}'`), "10/10,10/11,10/12", "plano no banco");
+
+      // Parcela e meia de uma vez, paga pela mãe: cobre a 1ª e metade da 2ª.
+      await nav.clicar("Lançar", { escopo: "@li[data-membro='João Lima']", seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] [name=valor]')", 10000, "formulário de lançamento");
+      await nav.preencher("[role=dialog] [name=valor]", "150");
+      await nav.preencher("[role=dialog] [name=pagoPor]", "mãe");
+      await nav.clicar("Lançar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      await dormir(2000);
+      igual(sql(`select valor || ' ' || status || ' ' || pago_por from pagamentos where turma_id='${turma}'`), "150.00 confirmado mãe", "lançamento no banco");
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao in ('papel.tesouraria','plano.alterado','pagamento.lancado')`), "3", "tudo na auditoria");
+
+      // O formando vê a própria situação.
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/minha-situacao");
+      await nav.esperarTexto("Você pagou");
+      await nav.esperarTexto("150,00"); // "R$" vem com espaço não separável
+      await nav.esperarTexto("300,00");
+      await nav.esperarTexto("Pago por mãe");
+      await nav.esperarTexto("Tesouraria: Maria Souza");
+      // E não entra na tesouraria.
+      await nav.abrir("/admin/tesouraria");
+      await nav.esperar("location.pathname === '/dashboard'", 15000, "participante volta ao dashboard");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`delete from pagamentos where turma_id='${turma}'`);
+      sql(`delete from parcelas where turma_id='${turma}'`);
+      sql(`update membros set tesouraria=false where turma_id='${turma}'`);
+    }
+  });
   await passo("relatório: vários catálogos e empate no topo", async () => {
     sql(`insert into votos (turma_id,opcao_id,usuario_id)
       select '${turmaTeste()}', o.id, u.id from usuarios u, opcoes o join enquetes e on e.id=o.enquete_id
