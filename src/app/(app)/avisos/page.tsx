@@ -5,6 +5,7 @@ import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovoAviso } from "@/components/features/form-novo-aviso";
+import { MandarParaGrupo } from "@/components/features/mandar-para-grupo";
 import { Paginacao } from "@/components/features/paginacao";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,6 +63,9 @@ export default async function AvisosPage({ searchParams }: PageProps<"/avisos">)
                   </p>
                   {ehAdmin && (
                     <div className="mt-1 flex flex-wrap gap-2 border-t pt-3">
+                      <MandarParaGrupo
+                        conteudo={{ tipo: "aviso", dados: { titulo: a.titulo, conteudo: a.conteudo } }}
+                      />
                       <FormDialog
                         rotulo="Editar aviso"
                         icone={<Pencil className="size-3.5" aria-hidden />}

@@ -36,6 +36,7 @@ import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
 import { DialogoNovaPergunta } from "@/components/features/dialogo-nova-pergunta";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormDialog } from "@/components/features/form-dialog";
+import { MandarParaGrupo } from "@/components/features/mandar-para-grupo";
 import { PreviaEnquete } from "@/components/features/previa-enquete";
 import { RenomearInline } from "@/components/features/renomear-inline";
 import { RolarParaPerguntaCriada } from "@/components/features/rolar-para-pergunta-criada";
@@ -332,6 +333,24 @@ export default async function CatalogoAdminPage(
                         posicao={categoria.enquetes.indexOf(e) + 1}
                         total={categoria.enquetes.length}
                       />
+                      {/* Pergunta decidida tem o próprio texto, no card da decisão. */}
+                      {!e.decidida && !e.oculta && (
+                        <MandarParaGrupo
+                          conteudo={{
+                            tipo: "votacao",
+                            dados: {
+                              pergunta: e.titulo,
+                              catalogoId: catalogo.id,
+                              enqueteId: e.id,
+                              prazo: e.regra.prazo,
+                              quorumPct: e.regra.quorumPct,
+                              opcoes: e.opcoes.map((o) => ({ texto: o.texto, valorPessoa: o.valorPessoa })),
+                              votantes: e.votantes,
+                              membros: catalogo.membros,
+                            },
+                          }}
+                        />
+                      )}
                       <FormDialog
                         rotulo="Prazo e quórum"
                         icone={<CalendarClock aria-hidden />}

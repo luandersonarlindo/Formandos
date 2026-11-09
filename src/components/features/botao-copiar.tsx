@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCopiar } from "@/hooks/use-copiar";
 
 // Copia um texto para a área de transferência. `montarTexto` roda só no clique,
 // para poder usar window.location (o endereço do site) sem quebrar o SSR.
@@ -19,22 +19,10 @@ export function BotaoCopiar({
   rotuloCopiado?: string;
   variante?: "default" | "outline";
 }) {
-  const [estado, setEstado] = useState<"parado" | "copiado" | "erro">("parado");
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { estado, copiar: copiarTexto } = useCopiar();
 
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
-
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(montarTexto ? montarTexto() : (texto ?? ""));
-      setEstado("copiado");
-    } catch {
-      setEstado("erro");
-    }
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setEstado("parado"), 2500);
+  function copiar() {
+    copiarTexto(montarTexto ? montarTexto() : (texto ?? ""));
   }
 
   return (

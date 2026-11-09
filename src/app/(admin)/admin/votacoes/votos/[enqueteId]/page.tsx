@@ -8,6 +8,7 @@ import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { CamposFixarDecisao } from "@/components/features/campos-fixar-decisao";
 import { FormDialog } from "@/components/features/form-dialog";
 import { HistoricoDecisoes } from "@/components/features/historico-decisoes";
+import { MandarParaGrupo } from "@/components/features/mandar-para-grupo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -143,6 +144,20 @@ export default async function VotosEnquetePage(
               justificativaAtual={dados.justificativa}
             />
           </FormDialog>
+          {decidida && (
+            <MandarParaGrupo
+              conteudo={{
+                tipo: "decisao",
+                dados: {
+                  pergunta: dados.titulo,
+                  escolhas: dados.opcoes.filter((o) => dados.decisao.includes(o.id)).map((o) => o.texto),
+                  votantes: dados.decisaoVotantes,
+                  membros: dados.decisaoMembros,
+                  justificativa: dados.justificativa,
+                },
+              }}
+            />
+          )}
           {decidida && (
             <FormDialog
               rotulo="Reabrir votação"

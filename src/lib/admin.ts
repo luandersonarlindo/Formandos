@@ -46,6 +46,8 @@ export type EnqueteAdmin = {
   votantes: number;
   opcoes: OpcaoAdmin[];
   regra: RegraAdmin;
+  // Já tem decisão fixada nesta turma (o texto "Mandar para o grupo" muda).
+  decidida: boolean;
   // Só vale para o catálogo padrão: pergunta que esta turma escolheu não ver.
   oculta: boolean;
 };
@@ -55,6 +57,8 @@ export type CatalogoDetalhe = {
   nome: string;
   padrao: boolean;
   categorias: CategoriaAdmin[];
+  // Total de membros da turma, para "Já votaram X de Y" (ADR-0004).
+  membros: number;
 };
 
 export type Votante = { id: string; nome: string; imagem: string | null };
@@ -68,6 +72,9 @@ export type VotosEnquete = {
   decisao: string[];
   // Justificativa gravada com a decisão atual (ADR-0003).
   justificativa: string | null;
+  // Fotografia do dia em que a decisão foi fixada (nula em decisões antigas).
+  decisaoVotantes: number | null;
+  decisaoMembros: number | null;
   regra: { prazo: Date | null; quorumPct: number | null };
 };
 
@@ -118,12 +125,14 @@ export async function getCatalogoAdmin(
   );
   if (cat.length === 0) return null;
 
-  const [categorias, enquetes, opcoes, votantes] = await Promise.all([
+  const [categorias, enquetes, opcoes, votantes, membros] = await Promise.all([
     pool.query("select id, nome from categorias where catalogo_id = $1 order by ordem", [catalogoId]),
     pool.query(
       `select e.id, e.categoria_id, e.titulo, e.tipo,
               exists (select 1 from enquetes_ocultas eo
                        where eo.turma_id = $2 and eo.enquete_id = e.id) as oculta,
+              exists (select 1 from decisoes d
+                       where d.turma_id = $2 and d.enquete_id = e.id) as decidida,
               r.prazo, r.quorum_pct as "quorumPct",
               coalesce(to_char(r.prazo at time zone 'America/Sao_Paulo',
                                'YYYY-MM-DD"T"HH24:MI'), '') as "prazoLocal"
@@ -155,11 +164,13 @@ export async function getCatalogoAdmin(
         group by o.enquete_id`,
       [catalogoId, turmaId],
     ),
+    pool.query("select count(*)::int as n from membros where turma_id = $1", [turmaId]),
   ]);
   const n = new Map<string, number>(votantes.rows.map((r) => [r.enquete_id, r.n]));
 
   return {
     ...cat[0],
+    membros: membros.rows[0].n,
     categorias: categorias.rows.map((c) => ({
       id: c.id,
       nome: c.nome,
@@ -171,6 +182,7 @@ export async function getCatalogoAdmin(
           tipo: e.tipo,
           votantes: n.get(e.id) ?? 0,
           oculta: e.oculta,
+          decidida: e.decidida,
           regra: { prazo: e.prazo, prazoLocal: e.prazoLocal, quorumPct: e.quorumPct },
           opcoes: opcoes.rows
             .filter((o) => o.enquete_id === e.id)
@@ -242,7 +254,7 @@ export async function getVotosEnquete(
       [turmaId, enqueteId],
     ),
     pool.query(
-      "select opcao_id, justificativa from decisoes where turma_id = $1 and enquete_id = $2",
+      "select opcao_id, justificativa, votantes, membros from decisoes where turma_id = $1 and enquete_id = $2",
       [turmaId, enqueteId],
     ),
     pool.query(
@@ -267,6 +279,8 @@ export async function getVotosEnquete(
     naoVotaram: ausentes.rows,
     decisao: decisoes.rows.map((d) => d.opcao_id),
     justificativa: decisoes.rows[0]?.justificativa ?? null,
+    decisaoVotantes: decisoes.rows[0]?.votantes ?? null,
+    decisaoMembros: decisoes.rows[0]?.membros ?? null,
     regra: regras.rows[0] ?? { prazo: null, quorumPct: null },
   };
 }

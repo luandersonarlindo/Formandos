@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { EventoAdmin as DadosEvento } from "@/lib/admin";
+import { MandarParaGrupo } from "@/components/features/mandar-para-grupo";
 import type { ItemProgramacao } from "@/lib/dashboard";
 import { formatarDiaCurto, formatarHora, paraDatetimeLocal } from "@/lib/datas";
 
@@ -59,7 +60,7 @@ export function EventoAdmin({
             {evento.nome ? `Atual: ${evento.nome}.` : "Nada preenchido ainda."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap items-center gap-2">
           <FormDialog
             rotulo="Editar dados do evento"
             icone={<Settings2 aria-hidden />}
@@ -145,6 +146,21 @@ export function EventoAdmin({
               </div>
             </div>
           </FormDialog>
+          {(evento.dataLocal || evento.local) && (
+            <MandarParaGrupo
+              conteudo={{
+                tipo: "evento",
+                dados: {
+                  nome: evento.nome,
+                  // dataLocal é horário de Brasília ("AAAA-MM-DDTHH:mm"); o Brasil
+                  // não tem horário de verão desde 2019, então o fuso é -03:00.
+                  data: evento.dataLocal ? new Date(`${evento.dataLocal}:00-03:00`) : null,
+                  local: evento.local,
+                  endereco: evento.endereco,
+                },
+              }}
+            />
+          )}
         </CardContent>
       </Card>
 
