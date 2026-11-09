@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { FormVotacaoCatalogo } from "@/components/features/form-votacao-catalogo";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
+import { AVISO_VISIBILIDADE_VOTO } from "@/lib/empresa";
 import { getCatalogoParaVotar, getNomeCatalogo } from "@/lib/votacoes";
 
 export async function generateMetadata(
@@ -70,6 +71,12 @@ export default async function CatalogoPage(
           />
         </CardHeader>
       </Card>
+
+      {/* Repetido aqui, onde a pessoa vota, e não só na lista (ADR-0001). */}
+      <p className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+        <Eye className="mt-0.5 size-4 shrink-0" aria-hidden />
+        {AVISO_VISIBILIDADE_VOTO}
+      </p>
 
       {/* top-14, e nao top-0: o cabecalho do painel (app-shell.tsx) e
           sticky em top-0 e tem a mesma altura. Com top-0 as duas barras

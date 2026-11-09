@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
+import { AVISO_VISIBILIDADE_VOTO } from "@/lib/empresa";
 import { listarCatalogos } from "@/lib/votacoes";
 
 export const metadata: Metadata = { title: "Votações" };
@@ -23,7 +24,7 @@ export default async function VotacoesPage() {
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Votações</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
         Escolha um catálogo e responda às enquetes. Você pode mudar o seu voto
-        quando quiser. O administrador vê quem votou em cada opção.
+        quando quiser. {AVISO_VISIBILIDADE_VOTO}
       </p>
 
       <div data-grupo className="mt-6 grid gap-4 md:grid-cols-2">

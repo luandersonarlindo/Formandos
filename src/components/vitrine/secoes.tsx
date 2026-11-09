@@ -21,6 +21,7 @@ import { AlternadorTema } from "@/components/features/alternador-tema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
+import { AVISO_INSTITUCIONAL } from "@/lib/empresa";
 
 const REPOSITORIO = "https://github.com/luandersonarlindo/Formandos";
 
@@ -503,7 +504,10 @@ export function Rodape() {
   return (
     <footer className="border-t">
       <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-col gap-4 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <p>Formandos 🎓 · Gestão administrativa de formaturas e eventos</p>
+        <div className="flex max-w-xl flex-col gap-1">
+          <p>Formandos 🎓 · Gestão administrativa de formaturas e eventos</p>
+          <p className="text-xs text-pretty">{AVISO_INSTITUCIONAL}</p>
+        </div>
         <nav aria-label="Links do projeto" className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link href="/privacidade" className="py-1 hover:text-foreground pointer-coarse:py-2">
             Privacidade

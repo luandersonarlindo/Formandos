@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exigirSessao } from "@/lib/dal";
-import { DPO } from "@/lib/empresa";
+import { AVISO_INSTITUCIONAL_CURTO, DPO } from "@/lib/empresa";
 import { ehMaster } from "@/lib/master";
 import { getImpactoExclusaoConta } from "@/lib/usuarios";
 
@@ -90,6 +90,10 @@ export default async function ContaPage() {
             Para acessar, corrigir, anonimizar ou reclamar dos seus dados, fale
             com o encarregado: {DPO.nome} — {DPO.email}.
           </CardDescription>
+          {/* Quem mantém o site (ADR-0001). */}
+          <p className="text-sm text-muted-foreground text-pretty">
+            {AVISO_INSTITUCIONAL_CURTO}
+          </p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <a href={`mailto:${DPO.email}`} className={buttonVariants({ variant: "outline" })}>
@@ -97,6 +101,9 @@ export default async function ContaPage() {
           </a>
           <Link href="/privacidade" className={buttonVariants({ variant: "ghost" })}>
             Política de Privacidade
+          </Link>
+          <Link href="/termos" className={buttonVariants({ variant: "ghost" })}>
+            Termos de Uso
           </Link>
         </CardContent>
       </Card>
