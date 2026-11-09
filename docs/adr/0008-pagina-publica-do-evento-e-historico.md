@@ -109,12 +109,26 @@ No histórico, a decisão importante é a tabela de quem vê o quê. Ela mantém
 
 ## Ações
 
-1. [ ] Backup (`pg_dump`). `db/schema.sql`: `turmas.token_publico` (único) e `turmas.evento_atualizado_em`.
-2. [ ] `src/lib/auditoria-acoes.ts`: `evento.alterado` (visível à turma), `evento.link_publico` e `fornecedor.alterado` (comissão); conjuntos por público (`turma`, `comissao`, `tesouraria`) com teste.
-3. [ ] `src/lib/historico-texto.ts` (novo, puro, com teste): `descreverAcao` para todas as ações; `historico-decisoes.tsx` passa a usar.
-4. [ ] `salvarEvento`: grava `evento.alterado` e atualiza `evento_atualizado_em` só quando algo muda; ações da programação também atualizam. `atualizarFornecedor`: grava `fornecedor.alterado`.
-5. [ ] Link público: `ligarPaginaPublica`, `trocarLinkPublico`, `desligarPaginaPublica`; bloco no card "Dados do evento"; "Mandar para o grupo" e o email "Mudou" usam o link público quando ligado.
-6. [ ] `/evento/[token]`: página pública (dados, programação, "Atualizado em", última mudança, "Evento encerrado"), `noindex`, `no-referrer`, 404 próprio.
-7. [ ] Última mudança no card do evento do dashboard da turma.
-8. [ ] `/admin/turma/historico`: lista com filtro e paginação, respeitando a tabela de quem vê o quê; link no menu da comissão ou em `/admin/turma`.
-9. [ ] Textos revisados com `design:ux-copy`; página pública e histórico conferidos em 360px; `typecheck`, `npm test` e passo novo em `fluxos.mjs` (ligar o link, abrir sem login, mudar o horário e ver "Mudou", trocar o link e o antigo dar 404, histórico da comissão sem pagamentos para quem não é tesouraria).
+1. [x] Backup (`pg_dump`). `db/schema.sql`: `turmas.token_publico` (único) e `turmas.evento_atualizado_em`.
+2. [x] `src/lib/auditoria-acoes.ts`: `evento.alterado` (visível à turma), `evento.link_publico` e `fornecedor.alterado` (comissão); conjuntos por público (`turma`, `comissao`, `tesouraria`) com teste.
+3. [x] `src/lib/historico-texto.ts` (novo, puro, com teste): `descreverAcao` para todas as ações; `historico-decisoes.tsx` passa a usar.
+4. [x] `salvarEvento`: grava `evento.alterado` e atualiza `evento_atualizado_em` só quando algo muda; ações da programação também atualizam. `atualizarFornecedor`: grava `fornecedor.alterado`.
+5. [x] Link público: `ligarPaginaPublica`, `trocarLinkPublico`, `desligarPaginaPublica`; bloco no card "Dados do evento"; "Mandar para o grupo" e o email "Mudou" usam o link público quando ligado.
+6. [x] `/evento/[token]`: página pública (dados, programação, "Atualizado em", última mudança, "Evento encerrado"), `noindex`, `no-referrer`, 404 próprio.
+7. [x] Última mudança no card do evento do dashboard da turma.
+8. [x] `/admin/turma/historico`: lista com filtro e paginação, respeitando a tabela de quem vê o quê; link no menu da comissão ou em `/admin/turma`.
+9. [x] Textos revisados com `design:ux-copy`; página pública e histórico conferidos em 360px; `typecheck`, `npm test` e passo novo em `fluxos.mjs` (ligar o link, abrir sem login, mudar o horário e ver "Mudou", trocar o link e o antigo dar 404, histórico da comissão sem pagamentos para quem não é tesouraria).
+
+### Andamento (2026-11-09)
+
+Todas as ações feitas.
+
+- `src/lib/auditoria-acoes.ts`: `evento.alterado` (visível à turma), `evento.link_publico` e `fornecedor.alterado`; `ACOES_SO_TESOURARIA`, `ACOES_FORA_DO_HISTORICO` e `acoesVisiveis(publico)`, com teste.
+- `src/lib/historico-texto.ts` (`descreverAcao`, 7 testes, inclusive "toda ação tem frase" e "nunca mostra email"); `historico-decisoes.tsx` passou a usar.
+- `salvarEvento` grava `evento.alterado` e só atualiza `evento_atualizado_em` quando algum campo muda (`is distinct from`); as três ações da programação também atualizam. `atualizarFornecedor` grava `fornecedor.alterado`.
+- Link público: `ligarPaginaPublica`, `trocarLinkPublico`, `desligarPaginaPublica` (código de 128 bits em base64url); bloco `LinkPublicoEvento` no card "Dados do evento"; `textoEvento` e o email "Mudou" usam o link público quando ligado.
+- `/evento/[token]` com `not-found` próprio, `robots: noindex, nofollow` e `referrer: no-referrer`; `src/lib/evento-publico.ts` (`getEventoPublico`, `getUltimaMudancaEvento`). Aviso "Mudou em" no dashboard da turma.
+- `/admin/turma/historico` com `listarHistoricoTurma` (filtro por assunto, 30 por página, nome da pessoa citada), link em `/admin/turma`.
+- Testes: `typecheck`, `npm test` (294). Passo "ADR-0008" no grupo `admin` de `fluxos.mjs`. Grupo `admin`: 30 de 37, só as 7 falhas que já existiam. Página pública e histórico conferidos em 360px.
+- Ambiente: `.next/dev/types` (gerado por um `next dev` antigo no host e lido pelo `tsconfig`) tinha rotas velhas e quebrava o `tsc`; foi apagado (é gerado e ignorado pelo git).
+
