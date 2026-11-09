@@ -89,7 +89,7 @@ alter table decisoes add column if not exists fora_da_regra text[] not null defa
 - O `detalhe` guarda **textos**, não só ids, porque a opção pode ser renomeada ou apagada depois.
 - `reabrirVotacao` continua apagando as linhas de `decisoes` (é o que reabre os votos), mas antes grava `decisao.reaberta`.
 - Nova leitura `listarHistoricoDecisoes(turmaId, enqueteId?)` em `src/lib/auditoria.ts`, filtrando `acao in ('decisao.fixada', 'decisao.reaberta', 'regra.alterada')`. **Só essas ações** ficam visíveis para a turma. As outras (papel trocado, membro removido, conta excluída) continuam restritas.
-- Quem fez aparece pelo nome. Se a pessoa excluiu a conta, `usuario_id` vira nulo (`on delete set null`) e a tela mostra "ex-membro da comissão".
+- Quem fez aparece pelo nome. Se a pessoa excluiu a conta, `usuario_id` vira nulo (`on delete set null`) e a tela mostra "Conta excluída" (texto revisado no item 9; "ex-membro da comissão" seria impreciso, porque quem sai da turma continua com conta).
 
 ### 5. Valor por pessoa e link: colunas em `opcoes`, só em perguntas da turma
 

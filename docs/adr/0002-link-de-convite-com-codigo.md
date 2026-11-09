@@ -88,12 +88,19 @@ O risco novo é o redirecionamento aberto (`?voltar=https://site-falso`), e ele 
 
 ## Ações
 
-1. [ ] `src/lib/redirecionamento.ts` (novo): `destinoSeguro(voltar?: string | null): string`, com teste em `redirecionamento.test.ts` (caminho interno, `//evil`, `/\evil`, `https://`, `javascript:`, vazio, `/convite?codigo=X`).
-2. [ ] `src/proxy.ts`: anexar `voltar` no redirecionamento; em `/convite?codigo=`, gravar o cookie `convite_pendente` (só o código normalizado com `normalizarCodigo`).
-3. [ ] `src/app/(publico)/entrar/page.tsx`: ler `searchParams` (Promise), aplicar `destinoSeguro`, redirecionar quem já está logado ao destino, passar `destino` aos componentes.
-4. [ ] `src/components/features/botao-google.tsx` e `form-email-senha.tsx`: prop `destino` (padrão `/dashboard`) usada em `callbackURL` e em `router.push`.
-5. [ ] `src/app/(onboarding)/convite/page.tsx`: ler `codigo` da URL ou do cookie e passar `valorInicial` a `FormEntrarConvite` (`convite-forms.tsx`), que usa `defaultValue` no campo.
-6. [ ] `src/actions/turmas.ts` (`entrarPorConvite`): apagar o cookie `convite_pendente` quando a entrada der certo.
-7. [ ] `src/components/features/botao-convite.tsx`: gerar o link com `?codigo=` e a frase nova; texto revisado com `design:ux-copy`.
+1. [x] `src/lib/redirecionamento.ts` (novo): `destinoSeguro(voltar?: string | null): string`, com teste em `redirecionamento.test.ts` (caminho interno, `//evil`, `/\evil`, `https://`, `javascript:`, vazio, `/convite?codigo=X`).
+2. [x] `src/proxy.ts`: anexar `voltar` no redirecionamento; em `/convite?codigo=`, gravar o cookie `convite_pendente` (só o código normalizado com `normalizarCodigo`).
+3. [x] `src/app/(publico)/entrar/page.tsx`: ler `searchParams` (Promise), aplicar `destinoSeguro`, redirecionar quem já está logado ao destino, passar `destino` aos componentes.
+4. [x] `src/components/features/botao-google.tsx` e `form-email-senha.tsx`: prop `destino` (padrão `/dashboard`) usada em `callbackURL` e em `router.push`.
+5. [x] `src/app/(onboarding)/convite/page.tsx`: ler `codigo` da URL ou do cookie e passar `valorInicial` a `FormEntrarConvite` (`convite-forms.tsx`), que usa `defaultValue` no campo.
+6. [x] `src/actions/turmas.ts` (`entrarPorConvite`): apagar o cookie `convite_pendente` quando a entrada der certo.
+7. [x] `src/components/features/botao-convite.tsx`: gerar o link com `?codigo=` e a frase nova; texto revisado com `design:ux-copy`.
 8. [ ] Testar à mão no Docker (Mailpit para o email de confirmação): Google; login com email; cadastro com confirmação aberta em outro navegador; já logado; participante que já tem turma (deve ver o erro atual de `podeEntrarEmOutraTurma`); código inválido (conta tentativa como hoje).
 9. [ ] `npm run typecheck`, `npm test` e `scripts/teste/fluxos.mjs` (fluxos de entrada).
+
+### Andamento (2026-11-09)
+
+- Ações 1 a 7 feitas no commit `a5c994e`. A mensagem do convite ficou "Entre na turma "{nome}" no Formandos: {link}". O código que não depende de `node:crypto` foi para `src/lib/convite-link.ts` (`normalizarCodigo`, `linkConvite`, `codigoDoLink`, `COOKIE_CONVITE`), para rodar também no navegador e no proxy, com teste em `convite-link.test.ts`.
+- Diferença da decisão, item 3: `entrarPorConvite` apaga o cookie `convite_pendente` depois de qualquer tentativa que passou pelo limite (deu certo, código inválido ou turma arquivada), e não só quando dá certo. Um código que já foi tentado não serve mais para preencher o campo, e assim um código errado não fica voltando por 7 dias.
+- Em aberto: o teste à mão dos caminhos de login (ação 8) e os grupos `auth` e `participante` de `fluxos.mjs` (ação 9). No Docker esses grupos não rodam limpos, porque o teste lê os emails do log e lá eles vão para o Mailpit. `npm run typecheck` e `npm test` passaram.
+

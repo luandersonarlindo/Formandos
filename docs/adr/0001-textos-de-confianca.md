@@ -80,10 +80,17 @@ Tudo aqui é texto, e o custo de errar é baixo e reversível. O ponto que pesa 
 
 1. [x] Grupo cria o email do projeto (`companysexteto@gmail.com`). [ ] Definir quem lê a caixa.
 2. [ ] Opcional: perguntar à Unifacol se há objeção ao uso do nome da instituição na frase de confiança (o email já não depende dela).
-3. [x] `src/lib/empresa.ts`: trocar `DPO.email` (feito, junto com `docs/auditoria-direitos/legislacao.md` e `PSI.md`). [ ] Criar `AVISO_INSTITUCIONAL` e o texto curto do rodapé.
-4. [ ] `src/components/vitrine/secoes.tsx` (`Rodape`): mostrar `AVISO_INSTITUCIONAL`.
-5. [ ] `src/app/(onboarding)/convite/page.tsx`: mostrar `AVISO_INSTITUCIONAL` abaixo do texto de abertura.
-6. [ ] `src/app/(conta)/conta/page.tsx`: versão curta no card "Privacidade e DPO", com link para `/termos`.
-7. [ ] `src/app/(app)/votacoes/[catalogoId]/page.tsx` ou `form-votacao-catalogo.tsx`: aviso de quem vê o voto, perto do botão de salvar; mesma constante usada em `votacoes/page.tsx`.
+3. [x] `src/lib/empresa.ts`: trocar `DPO.email` (feito, junto com `docs/auditoria-direitos/legislacao.md` e `PSI.md`). [x] Criar `AVISO_INSTITUCIONAL`, `AVISO_INSTITUCIONAL_CURTO` e `AVISO_VISIBILIDADE_VOTO`.
+4. [x] `src/components/vitrine/secoes.tsx` (`Rodape`): mostrar `AVISO_INSTITUCIONAL`.
+5. [x] `src/app/(onboarding)/convite/page.tsx`: mostrar `AVISO_INSTITUCIONAL` abaixo do texto de abertura.
+6. [x] `src/app/(conta)/conta/page.tsx`: versão curta no card "Privacidade e DPO", com link para `/termos`.
+7. [x] `src/app/(app)/votacoes/[catalogoId]/page.tsx` ou `form-votacao-catalogo.tsx`: aviso de quem vê o voto, perto do botão de salvar; mesma constante usada em `votacoes/page.tsx`.
 8. [ ] Revisar os textos com `design:ux-copy` e conferir contraste e leitura por leitor de tela com `design:accessibility-review`.
 9. [ ] Rodar `npm run typecheck` e a auditoria de interface (`scripts/teste/auditoria.mjs`) nas larguras do projeto.
+
+### Andamento (2026-11-09)
+
+- Ações 3 a 7 feitas no commit `20ac79c`. A frase completa aparece no rodapé da página inicial e em `/convite`; a curta, no card "Privacidade e DPO" de `/conta` (com link para os Termos); o aviso de quem vê o voto, na lista de votações e na tela de votar.
+- **A menção à Unifacol continua de propósito.** A troca do email resolveu o 0.1 (o endereço institucional sugeria aval da instituição). A frase do 0.2 é outra coisa: ela usa o nome só para dizer de onde o projeto vem e negar o vínculo ("Não é um site oficial da Unifacol"), que é a dúvida que as simulações levantaram mesmo sem o email. Se a Unifacol se opuser ao uso do nome (ação 2), trocar por "projeto de estudantes, não é site oficial de nenhuma instituição".
+- Em aberto: definir quem lê a caixa do `companysexteto@gmail.com` (ação 1), a consulta opcional à Unifacol (ação 2), a revisão de acessibilidade (ação 8) e a auditoria de interface nas larguras do projeto (ação 9). O `npm run typecheck` passou no commit das ações.
+
