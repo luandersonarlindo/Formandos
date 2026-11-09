@@ -211,7 +211,7 @@ O que fica de fora é grande: importar a planilha (3.4), exportar (2.1), anexo, 
 
 ### Parte 2 — "Já paguei"
 
-7. [ ] `informarPagamento` (com `consumirLimite`), `confirmarPagamento`, `recusarPagamento`; formulário em "Minha situação"; fila de informados em `/admin/tesouraria`.
+7. [x] `informarPagamento` (com `consumirLimite`), `confirmarPagamento`, `recusarPagamento`; formulário em "Minha situação"; fila de informados em `/admin/tesouraria`.
 
 ### Parte 3 — transparência
 
@@ -232,4 +232,10 @@ O que fica de fora é grande: importar a planilha (3.4), exportar (2.1), anexo, 
 - `alterarPapel` tira a marcação de tesouraria de quem deixa de ser admin.
 - `plano.alterado` já é gravado, mas ainda não entra em `ACOES_VISIVEIS_TURMA`: a lista "Mudanças no plano" é da Parte 3.
 - Testes: 15 de `situacao-regras` (parcial, dupla, adiantado, devolução, ajuste, centavos, dia 31, ano bissexto, fuso). Passo "ADR-0005" no grupo `admin` de `fluxos.mjs`: admin sem marcação não entra, marcar tesouraria, montar plano, lançar R$ 150 pagos pela mãe, o formando vê a própria situação e não entra na tesouraria. Grupo `admin`: 25 de 32, só as falhas que já existiam. Telas conferidas em 360px.
+
+**Parte 2 feita** (ação 7).
+
+- `informarPagamento` (limite de 10 por pessoa por dia, `consumirLimite`), `cancelarInforme` (o próprio formando, só enquanto não foi conferido), `confirmarPagamento` e `recusarPagamento` (motivo obrigatório), todos com auditoria.
+- "Minha situação": botão "Já paguei" (sem escolher tipo; é sempre pagamento), informe com "Aguardando confirmação" e "Cancelar informe", recusado com "Motivo da tesouraria". Tesouraria: cartão "Aguardando sua confirmação" no topo, com "Confirmar" e "Recusar"; os mesmos botões no detalhe da pessoa.
+- Passo "ADR-0005 parte 2" no grupo `admin` de `fluxos.mjs`: informar R$ 120, confirmar, recusar outro informe com motivo e o formando ver o motivo. Grupo `admin`: 25 de 33; além das 7 falhas antigas, "o último administrador…" passou do tempo ao abrir a página (passou na rodada anterior com o mesmo código). Telas conferidas em 360px.
 
