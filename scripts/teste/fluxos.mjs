@@ -1189,6 +1189,64 @@ await grupo("admin", async () => {
       sql(`update membros set tesouraria=false where turma_id='${turma}'`);
     }
   });
+  await passo("ADR-0005 parte 2: já paguei, a tesouraria confirma ou recusa", async () => {
+    const turma = turmaTeste();
+    const estados = () => sql(`select string_agg(valor || ':' || status, ',' order by created_at) from pagamentos where turma_id='${turma}'`);
+    sql(`update membros set tesouraria=true where turma_id='${turma}' and usuario_id=(select id from usuarios where email='teste-sh@example.invalid')`);
+    for (let i = 1; i <= 3; i++) {
+      sql(`insert into parcelas (turma_id,numero,valor,vencimento) values ('${turma}',${i},100,date '2026-10-10' + ${i - 1} * interval '1 month')`);
+    }
+    try {
+      // O formando informa um pagamento.
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/minha-situacao");
+      await nav.clicar("Já paguei", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] [name=valor]')", 10000, "formulário do informe");
+      igual(await nav.ev("!!document.querySelector('[role=dialog] [name=tipo]')"), false, "formando não escolhe o tipo");
+      await nav.preencher("[role=dialog] [name=valor]", "120");
+      await nav.preencher("[role=dialog] [name=referencia]", "E999");
+      await nav.clicar("Informar pagamento", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      await dormir(2000);
+      igual(estados(), "120.00:informado", "informe no banco");
+      await nav.abrir("/minha-situacao");
+      await nav.esperarTexto("Aguardando confirmação");
+
+      // A tesouraria confirma.
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      await nav.abrir("/admin/tesouraria");
+      await nav.esperarTexto("Aguardando sua confirmação");
+      await nav.clicar("Confirmar", { escopo: "@li[data-informe='João Lima']", seletor: "button" });
+      await dormir(2000);
+      igual(estados(), "120.00:confirmado", "confirmado no banco");
+
+      // Outro informe, recusado com motivo.
+      sql(`insert into pagamentos (turma_id,usuario_id,valor,pago_em,status,lancado_por)
+        select '${turma}', id, 80, current_date, 'informado', id from usuarios where email='teste-jl@example.invalid'`);
+      await nav.abrir("/admin/tesouraria");
+      await nav.esperarTexto("Aguardando sua confirmação");
+      await nav.clicar("Recusar", { escopo: "@li[data-informe='João Lima']", seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] [name=motivo]')", 10000, "motivo da recusa");
+      await nav.preencher("[role=dialog] [name=motivo]", "não achei no extrato");
+      await nav.clicar("Recusar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      await dormir(2000);
+      igual(estados(), "120.00:confirmado,80.00:recusado", "recusado no banco");
+
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/minha-situacao");
+      await nav.esperarTexto("Motivo da tesouraria: não achei no extrato");
+      await nav.esperarTexto("120,00");
+      igual(
+        sql(`select count(*) from auditoria where turma_id='${turma}' and acao in ('pagamento.informado','pagamento.confirmado','pagamento.recusado')`),
+        "3",
+        "informe, confirmação e recusa na auditoria",
+      );
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`delete from pagamentos where turma_id='${turma}'`);
+      sql(`delete from parcelas where turma_id='${turma}'`);
+      sql(`update membros set tesouraria=false where turma_id='${turma}'`);
+    }
+  });
   await passo("relatório: vários catálogos e empate no topo", async () => {
     sql(`insert into votos (turma_id,opcao_id,usuario_id)
       select '${turmaTeste()}', o.id, u.id from usuarios u, opcoes o join enquetes e on e.id=o.enquete_id
