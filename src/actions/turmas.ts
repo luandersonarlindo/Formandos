@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import {
@@ -18,6 +18,7 @@ import {
   urlDoSite,
 } from "@/lib/email";
 import { gerarCodigoConvite, normalizarCodigo } from "@/lib/convite";
+import { COOKIE_CONVITE } from "@/lib/convite-link";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
 import type { EstadoForm } from "./tipos";
 
@@ -194,6 +195,9 @@ export async function entrarPorConvite(
         erro: "Muitas tentativas com código inválido. Tente de novo em alguns minutos.",
       };
     }
+    // O código do link de convite (cookie de reserva, ADR-0002) já foi usado:
+    // não serve mais para preencher o campo.
+    (await cookies()).delete(COOKIE_CONVITE);
     if (resultado === "invalido") return { erro: "Código de convite inválido." };
     if (resultado === "arquivada") {
       return { erro: "Esta turma foi arquivada e não aceita novos membros." };

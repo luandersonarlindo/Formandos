@@ -10,8 +10,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { normalizarEmail, validarEmailCadastro } from "@/lib/email-validacao";
+import { DESTINO_PADRAO } from "@/lib/redirecionamento";
 
-export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
+// `destino` já passou por destinoSeguro na página de login. No cadastro ele
+// vai dentro do link de confirmação, então funciona mesmo se o email for
+// aberto em outro navegador (autoSignInAfterVerification).
+export function FormEmailSenha({
+  google,
+  destino = DESTINO_PADRAO,
+}: {
+  google?: React.ReactNode;
+  destino?: string;
+}) {
   const router = useRouter();
   const [criando, setCriando] = useState(false);
   const [carregando, setCarregando] = useState(false);
@@ -54,12 +64,12 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
             name: nome,
             email,
             password: senha,
-            callbackURL: "/dashboard",
+            callbackURL: destino,
           })
         : await authClient.signIn.email({
             email,
             password: senha,
-            callbackURL: "/dashboard",
+            callbackURL: destino,
           });
 
       if (error) {
@@ -73,7 +83,7 @@ export function FormEmailSenha({ google }: { google?: React.ReactNode }) {
         setCarregando(false);
         return;
       }
-      router.push("/dashboard");
+      router.push(destino);
       router.refresh();
       // `carregando` continua true: a navegação desmonta este componente, e até
       // lá o botão não deve aceitar um segundo envio.

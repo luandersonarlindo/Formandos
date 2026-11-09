@@ -35,7 +35,7 @@ function Icone({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function FormEntrarConvite() {
+export function FormEntrarConvite({ valorInicial }: { valorInicial?: string }) {
   const [estado, acao, pendente] = useActionState(entrarPorConvite, inicial);
   return (
     <Card className="vitrine-cartao py-5 [--card-spacing:--spacing(5)]">
@@ -46,7 +46,9 @@ export function FormEntrarConvite() {
           </Icone>
           <CardTitle className="text-lg">Tenho um código de convite</CardTitle>
           <CardDescription>
-            Peça o código ao administrador da sua turma.
+            {valorInicial
+              ? "O código do seu link de convite já está preenchido. Confira e toque em Entrar na turma."
+              : "Peça o código ao administrador da sua turma."}
           </CardDescription>
         </CardHeader>
         <CardContent className="mt-4 flex flex-col gap-2">
@@ -57,6 +59,7 @@ export function FormEntrarConvite() {
             autoComplete="off"
             autoCapitalize="characters"
             placeholder="K7QM4R2X"
+            defaultValue={valorInicial}
             className="h-11 text-center font-mono text-lg tracking-[0.25em] uppercase placeholder:normal-case md:text-lg"
             required
           />

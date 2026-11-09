@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { DESTINO_PADRAO } from "@/lib/redirecionamento";
 
 function IconeGoogle() {
   return (
@@ -16,7 +17,8 @@ function IconeGoogle() {
   );
 }
 
-export function BotaoGoogle() {
+// `destino` já passou por destinoSeguro na página de login.
+export function BotaoGoogle({ destino = DESTINO_PADRAO }: { destino?: string }) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -25,7 +27,7 @@ export function BotaoGoogle() {
     setErro(null);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/dashboard",
+      callbackURL: destino,
     });
     // Em caso de sucesso o navegador é redirecionado para o Google.
     if (error) {

@@ -15,6 +15,6 @@ export function gerarCodigoConvite() {
   return codigo;
 }
 
-export function normalizarCodigo(texto: string) {
-  return texto.replace(/[\s-]/g, "").toUpperCase();
-}
+// Fica em convite-link.ts (sem node:crypto) para poder rodar no navegador.
+export { normalizarCodigo } from "./convite-link";
+

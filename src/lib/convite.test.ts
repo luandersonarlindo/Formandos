@@ -27,3 +27,4 @@ describe("normalizarCodigo", () => {
     expect(normalizarCodigo("K7QM4R2X")).toBe("K7QM4R2X");
   });
 });
+
