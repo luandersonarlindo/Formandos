@@ -996,12 +996,18 @@ await grupo("admin", async () => {
     await nav.esperarTexto("Decisão da turma");
     await nav.clicar("Fixar decisão", { seletor: "button" });
     await nav.clicar("Espaço ao Ar Livre / Chácara", { escopo: "@[role=dialog]", seletor: "label" });
+    // ADR-0003: fora da regra (não é a mais votada) a justificativa é obrigatória.
+    await nav.esperarTexto("Esta decisão foge da regra combinada.");
+    await nav.preencher("#justificativa", "A chácara mais votada não tem a data livre.");
     await nav.clicar("Fixar decisão", { escopo: "@[role=dialog]", seletor: "button" });
     await nav.esperarTexto("Decisão fixada");
     igual(sql(`select o.texto from decisoes d join opcoes o on o.id=d.opcao_id where d.turma_id='${turmaTeste()}' and d.enquete_id='${enqueteLocal()}'`), "Espaço ao Ar Livre / Chácara", "decisão no banco");
+    igual(sql(`select justificativa from decisoes where turma_id='${turmaTeste()}' and enquete_id='${enqueteLocal()}'`), "A chácara mais votada não tem a data livre.", "justificativa no banco");
     await nav.abrir("/dashboard");
     await nav.esperarTexto("Decisões da turma");
     await nav.esperarTexto("Espaço ao Ar Livre / Chácara");
+    await nav.esperarTexto("Fixada fora da regra");
+    await nav.esperarTexto("Ver histórico das decisões");
     await nav.abrir(`/votacoes/${idPadrao()}`);
     await nav.esperarTexto("Escolha da turma");
     igual(await nav.ev("[...document.querySelectorAll('label')].find((l) => l.textContent.includes('Escolha da turma')).querySelector('input').matches(':disabled')"), true, "opções desativadas");
@@ -1010,6 +1016,8 @@ await grupo("admin", async () => {
     await nav.clicar("Reabrir votação", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     igual(sql(`select count(*) from decisoes where turma_id='${turmaTeste()}'`), "0", "votação reaberta");
+    // Reabrir não apaga o rastro: fixar e reabrir ficam na auditoria (ADR-0003).
+    igual(sql(`select string_agg(acao, ',' order by id) from auditoria where turma_id='${turmaTeste()}' and acao like 'decisao.%'`), "decisao.fixada,decisao.reaberta", "histórico da decisão");
   });
   await passo("decisão fixada por outra aba: o servidor recusa o voto de quem tem a página antiga", async () => {
     sql(`delete from decisoes where turma_id='${turmaTeste()}'`);
@@ -1026,6 +1034,44 @@ await grupo("admin", async () => {
       igual(sql("select o.texto from votos v join opcoes o on o.id=v.opcao_id join usuarios u on u.id=v.usuario_id join enquetes e on e.id=o.enquete_id where u.email='teste-sh@example.invalid' and e.titulo='Onde vai ser o nosso evento?'"), antes, "o voto não mudou");
     } finally {
       sql(`delete from decisoes where turma_id='${turmaTeste()}'`);
+    }
+  });
+  await passo("ADR-0003: regra da pergunta, prazo vencido e valor por pessoa", async () => {
+    const enq = enqueteLocal();
+    const turma = turmaTeste();
+    try {
+      // Comissão salva prazo e quórum pelo diálogo; a mudança vai para a auditoria.
+      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      await nav.esperarTexto("Onde vai ser o nosso evento?");
+      await nav.clicar("Prazo e quórum", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.preencher(`#prazo-${enq}`, "2099-12-12T23:59");
+      await nav.preencher(`#quorum-${enq}`, "90");
+      await nav.clicar("Salvar regra", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperarTexto("Regra salva");
+      igual(sql(`select quorum_pct from regras_enquete where turma_id='${turma}' and enquete_id='${enq}'`), "90", "quórum no banco");
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='regra.alterada'`), "1", "regra no histórico");
+      await nav.abrir(`/votacoes/${idPadrao()}`);
+      await nav.esperarTexto("precisa de 90% da turma");
+
+      // Prazo vencido: a pergunta aparece encerrada e as opções ficam travadas.
+      sql(`update regras_enquete set prazo = now() - interval '1 hour' where turma_id='${turma}' and enquete_id='${enq}'`);
+      await nav.abrir(`/votacoes/${idPadrao()}`);
+      await nav.esperarTexto("O prazo terminou");
+      igual(
+        await nav.ev("[...document.querySelectorAll('fieldset')].find((f) => f.textContent.includes('Onde vai ser o nosso evento?')).querySelector('input').matches(':disabled')"),
+        true,
+        "opções travadas depois do prazo",
+      );
+
+      // Valor por pessoa numa pergunta do catálogo da turma aparece no voto.
+      const cat = sql("select id from catalogos where nome='Catálogo E2E Renomeado'");
+      const opcao = sql(`select o.id from opcoes o join enquetes e on e.id=o.enquete_id join categorias ca on ca.id=e.categoria_id where ca.catalogo_id='${cat}' order by e.ordem, o.ordem limit 1`);
+      sql(`update opcoes set valor_pessoa = 95, link = 'https://buffet.example.com/menu' where id='${opcao}'`);
+      await nav.abrir(`/votacoes/${cat}`);
+      await nav.esperarTexto("95,00 por pessoa");
+      await nav.esperarTexto("ver detalhes");
+    } finally {
+      sql(`delete from regras_enquete where turma_id='${turma}'`);
     }
   });
   await passo("relatório: vários catálogos e empate no topo", async () => {
