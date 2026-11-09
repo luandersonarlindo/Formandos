@@ -202,12 +202,12 @@ O que fica de fora é grande: importar a planilha (3.4), exportar (2.1), anexo, 
 
 ### Parte 1 — tesouraria lança, formando vê
 
-1. [ ] Backup (`pg_dump`). `db/schema.sql`: `membros.tesouraria`, `parcelas`, `pagamentos`, `turmas.regras_dinheiro`.
-2. [ ] `src/lib/situacao-regras.ts` (novo): `calcularSituacao`, `gerarPlano` (N parcelas mensais a partir de uma data, sem pular mês curto: 31/01 vira 28/02 ou 29/02), com teste (parcial, dupla, adiantado, devolução, ajuste, vencida, quitado, plano vazio).
-3. [ ] `src/lib/auditoria-acoes.ts`: as ações novas; só `plano.alterado` visível à turma.
-4. [ ] `src/lib/dal.ts`: `exigirTesouraria`, `exigirTesourariaEditavel`; `Membro` ganha `tesouraria`.
-5. [ ] `src/lib/pagamentos.ts` (novo, leituras) e `src/actions/tesouraria.ts` (novo): marcar tesouraria, salvar plano, lançar, editar e excluir lançamento. Valores com `lerValorPessoa`.
-6. [ ] Telas `/minha-situacao` e `/admin/tesouraria`, itens no menu, marcação em `/admin/membros`. Textos com `design:ux-copy`.
+1. [x] Backup (`pg_dump`). `db/schema.sql`: `membros.tesouraria`, `parcelas`, `pagamentos`, `turmas.regras_dinheiro`.
+2. [x] `src/lib/situacao-regras.ts` (novo): `calcularSituacao`, `gerarPlano` (N parcelas mensais a partir de uma data, sem pular mês curto: 31/01 vira 28/02 ou 29/02), com teste (parcial, dupla, adiantado, devolução, ajuste, vencida, quitado, plano vazio).
+3. [x] `src/lib/auditoria-acoes.ts`: as ações novas; só `plano.alterado` visível à turma.
+4. [x] `src/lib/dal.ts`: `exigirTesouraria`, `exigirTesourariaEditavel`; `Membro` ganha `tesouraria`.
+5. [x] `src/lib/pagamentos.ts` (novo, leituras) e `src/actions/tesouraria.ts` (novo): marcar tesouraria, salvar plano, lançar, editar e excluir lançamento. Valores com `lerValorPessoa`.
+6. [x] Telas `/minha-situacao` e `/admin/tesouraria`, itens no menu, marcação em `/admin/membros`. Textos com `design:ux-copy`.
 
 ### Parte 2 — "Já paguei"
 
@@ -222,3 +222,14 @@ O que fica de fora é grande: importar a planilha (3.4), exportar (2.1), anexo, 
 ### Em todas as partes
 
 11. [ ] `npm run typecheck`, `npm test`, passos novos em `scripts/teste/fluxos.mjs` (grupo `admin`) e telas conferidas em 360px.
+
+### Andamento (2026-11-09)
+
+**Parte 1 feita** (ações 1 a 6).
+
+- Leituras em `src/lib/pagamentos.ts`; ações em `src/actions/tesouraria.ts` (marcar tesouraria, montar ou refazer o plano, ajustar parcela, lançar, editar e excluir lançamento), todas com auditoria.
+- Telas: `/minha-situacao`, `/admin/tesouraria` (plano, busca, filtros "em atraso / em dia / quitados / aguardando confirmação", "Lançar" em cada pessoa) e `/admin/tesouraria/[usuarioId]` (parcelas e lançamentos da pessoa, com editar e excluir). Menu "Minha situação" para todos e "Tesouraria" só para quem é. Botão "Pôr na tesouraria" em `/admin/membros`.
+- `alterarPapel` tira a marcação de tesouraria de quem deixa de ser admin.
+- `plano.alterado` já é gravado, mas ainda não entra em `ACOES_VISIVEIS_TURMA`: a lista "Mudanças no plano" é da Parte 3.
+- Testes: 15 de `situacao-regras` (parcial, dupla, adiantado, devolução, ajuste, centavos, dia 31, ano bissexto, fuso). Passo "ADR-0005" no grupo `admin` de `fluxos.mjs`: admin sem marcação não entra, marcar tesouraria, montar plano, lançar R$ 150 pagos pela mãe, o formando vê a própria situação e não entra na tesouraria. Grupo `admin`: 25 de 32, só as falhas que já existiam. Telas conferidas em 360px.
+
