@@ -1108,6 +1108,36 @@ await grupo("admin", async () => {
       sql(`delete from votos where turma_id='${turma}' and opcao_id in (select id from opcoes where enquete_id='${enq}')`);
     }
   });
+  await passo("ADR-0004: mandar para o grupo mostra o texto pronto da pergunta e do aviso", async () => {
+    const enq = enqueteLocal();
+    const textoDoDialogo = () => nav.ev("document.querySelector('[role=dialog] #texto-grupo')?.value ?? ''");
+    await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+    await nav.esperarTexto("Onde vai ser o nosso evento?");
+    await nav.clicar("Mandar para o grupo", { escopo: `@#enq-${enq}`, seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog] #texto-grupo')", 10000, "prévia do texto");
+    const texto = await textoDoDialogo();
+    verdade(texto.startsWith("*Votação: Onde vai ser o nosso evento?*"), `primeira linha da votação: ${texto.split("\n")[0]}`);
+    verdade(texto.includes(`/votacoes/${idPadrao()}#enquete-${enq}`), "link direto para a pergunta");
+    verdade(/Já votaram \d+ de \d+\.|Ninguém votou ainda\./.test(texto), "contagem de votos");
+    verdade(!texto.includes("Maria") && !texto.includes("João"), "nenhum nome de membro no texto");
+    const link = await nav.ev("document.querySelector('[role=dialog] a[href^=\"https://wa.me/\"]')?.getAttribute('href') ?? ''");
+    verdade(link.startsWith("https://wa.me/?text=%2AVota") || link.startsWith("https://wa.me/?text=*Vota"), `link do WhatsApp: ${link.slice(0, 40)}`);
+
+    // Aviso: título, recado e link para /avisos.
+    sql(`insert into avisos (turma_id, autor_id, titulo, conteudo)
+      select '${turmaTeste()}', id, 'Reunião ADR-0004', 'Sexta às 19h na sala 3.' from usuarios where email='teste-sh@example.invalid'`);
+    try {
+      await nav.abrir("/avisos");
+      await nav.esperarTexto("Reunião ADR-0004");
+      await nav.clicar("Mandar para o grupo", { escopo: "Reunião ADR-0004", seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #texto-grupo')", 10000, "prévia do aviso");
+      const aviso = await textoDoDialogo();
+      verdade(aviso.startsWith("*Aviso da comissão: Reunião ADR-0004*\nSexta às 19h na sala 3."), `texto do aviso: ${aviso.slice(0, 60)}`);
+      verdade(aviso.trimEnd().endsWith("/avisos"), "link para os avisos");
+    } finally {
+      sql("delete from avisos where titulo='Reunião ADR-0004'");
+    }
+  });
   await passo("relatório: vários catálogos e empate no topo", async () => {
     sql(`insert into votos (turma_id,opcao_id,usuario_id)
       select '${turmaTeste()}', o.id, u.id from usuarios u, opcoes o join enquetes e on e.id=o.enquete_id
