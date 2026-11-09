@@ -215,13 +215,13 @@ O que fica de fora é grande: importar a planilha (3.4), exportar (2.1), anexo, 
 
 ### Parte 3 — transparência
 
-8. [ ] Caixa da turma e "Mudanças no plano" em "Minha situação"; "Regras do dinheiro".
-9. [ ] `saida-turma.ts`: apagar informados e recusados, manter confirmados com `usuario_id = null`; aviso no diálogo de remoção em `/admin/membros`.
-10. [ ] `getMeusDados`: lançamentos da pessoa e plano da turma.
+8. [x] Caixa da turma e "Mudanças no plano" em "Minha situação"; "Regras do dinheiro".
+9. [x] `saida-turma.ts`: apagar informados e recusados, manter confirmados com `usuario_id = null`; aviso no diálogo de remoção em `/admin/membros`.
+10. [x] `getMeusDados`: lançamentos da pessoa e plano da turma.
 
 ### Em todas as partes
 
-11. [ ] `npm run typecheck`, `npm test`, passos novos em `scripts/teste/fluxos.mjs` (grupo `admin`) e telas conferidas em 360px.
+11. [x] `npm run typecheck`, `npm test`, passos novos em `scripts/teste/fluxos.mjs` (grupo `admin`) e telas conferidas em 360px.
 
 ### Andamento (2026-11-09)
 
@@ -238,4 +238,13 @@ O que fica de fora é grande: importar a planilha (3.4), exportar (2.1), anexo, 
 - `informarPagamento` (limite de 10 por pessoa por dia, `consumirLimite`), `cancelarInforme` (o próprio formando, só enquanto não foi conferido), `confirmarPagamento` e `recusarPagamento` (motivo obrigatório), todos com auditoria.
 - "Minha situação": botão "Já paguei" (sem escolher tipo; é sempre pagamento), informe com "Aguardando confirmação" e "Cancelar informe", recusado com "Motivo da tesouraria". Tesouraria: cartão "Aguardando sua confirmação" no topo, com "Confirmar" e "Recusar"; os mesmos botões no detalhe da pessoa.
 - Passo "ADR-0005 parte 2" no grupo `admin` de `fluxos.mjs`: informar R$ 120, confirmar, recusar outro informe com motivo e o formando ver o motivo. Grupo `admin`: 25 de 33; além das 7 falhas antigas, "o último administrador…" passou do tempo ao abrir a página (passou na rodada anterior com o mesmo código). Telas conferidas em 360px.
+
+**Parte 3 feita** (ações 8 a 11). A ADR-0005 está concluída.
+
+- "Minha situação" ganhou o caixa da turma ("R$ X arrecadados de R$ Y previstos", previsto = plano × membros atuais, incluindo os confirmados de quem saiu), as regras do dinheiro e a lista recolhível "Mudanças no plano". `plano.alterado` entrou em `ACOES_VISIVEIS_TURMA`; o teste da lista fechada também passou a conferir que nenhuma ação de pagamento ou de tesouraria fica visível.
+- Tesouraria: cartão "Caixa e regras", com o total e o texto das regras (`salvarRegrasDinheiro`, até 2.000 caracteres).
+- `apagarDadosDoMembro`: apaga informes e recusados; confirmados ficam com `usuario_id`, `lancado_por` e `confirmado_por` nulos. `apagarUsuario` (excluir a conta) também apaga informes e recusados antes do delete.
+- **Ajuste em relação à decisão:** o diálogo de remover membro avisa que a pessoa tem pagamentos, mas **só mostra o valor para a tesouraria**. Para os outros admins aparece "Tem pagamentos registrados", porque o item 1 decidiu que eles não veem valores individuais.
+- `getMeusDados` inclui `pagamentos` e `planos_de_parcelas`.
+- Passo "ADR-0005 parte 3" no grupo `admin` de `fluxos.mjs`: regras, ajuste de parcela, remoção de um membro com pagamento confirmado e informe pendente, e o formando vendo caixa, regras e mudança no plano sem o nome de quem saiu. Grupo `admin`: 27 de 34, só as 7 falhas antigas. Telas conferidas em 360px.
 
