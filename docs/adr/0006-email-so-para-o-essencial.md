@@ -143,12 +143,26 @@ O agendador é a parte cara. A rota protegida com marcação de "já enviado" é
 
 ## Ações
 
-1. [ ] Backup (`pg_dump`). `db/schema.sql`: `usuarios.receber_emails`, tabela `lembretes_enviados`.
-2. [ ] `src/lib/lembretes-regras.ts` (novo, puro, com teste): quais votações e parcelas entram na janela de 2 dias (fuso de Brasília, prazo passado não entra, parcela paga não entra) e o que mudou no evento (data, horário, local, endereço; "antes → agora").
-3. [ ] `src/lib/email.ts`: modelos `emailDecisao`, `emailEventoMudou`, `emailPrazoVotacao`, `emailPrazoParcela` (assunto com a palavra-chave, rodapé com o link para desligar) e `enviarParaTurma` com o teto diário. Teste dos modelos em `email.test.ts`.
-4. [ ] `fixarDecisao` e `salvarEvento`: montar a lista (membros com `receber_emails`, menos quem fez) e enviar em `after()`. `salvarEvento` lê o estado anterior na mesma transação.
-5. [ ] `src/app/api/cron/lembretes/route.ts` com `CRON_SECRET`; marcação em `lembretes_enviados`; hora da última execução em `/api/healthz`.
-6. [ ] `compose.yaml`: serviço `cron` chamando a rota de hora em hora; `.env.example` com `CRON_SECRET`; README com a nota de provedor.
-7. [ ] `/conta`: interruptor "Receber emails da turma"; `/privacidade`: linha sobre esses emails; `getMeusDados` inclui a preferência.
-8. [ ] Textos dos 4 emails revisados com `design:ux-copy`.
-9. [ ] `npm run typecheck`, `npm test`, passo novo em `fluxos.mjs` (fixar decisão e conferir os emails no Mailpit; mudar o horário do evento; chamar a rota de lembretes duas vezes e conferir que não repete) e teste à mão no Mailpit (`http://localhost:8025`) em largura de celular.
+1. [x] Backup (`pg_dump`). `db/schema.sql`: `usuarios.receber_emails`, tabela `lembretes_enviados`.
+2. [x] `src/lib/lembretes-regras.ts` (novo, puro, com teste): quais votações e parcelas entram na janela de 2 dias (fuso de Brasília, prazo passado não entra, parcela paga não entra) e o que mudou no evento (data, horário, local, endereço; "antes → agora").
+3. [x] `src/lib/email.ts`: modelos `emailDecisao`, `emailEventoMudou`, `emailPrazoVotacao`, `emailPrazoParcela` (assunto com a palavra-chave, rodapé com o link para desligar) e `enviarParaTurma` com o teto diário. Teste dos modelos em `email.test.ts`.
+4. [x] `fixarDecisao` e `salvarEvento`: montar a lista (membros com `receber_emails`, menos quem fez) e enviar em `after()`. `salvarEvento` lê o estado anterior na mesma transação.
+5. [x] `src/app/api/cron/lembretes/route.ts` com `CRON_SECRET`; marcação em `lembretes_enviados`; hora da última execução em `/api/healthz`.
+6. [x] `compose.yaml`: serviço `cron` chamando a rota de hora em hora; `.env.example` com `CRON_SECRET`; README com a nota de provedor.
+7. [x] `/conta`: interruptor "Receber emails da turma"; `/privacidade`: linha sobre esses emails; `getMeusDados` inclui a preferência.
+8. [x] Textos dos 4 emails revisados com `design:ux-copy`.
+9. [x] `npm run typecheck`, `npm test`, passo novo em `fluxos.mjs` (fixar decisão e conferir os emails no Mailpit; mudar o horário do evento; chamar a rota de lembretes duas vezes e conferir que não repete) e teste à mão no Mailpit (`http://localhost:8025`) em largura de celular.
+
+### Andamento (2026-11-09)
+
+Todas as ações feitas.
+
+- Esquema: `usuarios.receber_emails`, `lembretes_enviados` e, a mais, `cron_execucoes` (hora da última rodada, lida pelo `/api/healthz`).
+- `src/lib/lembretes-regras.ts` (17 testes); modelos `emailDecisao`, `emailEventoMudou`, `emailPrazoVotacao` e `emailPrazoParcela` em `src/lib/email.ts` (12 testes novos: assunto com a palavra-chave e o caminho para desligar); `src/lib/email-turma.ts` com `destinatariosDaTurma` (só quem aceita email e tem email confirmado, menos quem fez a ação) e `enviarParaTurma` com o teto de `EMAIL_TETO_DIA` (padrão 400) na tabela `throttle`.
+- `fixarDecisao` e `salvarEvento` enviam em `after()`. `salvarEvento` passou a gravar numa transação que lê o estado anterior. Preencher data, local ou endereço pela primeira vez não manda email.
+- `src/lib/lembretes.ts` e `GET /api/cron/lembretes`: 404 sem `CRON_SECRET`, 401 com senha errada (comparação em tempo constante), trava `pg_try_advisory_lock` contra duas rodadas juntas. Se o teto diário acabar no meio, para e continua na próxima hora.
+- `compose.yaml`: serviço `cron` (`curlimages/curl:8.11.1`), primeira chamada 1 minuto depois de subir e depois de hora em hora. `CRON_SECRET` gerado no `.env.local` e documentado no `.env.example`, com `EMAIL_TETO_DIA`.
+- `/conta`: "Parar de receber emails da turma" / "Voltar a receber". `/privacidade`: seção "Emails da turma". `getMeusDados`: `receber_emails`. `proxy.ts`: `/minha-situacao` e `/avisos` entram no matcher, para os links dos emails voltarem à página certa depois do login.
+- **Correção encontrada no teste em 360px:** todos os emails do app (os antigos também) saíam mais largos que a tela do celular e cortavam o texto, porque a tabela tinha `width:600px` e o `max-width:100%` era ignorado. Agora é `width:100%` com `max-width:600px`.
+- Testes: `typecheck`, `npm test` (261). Teste à mão no Mailpit: a rota de lembretes chamada duas vezes mandou 4 emails e depois 0. Passo "ADR-0006" no grupo `admin` de `fluxos.mjs` (decisão chega ao participante e não a quem fixou; mudança de local chega; quem desligou não recebe; lembrete chamado duas vezes chega uma vez; rota sem senha recusa). Grupo `admin`: 29 de 35, só falhas que já existiam.
+
