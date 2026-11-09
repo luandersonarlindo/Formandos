@@ -1,6 +1,6 @@
 # ADR-0001: Textos de confiança (nível 0 do levantamento)
 
-**Status:** Proposto
+**Status:** Aceito
 **Data:** 2026-11-08
 **Decisores:** grupo do Formandos (4 integrantes); o item 0.1 depende de resposta da Unifacol
 **Origem:** `docs/simulacoes/levantamento.md`, itens 0.1, 0.2 e 0.3 (achados B e H)
@@ -25,7 +25,7 @@ Forças em jogo:
 2. **0.2 — Frase de confiança:** acrescentar em `src/lib/empresa.ts` uma constante `AVISO_INSTITUCIONAL` com uma frase curta, do tipo: *"O Formandos é um projeto gratuito de alunos da Unifacol, mantido por {responsável}. Não é um site oficial da Unifacol. Você pode baixar seus dados e excluir sua conta a qualquer momento."* (texto final revisado com `design:ux-copy`). A frase é mostrada em três lugares:
    - rodapé da página inicial (`Rodape`);
    - topo do card de `/convite`, abaixo do título;
-   - rodapé do menu lateral (`app-shell.tsx`, que já aceita a prop `rodape`), em forma curta com link para `/termos`.
+   - card "Privacidade e DPO" de Minha conta (`src/app/(conta)/conta/page.tsx`), em forma curta, com link para `/termos`. (Antes previsto no rodapé do menu lateral; o grupo preferiu não ocupar o menu.)
 3. **0.3 — Quem vê o voto:** levar o texto que já existe em `votacoes/page.tsx` para uma constante compartilhada e mostrá-lo também na tela de votar, logo acima do botão de salvar, com o mesmo tom: *"A comissão vê em qual opção você votou. A turma vê só os totais."*
 
 ## Opções consideradas
@@ -83,7 +83,7 @@ Tudo aqui é texto, e o custo de errar é baixo e reversível. O ponto que pesa 
 3. [x] `src/lib/empresa.ts`: trocar `DPO.email` (feito, junto com `docs/auditoria-direitos/legislacao.md` e `PSI.md`). [ ] Criar `AVISO_INSTITUCIONAL` e o texto curto do rodapé.
 4. [ ] `src/components/vitrine/secoes.tsx` (`Rodape`): mostrar `AVISO_INSTITUCIONAL`.
 5. [ ] `src/app/(onboarding)/convite/page.tsx`: mostrar `AVISO_INSTITUCIONAL` abaixo do texto de abertura.
-6. [ ] `src/components/features/app-shell.tsx`: versão curta no rodapé do menu, com link para `/termos`.
+6. [ ] `src/app/(conta)/conta/page.tsx`: versão curta no card "Privacidade e DPO", com link para `/termos`.
 7. [ ] `src/app/(app)/votacoes/[catalogoId]/page.tsx` ou `form-votacao-catalogo.tsx`: aviso de quem vê o voto, perto do botão de salvar; mesma constante usada em `votacoes/page.tsx`.
 8. [ ] Revisar os textos com `design:ux-copy` e conferir contraste e leitura por leitor de tela com `design:accessibility-review`.
 9. [ ] Rodar `npm run typecheck` e a auditoria de interface (`scripts/teste/auditoria.mjs`) nas larguras do projeto.

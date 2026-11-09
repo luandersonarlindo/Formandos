@@ -1,6 +1,6 @@
 # ADR-0002: Link de convite com código embutido e retorno depois do login (item 1.1)
 
-**Status:** Proposto
+**Status:** Aceito
 **Data:** 2026-11-08
 **Decisores:** grupo do Formandos
 **Origem:** `docs/simulacoes/levantamento.md`, item 1.1 (achado G: simulações 1, 3, 4, 6 e 8; validado na simulação 10)
