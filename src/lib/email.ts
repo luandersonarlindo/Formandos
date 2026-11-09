@@ -539,3 +539,33 @@ export function emailPrazoParcela(d: {
     }),
   };
 }
+
+// Convite por lista (ADR-0007). A pessoa ainda não é usuária: o email diz
+// quem colou o endereço, que nada foi criado e que o endereço some em 90 dias.
+export function emailConviteTurma(d: {
+  nome: string | null;
+  turma: string;
+  convidadoPor: string;
+  link: string;
+}): Omit<Email, "para"> {
+  const oi = d.nome ? `Olá, ${d.nome}!` : "Olá!";
+  const motivo = `Você recebe este email porque ${d.convidadoPor}, da comissão da turma ${d.turma}, pôs seu endereço na lista de convites do Formandos. Nenhuma conta foi criada. Se não for você, ignore: o endereço é apagado em 90 dias.`;
+  return {
+    assunto: `Convite: entre na turma ${d.turma} no Formandos`,
+    texto: [
+      `${oi} ${d.convidadoPor} convidou você para a turma ${d.turma} no Formandos, onde a turma vota, acompanha as decisões e organiza a formatura.`,
+      `Para entrar, abra o link e entre com Google ou com email: ${d.link}`,
+      `—\n${motivo}`,
+    ].join("\n\n"),
+    html: caixaEmail({
+      preheader: `${d.convidadoPor} convidou você para a turma ${d.turma}.`,
+      titulo: `Entre na turma ${d.turma}`,
+      motivo,
+      corpo:
+        p(`${escapar(oi)} <strong>${escapar(d.convidadoPor)}</strong> convidou você para a turma <strong>${escapar(d.turma)}</strong> no Formandos, onde a turma vota, acompanha as decisões e organiza a formatura.`) +
+        p("Abra o link e entre com Google ou com email. O código da turma já vai junto.") +
+        botao(d.link, "Entrar na turma") +
+        linkCru(d.link),
+    }),
+  };
+}

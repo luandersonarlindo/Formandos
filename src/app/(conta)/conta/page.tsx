@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BellOff, BellRing, Download, MailQuestion, TriangleAlert } from "lucide-react";
+import { BellOff, BellRing, Download, FileText, MailQuestion, TriangleAlert } from "lucide-react";
 import { alternarEmailsDaTurma, excluirMinhaConta, atualizarMeuNome } from "@/actions/conta";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { FormAcao } from "@/components/features/form-acao";
@@ -100,7 +100,10 @@ export default async function ContaPage() {
             presenças, dúvidas, tarefas e avisos. Sem senha, sem token.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-2">
+          <Link href="/conta/meus-dados" className={buttonVariants()}>
+            <FileText className="size-4" aria-hidden /> Ver e salvar em PDF
+          </Link>
           <Link href="/conta/exportar" download className={buttonVariants({ variant: "outline" })}>
             <Download className="size-4" aria-hidden /> Baixar JSON
           </Link>

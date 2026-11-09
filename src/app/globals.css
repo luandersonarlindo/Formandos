@@ -300,3 +300,18 @@ html:not([data-tema]) [data-tema-icone="sistema"] {
     align-items: center;
   }
 }
+
+/* Impressão (ADR-0007: "Registro da turma" e "Meus dados" salvos em PDF pelo
+   navegador): some o menu lateral, inclusive o espaço que ele reserva, e o
+   conteúdo usa a página inteira. O cabeçalho usa print:hidden no app-shell. */
+@media print {
+  [data-slot="sidebar"],
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"] {
+    display: none !important;
+  }
+  html {
+    font-size: 90%;
+  }
+}
+

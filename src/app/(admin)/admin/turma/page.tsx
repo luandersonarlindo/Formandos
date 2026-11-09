@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { Archive, ArchiveRestore, TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { Archive, ArchiveRestore, FileDown, FileText, TriangleAlert } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { ROTULO_EXPORTACAO, TIPOS_EXPORTACAO } from "@/lib/exportacao";
 import { arquivarTurma, desarquivarTurma, excluirTurmaDoAdmin } from "@/actions/gestao-turma";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormDialog } from "@/components/features/form-dialog";
@@ -24,6 +27,38 @@ export default async function GestaoTurmaPage() {
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
         Arquive a turma quando o evento acabar, ou exclua de vez. Vale para os administradores da turma.
       </p>
+
+      {/* ADR-0007: o registro sai do site, para prestar contas e guardar. */}
+      <Card className="mt-6">
+        <CardHeader>
+          <span className="mb-1 flex size-10 items-center justify-center rounded-lg border bg-muted/50 text-[var(--vitrine-a)]">
+            <FileDown className="size-5" aria-hidden />
+          </span>
+          <CardTitle className="text-lg">Exportar o registro da turma</CardTitle>
+          <CardDescription className="text-pretty">
+            O registro em PDF traz decisões, resultados, presença, fornecedores, caixa e histórico, sem dados
+            pessoais além dos nomes da comissão: dá para repassar à turma. As planilhas trazem o detalhe e ficam
+            com a comissão. Cada download fica registrado.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <Link href="/admin/turma/registro" className={buttonVariants({ className: "self-start" })}>
+            <FileText aria-hidden /> Ver e salvar o registro em PDF
+          </Link>
+          <div className="flex flex-wrap gap-2">
+            {TIPOS_EXPORTACAO.filter((t) => t !== "pagamentos" || admin.tesouraria).map((t) => (
+              <a
+                key={t}
+                href={`/admin/turma/exportar?tipo=${t}`}
+                download
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                <FileDown aria-hidden /> {ROTULO_EXPORTACAO[t]} (planilha)
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="mt-6">
         <CardHeader>

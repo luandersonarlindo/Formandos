@@ -397,3 +397,16 @@ create table if not exists cron_execucoes (
   ultima  timestamptz not null default now(),
   detalhe jsonb not null default '{}'
 );
+
+-- Convites por lista (ADR-0007): emails que a comissão colou e que ainda não
+-- entraram na turma. Ninguém ganha conta nem entra sem clicar no link. A linha
+-- some quando a pessoa entra, quando a comissão tira da lista ou 90 dias depois
+-- do último envio (rota de lembretes).
+create table if not exists convites_email (
+  turma_id    uuid not null references turmas(id) on delete cascade,
+  email       varchar(255) not null,
+  nome        varchar(120),
+  enviado_por uuid references usuarios(id) on delete set null,
+  enviado_em  timestamptz not null default now(),
+  primary key (turma_id, email)
+);

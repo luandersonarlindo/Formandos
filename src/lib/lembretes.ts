@@ -126,6 +126,9 @@ export async function rodarLembretes(): Promise<{ rodou: boolean; votacao: numbe
     try {
       const votacao = await lembrarVotacoes();
       const parcela = await lembrarParcelas(hojeBrasil());
+      // Convites por lista sem resposta há 90 dias saem (ADR-0007): o site não
+      // guarda email de quem não entrou por mais tempo que isso.
+      await pool.query("delete from convites_email where enviado_em < now() - interval '90 days'");
       await pool.query(
         `insert into cron_execucoes (nome, ultima, detalhe) values ('lembretes', now(), $1)
          on conflict (nome) do update set ultima = excluded.ultima, detalhe = excluded.detalhe`,

@@ -58,6 +58,15 @@ export default function PrivacidadePage() {
           </p>
         </section>
         <section>
+          <h2 className="font-semibold">Convites por email</h2>
+          <p className="mt-1 text-muted-foreground">
+            A comissão pode colar uma lista de emails para convidar a turma. Quem
+            recebe o convite não ganha conta nem entra na turma sem tocar no link. O
+            endereço de quem não entrou é apagado em 90 dias, ou antes, se a comissão
+            tirar da lista.
+          </p>
+        </section>
+        <section>
           <h2 className="font-semibold">Seus direitos (LGPD, art. 18)</h2>
           <p className="mt-1 text-muted-foreground">
             Confirmar, acessar, corrigir, anonimizar, bloquear, eliminar, levar

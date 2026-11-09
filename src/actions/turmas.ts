@@ -181,6 +181,11 @@ export async function entrarPorConvite(
          values ($1, $2, 'participante')`,
         [rows[0].id, usuario.id],
       );
+      // Entrou: sai da lista de convidados por email (ADR-0007).
+      await db.query("delete from convites_email where turma_id = $1 and email = lower($2)", [
+        rows[0].id,
+        usuario.email,
+      ]);
       return {
         entrou: true as const,
         turmaId: rows[0].id as string,

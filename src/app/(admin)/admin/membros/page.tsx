@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Crown, Landmark, RefreshCw, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
+import { Crown, Landmark, ListPlus, MailCheck, RefreshCw, RotateCw, X, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
 import { alterarPapel, regenerarConvite, removerMembro } from "@/actions/admin";
 import { alternarTesouraria } from "@/actions/tesouraria";
+import { removerConvite, reenviarConvite } from "@/actions/convites";
+import { FormConvitesLista } from "@/components/features/form-convites-lista";
+import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
+import { formatarDataHora } from "@/lib/datas";
 import { BotaoConvite } from "@/components/features/botao-convite";
 import { BotaoCopiar } from "@/components/features/botao-copiar";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
@@ -28,13 +32,20 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
   const admin = await exigirAdmin();
   const { busca: buscaParametro, pagina: paginaParametro } = await searchParams;
   const busca = lerBusca(buscaParametro);
-  const [{ rows: membros }, { itens: rows, pagina, totalPaginas, totais, encontrados }] =
+  const [{ rows: membros }, { itens: rows, pagina, totalPaginas, totais, encontrados }, { rows: convidados }] =
     await Promise.all([
       pool.query("select codigo_convite from turmas where id = $1", [admin.turmaId]),
       listarMembrosAdmin(admin.turmaId, {
         busca,
         pagina: lerPagina(paginaParametro),
       }),
+      // Convidados por lista que ainda não entraram (ADR-0007).
+      pool.query(
+        `select email, nome, enviado_em as "enviadoEm",
+                enviado_em < now() - interval '1 day' as "podeReenviar"
+           from convites_email where turma_id = $1 order by enviado_em desc`,
+        [admin.turmaId],
+      ),
     ]);
   const codigo: string = membros[0].codigo_convite;
   const totalAdmins = totais.admins;
@@ -93,6 +104,64 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
               rotuloPendente="Gerando…"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ADR-0007: trazer a lista da turma de uma vez, por convite. */}
+      <Card className="mt-4">
+        <CardHeader>
+          <p className="flex items-center gap-2 text-lg font-semibold">
+            <ListPlus className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Convidar por lista
+          </p>
+          <CardDescription className="text-pretty">
+            Cole os emails da turma e cada pessoa recebe o link de convite por email. Ninguém ganha conta nem entra
+            sem tocar no link.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <FormConvitesLista />
+          {convidados.length > 0 && (
+            <PainelRecolhivel className="rounded-xl border p-3">
+              <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                <MailCheck className="size-4 text-[var(--vitrine-a)]" aria-hidden />
+                Convidados que ainda não entraram ({convidados.length})
+              </summary>
+              <ul className="mt-3 divide-y text-sm">
+                {convidados.map((c) => (
+                  <li key={c.email} data-convidado={c.email} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                    <span className="min-w-0 flex-1 truncate">
+                      {c.nome ? `${c.nome} · ` : ""}
+                      {c.email}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      enviado em {formatarDataHora.format(c.enviadoEm)}
+                    </span>
+                    {!admin.arquivadaEm && (
+                      <span className="flex gap-1">
+                        {c.podeReenviar && (
+                          <form action={reenviarConvite}>
+                            <input type="hidden" name="email" value={c.email} />
+                            <Button type="submit" size="sm" variant="outline">
+                              <RotateCw aria-hidden /> Reenviar
+                            </Button>
+                          </form>
+                        )}
+                        <form action={removerConvite}>
+                          <input type="hidden" name="email" value={c.email} />
+                          <Button type="submit" size="sm" variant="ghost" aria-label={`Tirar ${c.email} da lista`}>
+                            <X aria-hidden />
+                          </Button>
+                        </form>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Reenvio no máximo uma vez por dia. O endereço some quando a pessoa entra, ou em 90 dias.
+              </p>
+            </PainelRecolhivel>
+          )}
         </CardContent>
       </Card>
 

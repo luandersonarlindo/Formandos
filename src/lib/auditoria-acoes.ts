@@ -22,6 +22,8 @@ export const ACOES_AUDITORIA = [
   "pagamento.recusado",
   "pagamento.editado",
   "pagamento.excluido",
+  // ADR-0007: download de planilha da turma (quem levou a lista de emails?).
+  "turma.exportada",
 ] as const;
 export type AcaoAuditoria = (typeof ACOES_AUDITORIA)[number];
 

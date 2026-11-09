@@ -198,7 +198,7 @@ export async function AppShell({
         </Sidebar>
 
         <SidebarInset>
-          <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur">
+          <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur print:hidden">
             <SidebarTrigger />
             <Link href="/dashboard" className="shrink-0 text-lg font-semibold tracking-tight whitespace-nowrap md:hidden">
               Formandos <span aria-hidden>🎓</span>
