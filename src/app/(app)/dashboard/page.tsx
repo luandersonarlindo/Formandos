@@ -352,14 +352,14 @@ export default async function DashboardPage() {
                           <Badge variant="secondary">Dentro da regra</Badge>
                         ) : (
                           <Badge variant="outline" className="text-amber-700 dark:text-amber-400">
-                            Fixada fora da regra
+                            Fora da regra
                           </Badge>
                         )}
                       </dd>
                     )}
                     {d.justificativa && (
                       <dd className="mt-1 text-xs text-pretty text-muted-foreground">
-                        Motivo: “{d.justificativa}”
+                        Motivo da comissão: “{d.justificativa}”
                       </dd>
                     )}
                   </div>

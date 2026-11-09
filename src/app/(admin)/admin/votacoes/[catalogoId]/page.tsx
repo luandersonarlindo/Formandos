@@ -354,7 +354,7 @@ export default async function CatalogoAdminPage(
                         </div>
                         <div className="flex flex-col gap-1.5">
                           <Label htmlFor={`quorum-${e.id}`} className="text-xs">
-                            Quórum mínimo, em % da turma (opcional)
+                            Quórum: mínimo de votos, em % da turma (opcional)
                           </Label>
                           <Input
                             id={`quorum-${e.id}`}
@@ -367,7 +367,7 @@ export default async function CatalogoAdminPage(
                           />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Deixe em branco para tirar. Toda mudança aparece no histórico da turma.
+                          Deixe em branco para não ter prazo ou quórum. Toda mudança aparece no histórico da turma.
                         </p>
                       </FormDialog>
                       {!editavel && (

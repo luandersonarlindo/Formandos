@@ -18,7 +18,7 @@ export const TEXTO_MOTIVO: Record<MotivoForaDaRegra, string> = {
   sem_votos: "Ninguém votou nesta pergunta.",
   nao_mais_votada: "A opção escolhida não é a mais votada.",
   empate: "A opção escolhida está empatada com outra.",
-  sem_quorum: "Votou menos gente do que o quórum combinado.",
+  sem_quorum: "Votou menos gente que o quórum (mínimo de votos) combinado.",
   antes_do_prazo: "O prazo da votação ainda não terminou e falta gente votar.",
 };
 
@@ -74,10 +74,10 @@ export function validarJustificativa(
 ): string | null {
   const limpo = texto.trim();
   if (limpo.length > JUSTIFICATIVA_MAX) {
-    return `A justificativa pode ter no máximo ${JUSTIFICATIVA_MAX} caracteres.`;
+    return `O motivo pode ter no máximo ${JUSTIFICATIVA_MAX} caracteres.`;
   }
   if (motivos.length > 0 && limpo.length < JUSTIFICATIVA_MIN) {
-    return `${TEXTO_MOTIVO[motivos[0]]} Escreva para a turma o motivo da decisão (pelo menos ${JUSTIFICATIVA_MIN} caracteres).`;
+    return `${TEXTO_MOTIVO[motivos[0]]} Escreva para a turma o motivo da decisão, com pelo menos ${JUSTIFICATIVA_MIN} caracteres.`;
   }
   return null;
 }

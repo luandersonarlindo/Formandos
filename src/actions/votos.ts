@@ -112,7 +112,7 @@ export async function salvarVotos(
     // Página antiga (outra aba fixou a decisão ou o prazo venceu): atualiza a
     // tela para a pessoa ver que a pergunta fechou.
     revalidatePath(`/votacoes/${catalogoId.data}`);
-    return { erro: "Esta votação já foi encerrada: a comissão já decidiu ou o prazo terminou." };
+    return { erro: "Não deu para salvar: esta votação já foi encerrada (a comissão já decidiu ou o prazo acabou). A página foi atualizada." };
   }
 
   await transacao(

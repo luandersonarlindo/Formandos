@@ -60,13 +60,13 @@ function lerDetalhesNova(json: string): Map<string, DetalheOpcao> | { erro: stri
   try {
     lista = JSON.parse(json);
   } catch {
-    return { erro: "Dados das opções inválidos. Recarregue a página." };
+    return { erro: "Não deu para ler o valor e o link das opções. Recarregue a página e tente de novo." };
   }
   const itens = z
     .array(z.object({ texto: z.string(), valor: z.string(), link: z.string() }))
     .max(12)
     .safeParse(lista);
-  if (!itens.success) return { erro: "Dados das opções inválidos. Recarregue a página." };
+  if (!itens.success) return { erro: "Não deu para ler o valor e o link das opções. Recarregue a página e tente de novo." };
   for (const item of itens.data) {
     const detalhe = lerDetalheOpcao(item.texto.trim(), item.valor, item.link);
     if ("erro" in detalhe) return detalhe;
@@ -777,9 +777,9 @@ export async function salvarRegraEnquete(
   const dados = esquemaRegra.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Pergunta não encontrada." };
   const prazo = lerPrazoLocal(dados.data.prazo);
-  if (prazo === "invalido") return { erro: "Prazo inválido. Escolha data e hora." };
+  if (prazo === "invalido") return { erro: "Prazo inválido. Escolha a data e a hora." };
   const quorum = lerQuorum(dados.data.quorum);
-  if (quorum === "invalido") return { erro: "O quórum precisa ser um número de 1 a 100." };
+  if (quorum === "invalido") return { erro: "O quórum precisa ser um número inteiro de 1 a 100." };
   const { enqueteId } = dados.data;
 
   const resultado = await transacao(

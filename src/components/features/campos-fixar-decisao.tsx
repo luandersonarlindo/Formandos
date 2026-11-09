@@ -34,7 +34,11 @@ export function CamposFixarDecisao({
   quorumPct: number | null;
   justificativaAtual: string | null;
 }) {
-  const [escolhidas, setEscolhidas] = useState<string[]>(sugeridas);
+  // Escolha única com empate: o rádio só envia uma opção, então o estado
+  // também começa com uma só (senão o aviso de empate não aparecia).
+  const [escolhidas, setEscolhidas] = useState<string[]>(
+    tipo === "unica" ? sugeridas.slice(0, 1) : sugeridas,
+  );
   const [justificativa, setJustificativa] = useState(justificativaAtual ?? "");
   const maisVotos = Math.max(0, ...opcoes.map((o) => o.votos));
 

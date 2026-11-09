@@ -33,7 +33,7 @@ const lista = (itens?: string[]) => (itens ?? []).map((t) => `“${t}”`).join(
 
 function Descricao({ item }: { item: ItemHistorico }) {
   const d = item.detalhe as Detalhe;
-  const autor = item.autor ?? "Ex-membro da comissão";
+  const autor = item.autor ?? "Conta excluída";
   switch (item.acao) {
     case "decisao.fixada":
       return (
@@ -50,7 +50,7 @@ function Descricao({ item }: { item: ItemHistorico }) {
             </p>
           )}
           {d.justificativa && (
-            <p className="text-muted-foreground">Motivo: “{d.justificativa}”</p>
+            <p className="text-muted-foreground">Motivo da comissão: “{d.justificativa}”</p>
           )}
         </>
       );

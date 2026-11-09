@@ -114,7 +114,7 @@ export default async function VotosEnquetePage(
             </p>
           )}
           {decidida && dados.justificativa && (
-            <p className="text-sm">Motivo informado: “{dados.justificativa}”</p>
+            <p className="text-sm">Motivo da comissão: “{dados.justificativa}”</p>
           )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

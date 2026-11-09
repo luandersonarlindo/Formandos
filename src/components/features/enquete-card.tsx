@@ -81,7 +81,7 @@ export function EnqueteCard({
                   {formatarDataHora.format(new Date(prazo))}
                 </span>
               )}
-              {quorumPct && <span>precisa de {quorumPct}% da turma</span>}
+              {quorumPct && <span>precisa de {quorumPct}% da turma votando</span>}
             </p>
           )}
           <div className="mt-2 flex items-center gap-2">

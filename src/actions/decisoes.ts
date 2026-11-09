@@ -171,7 +171,7 @@ export async function fixarDecisao(
 
 function mensagemFixada(motivos: MotivoForaDaRegra[]) {
   return motivos.length > 0
-    ? "Decisão fixada fora da regra. A turma vê a justificativa no histórico."
+    ? "Decisão fixada. Como foge da regra, a turma vê o motivo junto com ela."
     : "Decisão fixada. A votação desta pergunta foi encerrada.";
 }
 
