@@ -43,9 +43,9 @@ Arquivo novo `src/lib/texto-whatsapp.ts`, com teste, sem banco e sem `window`. C
 | Função | Texto (modelo) | Link |
 |---|---|---|
 | `textoAviso` | `*Aviso da comissão: {título}*` / `{conteúdo}` / `Ver no Formandos: {link}` | `/avisos` |
-| `textoVotacao` | `*Votação: {pergunta}*` / `Fecha em {12/12 às 23:59}. Precisa de {60}% da turma votando.` / uma linha por opção, com `R$ 95,00 por pessoa` quando houver / `Já votaram {22} de {38}.` / `Vote aqui: {link}` | `/votacoes/{catalogoId}#enquete-{id}` |
-| `textoDecisao` | `*Decidido: {pergunta}*` / `Escolha da turma: {opção}` / `Votaram {22} de {38}.` / `Motivo da comissão: {justificativa}` (só se houver) / `Detalhes e histórico: {link}` | `/dashboard` |
-| `textoEvento` | `*{nome do evento}*` / `Quando: {sábado, 19 de dezembro às 20h}` / `Onde: {local}, {endereço}` / `Detalhes: {link}` | `/dashboard` |
+| `textoVotacao` | `*Votação: {pergunta}*` / `Fecha em {12/12 às 23:59}. Precisa de {60}% da turma votando.` / uma linha por opção, com `R$ 95,00 por pessoa` quando houver / `Já votaram {22} de {38}.` (ou `Ninguém votou ainda.`) / `Vote aqui: {link}` | `/votacoes/{catalogoId}#enquete-{id}` |
+| `textoDecisao` | `*Decidido: {pergunta}*` / `Escolha da turma: {opção}` / `Votaram {22} de {38}.` / `Motivo da comissão: {justificativa}` (só se houver) / `Ver detalhes no Formandos: {link}` | `/dashboard` |
+| `textoEvento` | `*Formatura: {nome da turma}*` / `Quando: {sábado, 19 de dezembro às 20:00}` / `Onde: {local}, {endereço}` / `Ver detalhes no Formandos: {link}` | `/dashboard` |
 
 Regras comuns, todas testadas:
 
@@ -130,12 +130,25 @@ O link com âncora (`#enquete-{id}`) se perde se a pessoa precisar fazer login n
 
 ## Ações
 
-1. [ ] `src/lib/texto-whatsapp.ts` (novo): `textoAviso`, `textoVotacao`, `textoDecisao`, `textoEvento`, com teste em `texto-whatsapp.test.ts` (linhas opcionais somem, corte do aviso longo, valor em reais, prazo no fuso de Brasília, link absoluto com a origem, nenhum nome de pessoa no texto).
-2. [ ] `src/components/features/mandar-para-grupo.tsx` (novo): botão "Mandar para o grupo", diálogo com `Textarea` editável, "Copiar texto" e "Abrir no WhatsApp" (`wa.me/?text=`). Extrair a cópia de `BotaoCopiar` para um hook (`useCopiar`) e usar nos dois, sem duplicar.
-3. [ ] `/avisos`: botão em cada aviso, só para a comissão.
-4. [ ] `/admin/votacoes/[catalogoId]`: botão em cada pergunta (precisa de opções com valor, regra e votantes, que `getCatalogoAdmin` já traz, e do total de membros).
-5. [ ] `/admin/votacoes/votos/[enqueteId]`: botão no card "Decisão da turma" quando há decisão (`getVotosEnquete` já traz decisão, justificativa e contagens).
-6. [ ] `evento-admin.tsx`: botão no card "Dados do evento", só quando há data ou local.
-7. [ ] Textos dos botões, do diálogo e dos modelos revisados com `design:ux-copy`.
+1. [x] `src/lib/texto-whatsapp.ts` (novo): `textoAviso`, `textoVotacao`, `textoDecisao`, `textoEvento`, com teste em `texto-whatsapp.test.ts` (linhas opcionais somem, corte do aviso longo, valor em reais, prazo no fuso de Brasília, link absoluto com a origem, nenhum nome de pessoa no texto).
+2. [x] `src/components/features/mandar-para-grupo.tsx` (novo): botão "Mandar para o grupo", diálogo com `Textarea` editável, "Copiar texto" e "Abrir no WhatsApp" (`wa.me/?text=`). Extrair a cópia de `BotaoCopiar` para um hook (`useCopiar`) e usar nos dois, sem duplicar.
+3. [x] `/avisos`: botão em cada aviso, só para a comissão.
+4. [x] `/admin/votacoes/[catalogoId]`: botão em cada pergunta (precisa de opções com valor, regra e votantes, que `getCatalogoAdmin` já traz, e do total de membros).
+5. [x] `/admin/votacoes/votos/[enqueteId]`: botão no card "Decisão da turma" quando há decisão (`getVotosEnquete` já traz decisão, justificativa e contagens).
+6. [x] `evento-admin.tsx`: botão no card "Dados do evento", só quando há data ou local.
+7. [x] Textos dos botões, do diálogo e dos modelos revisados com `design:ux-copy`.
 8. [ ] Testar à mão no celular (360px): abrir o diálogo, editar, copiar, "Abrir no WhatsApp"; conferir o texto colado num grupo de teste.
-9. [ ] `npm run typecheck`, `npm test` e um passo novo em `scripts/teste/fluxos.mjs` (grupo `admin`): abrir o diálogo de uma pergunta e conferir a prévia (pergunta, prazo, valor e link).
+9. [x] `npm run typecheck`, `npm test` e um passo novo em `scripts/teste/fluxos.mjs` (grupo `admin`): abrir o diálogo de uma pergunta e conferir a prévia (pergunta, prazo, valor e link).
+
+### Andamento (2026-11-09)
+
+Ações feitas, com uma pendência na 8.
+
+- Ação 2: a cópia saiu de `BotaoCopiar` para o hook `src/hooks/use-copiar.ts`, usado também por `MandarParaGrupo`.
+- Ação 4: o botão aparece só em pergunta ainda não decidida e não oculta. Pergunta decidida usa o texto da decisão, no card da decisão. `getCatalogoAdmin` passou a trazer `membros` e `decidida`.
+- Ação 5: o texto usa os números do dia em que a decisão foi fixada (`decisoes.votantes` e `membros`), não a contagem atual.
+- Ação 6: a data do evento vem como horário de Brasília ("AAAA-MM-DDTHH:mm") e é lida com `-03:00`; o Brasil não tem horário de verão desde 2019.
+- Ação 7: textos revisados. Link no fim com rótulo uniforme ("Ver no Formandos", "Ver detalhes no Formandos", e "Vote aqui" na votação), "Ninguém votou ainda." em vez de "0 de N", e a descrição do diálogo diz que o texto mudado não fica salvo.
+- Ação 8: diálogo conferido em 360px. A primeira versão usava o `Textarea` com `field-sizing-content`, e o link longo e sem espaço alargava a caixa e cortava o texto; agora o tamanho é fixo e o link quebra linha. **Pendente:** colar o texto num grupo de WhatsApp de verdade e abrir o link `wa.me` num celular.
+- Ação 9: `typecheck` e `npm test` passando (229 testes, 11 deles de `texto-whatsapp`). Passo novo "ADR-0004" no grupo `admin` de `fluxos.mjs` (prévia da pergunta e do aviso, link direto, contagem, link do WhatsApp, nenhum nome de membro): grupo com 25 de 31 no Docker, e as falhas são as que já existiam.
+
