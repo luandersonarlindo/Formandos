@@ -1006,7 +1006,7 @@ await grupo("admin", async () => {
     await nav.abrir("/dashboard");
     await nav.esperarTexto("Decisões da turma");
     await nav.esperarTexto("Espaço ao Ar Livre / Chácara");
-    await nav.esperarTexto("Fixada fora da regra");
+    await nav.esperarTexto("Fora da regra");
     await nav.esperarTexto("Ver histórico das decisões");
     await nav.abrir(`/votacoes/${idPadrao()}`);
     await nav.esperarTexto("Escolha da turma");
@@ -1070,8 +1070,42 @@ await grupo("admin", async () => {
       await nav.abrir(`/votacoes/${cat}`);
       await nav.esperarTexto("95,00 por pessoa");
       await nav.esperarTexto("ver detalhes");
+
+      // Mudar o valor depois que já tem voto vai para o histórico da turma.
+      const enqCat = sql(`select enquete_id from opcoes where id='${opcao}'`);
+      sql(`insert into votos (turma_id,opcao_id,usuario_id) select '${turma}', '${opcao}', id from usuarios where email='teste-jl@example.invalid' on conflict do nothing`);
+      await nav.abrir(`/admin/votacoes/${cat}`);
+      await nav.clicar("Editar pergunta", { escopo: `@#enq-${enqCat}`, seletor: "button" });
+      await nav.esperar(`!!document.querySelector("[role=dialog] [name='valor-${opcao}']")`, 10000, "campo de valor");
+      await nav.preencher(`[role=dialog] [name='valor-${opcao}']`, "110");
+      await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      await dormir(2000);
+      igual(sql(`select valor_pessoa from opcoes where id='${opcao}'`), "110.00", "valor novo no banco");
+      igual(
+        sql(`select detalhe->>'antes' || '>' || (detalhe->>'depois') from auditoria where turma_id='${turma}' and acao='opcao.valor_alterado'`),
+        "95>110",
+        "mudança de valor no histórico",
+      );
+
+      // Diálogo de fixar: empate na escolha única e a regra combinada aparecem antes de confirmar.
+      sql(`update regras_enquete set prazo = null, quorum_pct = 90 where turma_id='${turma}' and enquete_id='${enq}'`);
+      // Empate: um voto de cada pessoa de teste, em opções diferentes.
+      sql(`delete from votos where turma_id='${turma}' and opcao_id in (select id from opcoes where enquete_id='${enq}')`);
+      for (const [email, posicao] of [["teste-sh@example.invalid", 0], ["teste-jl@example.invalid", 1]]) {
+        sql(`insert into votos (turma_id,opcao_id,usuario_id)
+          select '${turma}', (select id from opcoes where enquete_id='${enq}' order by ordem offset ${posicao} limit 1), id
+            from usuarios where email='${email}'`);
+      }
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
+      await nav.clicar("Fixar decisão", { seletor: "button" });
+      await nav.esperarTexto("Esta decisão foge da regra combinada.");
+      await nav.esperarTexto("empatada com outra");
+      // Turma de teste tem 2 membros e os 2 votaram: quórum atingido. O caso
+      // "sem quórum" fica no teste de avaliarDecisao (decisao-regras.test.ts).
+      await nav.esperarTexto("Votaram 2 de 2 · quórum combinado: 90%");
     } finally {
       sql(`delete from regras_enquete where turma_id='${turma}'`);
+      sql(`delete from votos where turma_id='${turma}' and opcao_id in (select id from opcoes where enquete_id='${enq}')`);
     }
   });
   await passo("relatório: vários catálogos e empate no topo", async () => {
