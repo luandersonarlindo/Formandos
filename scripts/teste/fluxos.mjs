@@ -1247,6 +1247,70 @@ await grupo("admin", async () => {
       sql(`update membros set tesouraria=false where turma_id='${turma}'`);
     }
   });
+  await passo("ADR-0005 parte 3: caixa, regras, mudanças no plano e saída da turma", async () => {
+    const turma = turmaTeste();
+    const idDe = (email) => `(select id from usuarios where email='${email}')`;
+    sql(`update membros set tesouraria=true where turma_id='${turma}' and usuario_id=${idDe("teste-sh@example.invalid")}`);
+    for (let i = 1; i <= 2; i++) {
+      sql(`insert into parcelas (turma_id,numero,valor,vencimento) values ('${turma}',${i},100,date '2026-10-10' + ${i - 1} * interval '1 month')`);
+    }
+    // Pessoa temporária com um pagamento confirmado e um informe pendente.
+    sql(`insert into usuarios (name,email,"emailVerified") values ('Temporário E2E','teste-tmp@example.invalid',true) on conflict do nothing`);
+    sql(`insert into membros (turma_id,usuario_id,papel) values ('${turma}',${idDe("teste-tmp@example.invalid")},'participante')`);
+    sql(`insert into pagamentos (turma_id,usuario_id,valor,pago_em,status) values
+      ('${turma}',${idDe("teste-jl@example.invalid")},100,current_date,'confirmado'),
+      ('${turma}',${idDe("teste-tmp@example.invalid")},40,current_date,'confirmado'),
+      ('${turma}',${idDe("teste-tmp@example.invalid")},10,current_date,'informado')`);
+    try {
+      // Tesouraria escreve as regras e ajusta uma parcela.
+      await nav.abrir("/admin/tesouraria");
+      await nav.esperarTexto("Caixa e regras");
+      await nav.clicar("Escrever regras do dinheiro", { seletor: "button" });
+      await nav.preencher("#regras-dinheiro", "Desistência até 31/03 devolve tudo.");
+      await nav.clicar("Salvar regras", { escopo: "@[role=dialog]", seletor: "button" });
+      await dormir(2000);
+      igual(sql(`select regras_dinheiro from turmas where id='${turma}'`), "Desistência até 31/03 devolve tudo.", "regras no banco");
+      await nav.abrir("/admin/tesouraria");
+      await nav.clicar("Ajustar", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] [name=valor]')", 10000, "ajuste da parcela");
+      await nav.preencher("[role=dialog] [name=valor]", "120");
+      await nav.clicar("Salvar parcela", { escopo: "@[role=dialog]", seletor: "button" });
+      await dormir(2000);
+      igual(sql(`select valor from parcelas where turma_id='${turma}' and numero=1`), "120.00", "parcela ajustada");
+
+      // Remover alguém com pagamento: o diálogo avisa, o confirmado fica sem nome, o informe some.
+      await nav.abrir("/admin/membros");
+      await nav.esperarTexto("Temporário E2E");
+      await nav.clicar("Remover", { escopo: "Temporário E2E", seletor: "button" });
+      await nav.esperarTexto("Pagou R$\u00a040,00");
+      await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+      await dormir(2000);
+      igual(
+        sql(`select string_agg(valor || ':' || status || ':' || coalesce(usuario_id::text,'sem nome'), ',' order by valor) from pagamentos where turma_id='${turma}' and valor in (10,40)`),
+        "40.00:confirmado:sem nome",
+        "confirmado fica sem nome, informe some",
+      );
+
+      // O formando vê o caixa (com o pagamento de quem saiu), as regras e a mudança no plano.
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/minha-situacao");
+      await nav.esperarTexto("Caixa da turma");
+      // Arrecadado 140 (100 + 40 de quem saiu); previsto (120 + 100) × 2 membros = 440.
+      await nav.esperarTexto("140,00");
+      await nav.esperarTexto("440,00");
+      await nav.esperarTexto("Desistência até 31/03 devolve tudo.");
+      await nav.clicar("Mudanças no plano", { seletor: "summary" });
+      await nav.esperarTexto("ajustou a parcela 1");
+      verdade(!(await nav.tem("Temporário E2E")), "nome de quem saiu não aparece");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`delete from pagamentos where turma_id='${turma}'`);
+      sql(`delete from parcelas where turma_id='${turma}'`);
+      sql(`update turmas set regras_dinheiro=null where id='${turma}'`);
+      sql(`update membros set tesouraria=false where turma_id='${turma}'`);
+      sql("delete from usuarios where email='teste-tmp@example.invalid'");
+    }
+  });
   await passo("relatório: vários catálogos e empate no topo", async () => {
     sql(`insert into votos (turma_id,opcao_id,usuario_id)
       select '${turmaTeste()}', o.id, u.id from usuarios u, opcoes o join enquetes e on e.id=o.enquete_id
