@@ -1147,7 +1147,13 @@ await grupo("admin", async () => {
 
       await nav.abrir("/admin/membros");
       await nav.esperarTexto("Maria Souza");
-      await nav.clicar("Pôr na tesouraria", { escopo: "Maria Souza", seletor: "button" });
+      // Mira pelo email, que só existe no card dela, e espera o botão aparecer.
+      await nav.esperar(
+        "[...document.querySelectorAll('li')].some((li) => li.textContent.includes('teste-sh@example.invalid') && li.textContent.includes('Pôr na tesouraria'))",
+        15000,
+        "botão de tesouraria no card da Maria",
+      );
+      await nav.clicar("Pôr na tesouraria", { escopo: "teste-sh@example.invalid", seletor: "button" });
       await nav.esperarTexto("Tirar da tesouraria");
       igual(sql(`select tesouraria from membros m join usuarios u on u.id=m.usuario_id where m.turma_id='${turma}' and u.email='teste-sh@example.invalid'`), "t", "marcada no banco");
 
@@ -1451,6 +1457,72 @@ await grupo("admin", async () => {
     } finally {
       sql(`delete from convites_email where turma_id='${turma}'`);
       sql("delete from usuarios where email='teste-nova@example.invalid'");
+    }
+  });
+  await passo("ADR-0008: página pública do evento, mudança visível e histórico da comissão", async () => {
+    const turma = turmaTeste();
+    const token = () => sql(`select coalesce(token_publico,'') from turmas where id='${turma}'`);
+    try {
+      // A comissão cria o link.
+      await nav.abrir("/dashboard");
+      await nav.clicar("Criar link para família e convidados", { seletor: "button" });
+      for (let i = 0; i < 20 && !token(); i++) await dormir(500);
+      const t1 = token();
+      verdade(/^[A-Za-z0-9_-]{22}$/.test(t1), `código de 22 caracteres: ${t1}`);
+
+      // Sem login: vê o evento, não vê ninguém da turma.
+      await nav.cookie(null);
+      await nav.abrir(`/evento/${t1}`);
+      await nav.esperarTexto("Sistemas de Informação 2026");
+      await nav.esperarTexto("Como chegar");
+      verdade(!(await nav.tem("Maria Souza")) && !(await nav.tem("João Lima")), "sem nome de membro");
+      igual(
+        await nav.ev("document.querySelector('meta[name=robots]')?.content ?? ''"),
+        "noindex, nofollow",
+        "fora da busca",
+      );
+
+      // Mudança de horário: fica no histórico e aparece na página pública.
+      const alterado = () => sql(`select count(*) from auditoria where turma_id='${turma}' and acao='evento.alterado'`);
+      const antes = alterado();
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      await nav.abrir("/dashboard");
+      await abrirDadosDoEvento();
+      const atual = await nav.ev("document.querySelector('#dataEvento').value");
+      const novo = `${atual.slice(0, 11)}${atual.slice(11, 13) === "19" ? "18" : "19"}:00`;
+      await nav.preencher("#dataEvento", novo);
+      await nav.clicar("Salvar", { seletor: "button", contem: false });
+      // Passos anteriores também mudam o evento: conta só o que este passo fez.
+      for (let i = 0; i < 20 && alterado() === antes; i++) await dormir(500);
+      igual(Number(alterado()) - Number(antes), 1, "mudança do evento na auditoria");
+      await nav.cookie(null);
+      await nav.abrir(`/evento/${t1}`);
+      await nav.esperarTexto("Mudou em");
+      await nav.esperarTexto(`agora é ${novo.slice(11)}`);
+
+      // Gerar outro link: o antigo dá 404.
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      await nav.abrir("/dashboard");
+      await nav.clicar("Gerar outro link", { seletor: "button" });
+      for (let i = 0; i < 20 && token() === t1; i++) await dormir(500);
+      verdade(token() !== t1 && token() !== "", "link trocado");
+      await nav.cookie(null);
+      await nav.abrir(`/evento/${t1}`);
+      await nav.esperarTexto("Este link não existe ou foi desligado");
+
+      // Histórico da comissão: mostra o evento, esconde pagamento de quem não é tesouraria.
+      sql(`insert into auditoria (usuario_id,turma_id,acao,entidade,detalhe)
+           select id,'${turma}','pagamento.lancado','pagamento','{"valor":123,"tipo":"pagamento"}'
+             from usuarios where email='teste-sh@example.invalid'`);
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      await nav.abrir("/admin/turma/historico");
+      await nav.esperarTexto("mudou o evento: horário");
+      await nav.esperarTexto("criou o link público do evento");
+      verdade(!(await nav.tem("123,00")), "comissão sem tesouraria não vê pagamento");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`update turmas set token_publico=null where id='${turma}'`);
+      sql(`delete from auditoria where turma_id='${turma}' and acao='pagamento.lancado' and detalhe->>'valor'='123'`);
     }
   });
   await passo("relatório: vários catálogos e empate no topo", async () => {
