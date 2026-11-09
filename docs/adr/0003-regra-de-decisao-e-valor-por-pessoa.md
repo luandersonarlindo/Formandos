@@ -170,14 +170,17 @@ Deixar o valor só em perguntas da turma é o corte mais simples que resolve o c
 6. [x] `src/actions/votos.ts`: `salvarVotos` lê `regras_enquete` e recusa pergunta encerrada pelo prazo.
 7. [x] `src/actions/catalogos.ts`: `salvarRegraEnquete` (perguntas do padrão e da turma, com `regra.alterada`); `adicionarEnquete` e `atualizarEnquete` aceitam `valor-<id>` e `link-<id>` só em catálogo da turma, com `lerValorOrcado` e `ehLinkHttps`, e registram `opcao.valor_alterado` quando já há votos.
 8. [x] Leituras: `src/lib/votacoes.ts` (regra, valor, link e "encerrada"), `src/lib/admin.ts` (`getVotosEnquete` com regra e contagem para o diálogo), `src/lib/dashboard.ts` (`listarDecisoes` com números, selo e justificativa).
-9. [ ] Telas listadas na Decisão, item 6. Textos do diálogo de fixar e dos selos revisados com `design:ux-copy`.
+9. [x] Telas listadas na Decisão, item 6. Textos do diálogo de fixar e dos selos revisados com `design:ux-copy`.
 10. [x] `src/lib/usuarios.ts` (`getMeusDados`): conferir se as novas ações da `auditoria` feitas pela pessoa entram no "baixar meus dados" (a consulta por `usuario_id` já cobre).
-11. [ ] Testar à mão no Docker: fixar a mais votada (sem justificativa); fixar outra (exige justificativa); empate; quórum não atingido; prazo vencido recusando voto; reabrir e ver o histórico com as duas entradas; valor por pessoa aparecendo no card; valor alterado com votos aparecendo no histórico; pergunta do padrão sem campo de valor; turma arquivada continua só leitura.
-12. [ ] `npm run typecheck`, `npm test` e `scripts/teste/fluxos.mjs` (blocos `participante,app,admin`, onde está o passo do empate).
+11. [x] Testar à mão no Docker: fixar a mais votada (sem justificativa); fixar outra (exige justificativa); empate; quórum não atingido; prazo vencido recusando voto; reabrir e ver o histórico com as duas entradas; valor por pessoa aparecendo no card; valor alterado com votos aparecendo no histórico; pergunta do padrão sem campo de valor; turma arquivada continua só leitura.
+12. [x] `npm run typecheck`, `npm test` e `scripts/teste/fluxos.mjs` (blocos `participante,app,admin`, onde está o passo do empate).
 
 ### Andamento (2026-11-09)
 
-- Itens 1 a 8 e 10 feitos. A consulta de `getMeusDados` por `usuario_id` já inclui as ações novas da auditoria.
-- Item 9: telas feitas; a revisão dos textos com `design:ux-copy` ainda falta.
-- Item 11: coberto pelo passo "ADR-0003" e pelo passo da decisão em `scripts/teste/fluxos.mjs` (regra pelo diálogo, prazo vencido, valor no voto, justificativa obrigatória, histórico de fixar e reabrir). Falta testar `opcao.valor_alterado` (mudar valor com votos), empate e quórum na tela, e as telas no celular.
-- Item 12: `typecheck` e `npm test` passando (218 testes). Grupo `admin` de `fluxos.mjs`: 23 de 30 no Docker; as 7 falhas são as mesmas da rodada sem esta mudança (22 de 29). Grupos `participante` e `app` não rodaram limpos no Docker (o teste lê emails do log, e no Docker eles vão para o Mailpit).
+Todas as ações feitas.
+
+- Item 10: a consulta de `getMeusDados` por `usuario_id` já inclui as ações novas da auditoria.
+- Item 9: textos revisados com `design:ux-copy`. Um termo só para o usuário ("motivo", não "justificativa"), selos em par ("Dentro da regra" / "Fora da regra"), quórum explicado no rótulo ("mínimo de votos") e erros que dizem o que fazer.
+- Item 11: coberto em `scripts/teste/fluxos.mjs` (passo da decisão e passo "ADR-0003"): regra pelo diálogo, prazo vencido travando o voto, valor e link no voto, mudança de valor com votos indo para o histórico, empate e regra combinada no diálogo de fixar, motivo obrigatório e histórico de fixar e reabrir. O caso "sem quórum" fica no teste de `avaliarDecisao`, porque a turma de teste tem só 2 membros. Telas conferidas em 360px (votar, dashboard, votos da pergunta, catálogo da comissão).
+- Item 12: `typecheck` e `npm test` passando (218 testes). Grupo `admin`: 23 de 30 no Docker; as 7 falhas são as mesmas da rodada sem esta mudança. Grupos `participante` e `app` não rodam limpos no Docker (o teste lê emails do log, e no Docker eles vão para o Mailpit).
+- Achado na revisão: em pergunta de escolha única com empate, o diálogo de fixar começava com as duas opções no estado e não mostrava o aviso de empate. Corrigido.
