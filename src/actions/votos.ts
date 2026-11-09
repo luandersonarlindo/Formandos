@@ -5,7 +5,7 @@ import { z } from "zod";
 import { exigirMembroEditavel } from "@/lib/dal";
 import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
 import { pool, transacao } from "@/lib/db";
-import { validarSelecao } from "@/lib/votos-regras";
+import { validarSelecao, votacaoEncerrada } from "@/lib/votos-regras";
 import type { EstadoForm } from "./tipos";
 
 const uuid = z.uuid();
@@ -16,7 +16,8 @@ const uuid = z.uuid();
 //
 // Regras por enquete: opções da própria enquete; seleção única = 1 opção;
 // múltipla = 1 ou mais; uma opção exclusiva ("Sem preferência"…) não pode vir
-// junto com outras. Pergunta com decisão fixada fica de fora.
+// junto com outras. Pergunta com decisão fixada ou com prazo vencido
+// (regras_enquete, ADR-0003) fica de fora.
 export async function salvarVotos(
   _estado: EstadoForm,
   formData: FormData,
@@ -83,15 +84,35 @@ export async function salvarVotos(
     [membro.turmaId, enqueteIds],
   );
   const decididas = new Set(decisoes.map((d) => d.enquete_id));
+  const { rows: regras } = await pool.query(
+    `select enquete_id, prazo from regras_enquete
+      where turma_id = $1 and enquete_id = any($2::uuid[]) and prazo is not null`,
+    [membro.turmaId, enqueteIds],
+  );
+  const agora = new Date();
+  const encerradas = new Set(
+    regras.filter((r) => votacaoEncerrada(r.prazo, agora)).map((r) => r.enquete_id),
+  );
 
   const validos = new Map<string, string[]>();
+  let fechadas = 0;
   for (const [enqueteId, opcaoIds] of porEnquete) {
     const tipo = encontradas.get(enqueteId);
     if (!tipo) return { erro: "Catálogo foi alterado. Recarregue a página." };
-    if (decididas.has(enqueteId)) continue;
+    if (decididas.has(enqueteId) || encerradas.has(enqueteId)) {
+      fechadas++;
+      continue;
+    }
     const erro = validarSelecao(enqueteId, tipo, opcaoIds, porOpcao);
     if (erro) return { erro };
     validos.set(enqueteId, opcaoIds);
+  }
+
+  if (validos.size === 0) {
+    // Página antiga (outra aba fixou a decisão ou o prazo venceu): atualiza a
+    // tela para a pessoa ver que a pergunta fechou.
+    revalidatePath(`/votacoes/${catalogoId.data}`);
+    return { erro: "Esta votação já foi encerrada: a comissão já decidiu ou o prazo terminou." };
   }
 
   await transacao(
@@ -120,5 +141,7 @@ export async function salvarVotos(
 
   revalidatePath(`/votacoes/${catalogoId.data}`);
   revalidatePath("/votacoes");
-  return { ok: "Votos salvos." };
+  return fechadas > 0
+    ? { ok: "Votos salvos. Perguntas já encerradas ficaram de fora." }
+    : { ok: "Votos salvos." };
 }

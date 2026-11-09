@@ -100,6 +100,14 @@ create table if not exists opcoes (
 );
 create index if not exists idx_opcoes_enquete on opcoes (enquete_id);
 
+-- Valor por pessoa (em reais) e link opcional da opção (ADR-0003). Só usados
+-- em perguntas do catálogo da turma: o catálogo padrão é global e um valor
+-- nele apareceria para todas as turmas (regra aplicada nas Server Actions).
+alter table opcoes add column if not exists valor_pessoa numeric(10,2);
+alter table opcoes add column if not exists link         varchar(500);
+alter table opcoes drop constraint if exists opcoes_valor_pessoa_check;
+alter table opcoes add constraint opcoes_valor_pessoa_check check (valor_pessoa >= 0);
+
 -- Votos identificados: o admin vê quem votou. Mudar o voto = apagar os votos
 -- do usuário naquela enquete e inserir os novos, em uma transação.
 -- turma_id fica no voto porque o catálogo padrão é compartilhado entre turmas.
@@ -125,6 +133,29 @@ create table if not exists decisoes (
   primary key (turma_id, opcao_id)
 );
 create index if not exists idx_decisoes_enquete on decisoes (turma_id, enquete_id);
+
+-- Fotografia do dia em que a decisão foi fixada (ADR-0003). Os valores se
+-- repetem nas linhas da mesma pergunta (uma linha por opção fixada), gravadas
+-- juntas na mesma transação. fora_da_regra lista os motivos (não é a mais
+-- votada, empate, sem quórum, antes do prazo, sem votos); com algum motivo a
+-- justificativa é obrigatória. O histórico (fixar/reabrir) fica na auditoria.
+alter table decisoes add column if not exists justificativa text;
+alter table decisoes add column if not exists votantes      smallint;
+alter table decisoes add column if not exists membros       smallint;
+alter table decisoes add column if not exists fora_da_regra text[] not null default '{}';
+
+-- Regra combinada antes para fixar a decisão de uma pergunta (ADR-0003).
+-- Por turma, porque as perguntas do catálogo padrão são compartilhadas.
+-- Sem linha = sem prazo e sem quórum. Prazo vencido só recusa voto: quem fixa
+-- continua sendo a comissão.
+create table if not exists regras_enquete (
+  turma_id   uuid not null references turmas(id) on delete cascade,
+  enquete_id uuid not null references enquetes(id) on delete cascade,
+  prazo      timestamptz,
+  quorum_pct smallint check (quorum_pct between 1 and 100),
+  updated_at timestamptz not null default now(),
+  primary key (turma_id, enquete_id)
+);
 
 -- Confirmação de presença: cada membro diz se vai ao evento e quantos
 -- acompanhantes leva. Só quem vai ("vou") tem acompanhantes. Quantos são

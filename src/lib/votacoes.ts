@@ -2,6 +2,7 @@ import "server-only";
 import { pool } from "./db";
 import { catalogoVisivelSql, enqueteVisivelSql } from "./catalogo-visibilidade";
 import type { Membro } from "./dal";
+import { votacaoEncerrada } from "./votos-regras";
 
 export type CatalogoResumo = {
   id: string;
@@ -11,7 +12,14 @@ export type CatalogoResumo = {
   votadas: number;
 };
 
-export type OpcaoEnquete = { id: string; texto: string; exclusiva: boolean };
+export type OpcaoEnquete = {
+  id: string;
+  texto: string;
+  exclusiva: boolean;
+  // Valor por pessoa e link (ADR-0003), só em perguntas do catálogo da turma.
+  valorPessoa: number | null;
+  link: string | null;
+};
 export type EnqueteVotacao = {
   id: string;
   titulo: string;
@@ -20,6 +28,15 @@ export type EnqueteVotacao = {
   selecionadas: string[];
   // Opções que a comissão fixou como decisão da turma (vazio se ainda não decidiu).
   decisao: string[];
+  justificativa: string | null;
+  // Regra combinada (ADR-0003). `prazo` em ISO, porque vai para o cliente.
+  prazo: string | null;
+  quorumPct: number | null;
+  // Prazo vencido: a pergunta não aceita mais voto (calculado na leitura).
+  encerrada: boolean;
+  // Quantos já votaram nesta pergunta, de quantos membros da turma.
+  votantes: number;
+  membros: number;
 };
 export type CategoriaVotacao = {
   id: string;
@@ -87,21 +104,23 @@ export async function getCatalogoParaVotar(
   );
   if (catalogos.length === 0) return null;
 
-  const [categorias, enquetes, opcoes, votos, decisoes] = await Promise.all([
+  const [categorias, enquetes, opcoes, votos, decisoes, contagem, membros] = await Promise.all([
     pool.query(
       "select id, nome from categorias where catalogo_id = $1 order by ordem",
       [catalogoId],
     ),
     pool.query(
-      `select e.id, e.categoria_id, e.titulo, e.tipo
+      `select e.id, e.categoria_id, e.titulo, e.tipo, r.prazo, r.quorum_pct as "quorumPct"
          from enquetes e
          join categorias ca on ca.id = e.categoria_id
+         left join regras_enquete r on r.turma_id = $2 and r.enquete_id = e.id
         where ca.catalogo_id = $1 and ${enqueteVisivelSql("$2")}
         order by e.ordem`,
       [catalogoId, membro.turmaId],
     ),
     pool.query(
-      `select o.id, o.enquete_id, o.texto, o.exclusiva
+      `select o.id, o.enquete_id, o.texto, o.exclusiva,
+              o.valor_pessoa::float8 as "valorPessoa", o.link
          from opcoes o
          join enquetes e on e.id = o.enquete_id
          join categorias ca on ca.id = e.categoria_id
@@ -119,14 +138,30 @@ export async function getCatalogoParaVotar(
       [catalogoId, membro.usuarioId],
     ),
     pool.query(
-      `select d.opcao_id
+      `select d.opcao_id, d.enquete_id, d.justificativa
          from decisoes d
          join enquetes e on e.id = d.enquete_id
          join categorias ca on ca.id = e.categoria_id
         where ca.catalogo_id = $1 and d.turma_id = $2`,
       [catalogoId, membro.turmaId],
     ),
+    pool.query(
+      `select o.enquete_id, count(distinct v.usuario_id)::int as n
+         from votos v
+         join opcoes o on o.id = v.opcao_id
+         join enquetes e on e.id = o.enquete_id
+         join categorias ca on ca.id = e.categoria_id
+        where ca.catalogo_id = $1 and v.turma_id = $2
+        group by o.enquete_id`,
+      [catalogoId, membro.turmaId],
+    ),
+    pool.query("select count(*)::int as n from membros where turma_id = $1", [membro.turmaId]),
   ]);
+  const votantesPor = new Map<string, number>(contagem.rows.map((r) => [r.enquete_id, r.n]));
+  const justificativas = new Map<string, string | null>(
+    decisoes.rows.map((d) => [d.enquete_id, d.justificativa]),
+  );
+  const agora = new Date();
 
   const votados = new Set<string>(votos.rows.map((v) => v.opcao_id));
   const decididas = new Set<string>(decisoes.rows.map((d) => d.opcao_id));
@@ -143,7 +178,13 @@ export async function getCatalogoParaVotar(
         .map((e) => {
           const ops: OpcaoEnquete[] = opcoes.rows
             .filter((o) => o.enquete_id === e.id)
-            .map((o) => ({ id: o.id, texto: o.texto, exclusiva: o.exclusiva }));
+            .map((o) => ({
+              id: o.id,
+              texto: o.texto,
+              exclusiva: o.exclusiva,
+              valorPessoa: o.valorPessoa,
+              link: o.link,
+            }));
           return {
             id: e.id,
             titulo: e.titulo,
@@ -151,6 +192,12 @@ export async function getCatalogoParaVotar(
             opcoes: ops,
             selecionadas: ops.filter((o) => votados.has(o.id)).map((o) => o.id),
             decisao: ops.filter((o) => decididas.has(o.id)).map((o) => o.id),
+            justificativa: justificativas.get(e.id) ?? null,
+            prazo: e.prazo ? new Date(e.prazo).toISOString() : null,
+            quorumPct: e.quorumPct,
+            encerrada: votacaoEncerrada(e.prazo, agora),
+            votantes: votantesPor.get(e.id) ?? 0,
+            membros: membros.rows[0].n,
           };
         }),
     })),

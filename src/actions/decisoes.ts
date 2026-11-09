@@ -5,6 +5,8 @@ import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
 import { transacao } from "@/lib/db";
+import { registrarAuditoria } from "@/lib/auditoria";
+import { avaliarDecisao, validarJustificativa, type MotivoForaDaRegra } from "@/lib/decisao-regras";
 import type { EstadoForm } from "./tipos";
 
 // A decisão vale para a turma do administrador (vem da sessão). O id da enquete
@@ -14,6 +16,7 @@ import type { EstadoForm } from "./tipos";
 const esquemaFixar = z.object({
   enqueteId: z.uuid(),
   opcaoIds: z.array(z.uuid()).min(1, "Escolha pelo menos uma opção."),
+  justificativa: z.string().default(""),
 });
 
 function revalidarDecisoes() {
@@ -28,6 +31,11 @@ function revalidarDecisoes() {
 
 // Fixa (ou troca) a decisão da turma em uma enquete. Enquanto houver decisão, a
 // enquete não aceita mais votos; reabrir a votação apaga a decisão.
+//
+// Regra (ADR-0003): a comissão pode fixar qualquer opção, mas se a decisão
+// fugir do combinado (não é a mais votada, empate, sem quórum, antes do prazo,
+// sem votos) a justificativa é obrigatória. Os números do dia ficam gravados
+// em `decisoes` e o histórico na auditoria, que a turma vê.
 export async function fixarDecisao(
   _estado: EstadoForm,
   formData: FormData,
@@ -36,9 +44,11 @@ export async function fixarDecisao(
   const dados = esquemaFixar.safeParse({
     enqueteId: formData.get("enqueteId"),
     opcaoIds: [...new Set(formData.getAll("opcaoId"))],
+    justificativa: formData.get("justificativa") ?? "",
   });
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { enqueteId, opcaoIds } = dados.data;
+  const justificativa = dados.data.justificativa.trim();
 
   const resultado = await transacao(
     async (db) => {
@@ -49,45 +59,120 @@ export async function fixarDecisao(
       `${admin.turmaId}:${enqueteId}`,
     ]);
     const { rows: enquetes } = await db.query(
-      `select e.tipo
+      `select e.tipo, e.titulo
          from enquetes e
          join categorias ca on ca.id = e.categoria_id
          join catalogos c on c.id = ca.catalogo_id
         where e.id = $1 and ${catalogoVisivelSql("$2")}`,
       [enqueteId, admin.turmaId],
     );
-    if (enquetes.length === 0) return "inexistente" as const;
-    if (enquetes[0].tipo === "unica" && opcaoIds.length !== 1) return "unica" as const;
+    if (enquetes.length === 0) return { estado: "inexistente" as const };
+    if (enquetes[0].tipo === "unica" && opcaoIds.length !== 1) return { estado: "unica" as const };
 
+    // Todas as opções da pergunta, com os votos desta turma: servem para
+    // conferir as escolhidas e para avaliar a regra.
     const { rows: opcoes } = await db.query(
-      "select id, exclusiva from opcoes where enquete_id = $1 and id = any($2::uuid[])",
-      [enqueteId, opcaoIds],
+      `select o.id, o.texto, o.exclusiva,
+              (select count(*)::int from votos v
+                where v.opcao_id = o.id and v.turma_id = $2) as votos
+         from opcoes o
+        where o.enquete_id = $1
+        order by o.ordem`,
+      [enqueteId, admin.turmaId],
     );
-    if (opcoes.length !== opcaoIds.length) return "opcao" as const;
-    if (opcoes.length > 1 && opcoes.some((o) => o.exclusiva)) return "exclusiva" as const;
+    const escolhidas = opcoes.filter((o) => opcaoIds.includes(o.id));
+    if (escolhidas.length !== opcaoIds.length) return { estado: "opcao" as const };
+    if (escolhidas.length > 1 && escolhidas.some((o) => o.exclusiva)) {
+      return { estado: "exclusiva" as const };
+    }
+
+    const [{ rows: contagem }, { rows: regras }] = await Promise.all([
+      db.query(
+        `select
+           (select count(distinct v.usuario_id)::int
+              from votos v join opcoes o on o.id = v.opcao_id
+             where o.enquete_id = $1 and v.turma_id = $2) as votantes,
+           (select count(*)::int from membros where turma_id = $2) as membros`,
+        [enqueteId, admin.turmaId],
+      ),
+      db.query(
+        `select prazo, quorum_pct as "quorumPct"
+           from regras_enquete where turma_id = $1 and enquete_id = $2`,
+        [admin.turmaId, enqueteId],
+      ),
+    ]);
+    const { votantes, membros } = contagem[0];
+    const motivos = avaliarDecisao({
+      contagem: opcoes.map((o) => ({ id: o.id, votos: o.votos })),
+      escolhidas: opcaoIds,
+      votantes,
+      membros,
+      regra: regras[0] ?? null,
+      agora: new Date(),
+    });
+    const erroJustificativa = validarJustificativa(motivos, justificativa);
+    if (erroJustificativa) {
+      return { estado: "justificativa" as const, mensagem: erroJustificativa };
+    }
 
     await db.query("delete from decisoes where turma_id = $1 and enquete_id = $2", [
       admin.turmaId,
       enqueteId,
     ]);
     await db.query(
-      `insert into decisoes (turma_id, enquete_id, opcao_id, decidido_por)
-       select $1, $2, unnest($3::uuid[]), $4`,
-      [admin.turmaId, enqueteId, opcaoIds, admin.usuarioId],
+      `insert into decisoes
+         (turma_id, enquete_id, opcao_id, decidido_por, justificativa, votantes, membros, fora_da_regra)
+       select $1, $2, unnest($3::uuid[]), $4, $5, $6, $7, $8::text[]`,
+      [
+        admin.turmaId,
+        enqueteId,
+        opcaoIds,
+        admin.usuarioId,
+        justificativa || null,
+        votantes,
+        membros,
+        motivos,
+      ],
     );
-    return "ok" as const;
+    // Guarda textos, não só ids: a opção pode ser renomeada ou apagada depois.
+    await registrarAuditoria(db, {
+      usuarioId: admin.usuarioId,
+      turmaId: admin.turmaId,
+      acao: "decisao.fixada",
+      entidade: "enquete",
+      entidadeId: enqueteId,
+      detalhe: {
+        pergunta: enquetes[0].titulo,
+        escolhidas: escolhidas.map((o) => o.texto),
+        contagem: opcoes.map((o) => ({ texto: o.texto, votos: o.votos })),
+        votantes,
+        membros,
+        foraDaRegra: motivos,
+        justificativa: justificativa || null,
+      },
+    });
+    return { estado: "ok" as const, motivos };
     },
     { acao: "decisoes.fixar" },
   );
 
-  if (resultado === "inexistente") return { erro: "Enquete não encontrada." };
-  if (resultado === "unica") return { erro: "Escolha apenas uma opção." };
-  if (resultado === "opcao") return { erro: "Opção inválida para esta enquete." };
-  if (resultado === "exclusiva") {
+  if (resultado.estado === "inexistente") return { erro: "Enquete não encontrada." };
+  if (resultado.estado === "unica") return { erro: "Escolha apenas uma opção." };
+  if (resultado.estado === "opcao") return { erro: "Opção inválida para esta enquete." };
+  if (resultado.estado === "exclusiva") {
     return { erro: "Essa opção não pode ser combinada com as outras." };
   }
+  if (resultado.estado === "justificativa") {
+    return { erro: resultado.mensagem, valores: { justificativa } };
+  }
   revalidarDecisoes();
-  return { ok: "Decisão fixada. A votação desta pergunta foi encerrada." };
+  return { ok: mensagemFixada(resultado.motivos) };
+}
+
+function mensagemFixada(motivos: MotivoForaDaRegra[]) {
+  return motivos.length > 0
+    ? "Decisão fixada fora da regra. A turma vê a justificativa no histórico."
+    : "Decisão fixada. A votação desta pergunta foi encerrada.";
 }
 
 export async function reabrirVotacao(
@@ -102,10 +187,33 @@ export async function reabrirVotacao(
       await db.query("select pg_advisory_xact_lock(hashtext($1))", [
         `${admin.turmaId}:${dados.data.enqueteId}`,
       ]);
+      // Antes de apagar, registra o que estava fixado: reabrir não pode
+      // sumir com a decisão (ADR-0003).
+      const { rows: fixadas } = await db.query(
+        `select e.titulo, o.texto
+           from decisoes d
+           join enquetes e on e.id = d.enquete_id
+           join opcoes o on o.id = d.opcao_id
+          where d.turma_id = $1 and d.enquete_id = $2
+          order by o.ordem`,
+        [admin.turmaId, dados.data.enqueteId],
+      );
+      if (fixadas.length === 0) return;
       await db.query("delete from decisoes where turma_id = $1 and enquete_id = $2", [
         admin.turmaId,
         dados.data.enqueteId,
       ]);
+      await registrarAuditoria(db, {
+        usuarioId: admin.usuarioId,
+        turmaId: admin.turmaId,
+        acao: "decisao.reaberta",
+        entidade: "enquete",
+        entidadeId: dados.data.enqueteId,
+        detalhe: {
+          pergunta: fixadas[0].titulo,
+          escolhidas: fixadas.map((f) => f.texto),
+        },
+      });
     },
     { acao: "decisoes.reabrir" },
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -35,7 +36,67 @@ export type OpcaoExistente = {
   texto: string;
   exclusiva: boolean;
   votos: number;
+  valorPessoa?: number | null;
+  link?: string | null;
 };
+
+type Detalhe = { valor: string; link: string };
+const semDetalhe = (): Detalhe => ({ valor: "", link: "" });
+
+// "R$ 95 por pessoa" e o link do cardápio (ADR-0003). Os campos ficam sempre
+// no formulário (só escondidos quando a pessoa não abre "Valor e link"), para
+// salvar a pergunta sem apagar o valor que já existia.
+function CamposDetalhe({
+  visivel,
+  rotulo,
+  nomes,
+  valores,
+  aoMudar,
+}: {
+  visivel: boolean;
+  rotulo: string;
+  nomes?: { valor: string; link: string };
+  valores: Detalhe;
+  aoMudar?: (d: Detalhe) => void;
+}) {
+  const controlado = aoMudar !== undefined;
+  return (
+    <div className={visivel ? "grid grid-cols-[7rem_1fr] gap-2 pl-3" : "hidden"}>
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs text-muted-foreground">R$ por pessoa</Label>
+        <Input
+          name={nomes?.valor}
+          inputMode="decimal"
+          placeholder="95,00"
+          maxLength={14}
+          className="h-9 tabular-nums"
+          aria-label={`Valor por pessoa de ${rotulo}`}
+          {...(controlado
+            ? { value: valores.valor, onChange: (e) => aoMudar({ ...valores, valor: e.target.value }) }
+            : { defaultValue: valores.valor })}
+        />
+      </div>
+      <div className="flex min-w-0 flex-col gap-1">
+        <Label className="text-xs text-muted-foreground">Link (cardápio, site)</Label>
+        <Input
+          name={nomes?.link}
+          type="url"
+          inputMode="url"
+          placeholder="https://"
+          maxLength={500}
+          className="h-9 min-w-0"
+          aria-label={`Link de ${rotulo}`}
+          {...(controlado
+            ? { value: valores.link, onChange: (e) => aoMudar({ ...valores, link: e.target.value }) }
+            : { defaultValue: valores.link })}
+        />
+      </div>
+    </div>
+  );
+}
+
+const valorComoTexto = (v?: number | null) =>
+  v === null || v === undefined ? "" : v.toFixed(2).replace(".", ",");
 
 export function EditorOpcoes({
   modo,
@@ -50,7 +111,12 @@ export function EditorOpcoes({
 
   // Modo nova: as linhas são textos controlados e ainda não existem no banco.
   const [linhas, setLinhas] = useState<string[]>(["", ""]);
+  // Valor e link de cada linha, na mesma posição de `linhas`.
+  const [detalhes, setDetalhes] = useState<Detalhe[]>([semDetalhe(), semDetalhe()]);
   const [exclusiva, setExclusiva] = useState<string | null>(null);
+  const [comDetalhes, setComDetalhes] = useState(
+    opcoesIniciais.some((o) => o.valorPessoa != null || o.link),
+  );
 
   // Modo editar: a pessoa só decide o que remover e qual é a exclusiva; os
   // textos existentes são inputs com valor inicial, preservados pelo navegador.
@@ -94,6 +160,7 @@ export function EditorOpcoes({
     const valor = (texto ?? "").trim();
     if (total() >= MAX) return;
     setLinhas((atual) => [...atual, valor]);
+    setDetalhes((atual) => [...atual, semDetalhe()]);
     if (exclusiva !== null) setExclusiva(null);
   }
 
@@ -101,6 +168,7 @@ export function EditorOpcoes({
     if (linhas.length <= MIN) return;
     const eraExclusiva = linhas[i].trim() === exclusiva;
     setLinhas((atual) => atual.filter((_, j) => j !== i));
+    setDetalhes((atual) => atual.filter((_, j) => j !== i));
     if (eraExclusiva) setExclusiva(null);
   }
 
@@ -120,6 +188,11 @@ export function EditorOpcoes({
       .filter(Boolean);
     if (partes.length === 0) return;
     setLinhas((atual) => [...atual.slice(0, i + 1), ...partes, ...atual.slice(i + 1)]);
+    setDetalhes((atual) => [
+      ...atual.slice(0, i + 1),
+      ...partes.map(semDetalhe),
+      ...atual.slice(i + 1),
+    ]);
   }
 
   function teclaLinha(e: React.KeyboardEvent<HTMLInputElement>, i: number) {
@@ -159,8 +232,8 @@ export function EditorOpcoes({
         ? opcoesIniciais.map((o) => {
             const removido = removidos.includes(o.id);
             return (
+              <div key={o.id} className="flex flex-col gap-1.5">
               <div
-                key={o.id}
                 className={`flex items-center gap-2 ${removido ? "opacity-60" : ""}`}
               >
                 <Input
@@ -203,10 +276,18 @@ export function EditorOpcoes({
                 {/* Só existe quando marcado: o servidor compara com "on". */}
                 {removido && <input type="hidden" name={`remover-${o.id}`} value="on" />}
               </div>
+              <CamposDetalhe
+                visivel={comDetalhes && !removido}
+                rotulo={o.texto}
+                nomes={{ valor: `valor-${o.id}`, link: `link-${o.id}` }}
+                valores={{ valor: valorComoTexto(o.valorPessoa), link: o.link ?? "" }}
+              />
+              </div>
             );
           })
         : linhas.map((linha, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
               <Input
                 value={linha}
                 onChange={(e) => editarLinha(i, e.target.value)}
@@ -241,6 +322,13 @@ export function EditorOpcoes({
                 </button>
               )}
             </div>
+            <CamposDetalhe
+              visivel={comDetalhes && !linhaExclusiva(i)}
+              rotulo={linha.trim() || `opção ${i + 1}`}
+              valores={detalhes[i] ?? semDetalhe()}
+              aoMudar={(d) => setDetalhes((atual) => atual.map((x, j) => (j === i ? d : x)))}
+            />
+            </div>
           ))}
 
       {editando && (
@@ -269,6 +357,14 @@ export function EditorOpcoes({
           )}
         </div>
       )}
+      {editando && (
+        <CamposDetalhe
+          visivel={comDetalhes && novaOpcao.trim() !== ""}
+          rotulo="nova opção"
+          nomes={{ valor: "novaValor", link: "novaLink" }}
+          valores={semDetalhe()}
+        />
+      )}
 
       {multipla && editando && (
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -288,6 +384,15 @@ export function EditorOpcoes({
         <>
           <input type="hidden" name="opcoes" value={novosTextos().filter((t) => t !== exclusiva).join("\n")} />
           <input type="hidden" name="exclusiva" value={multipla ? (exclusiva ?? "") : ""} />
+          <input
+            type="hidden"
+            name="detalhes"
+            value={JSON.stringify(
+              linhas
+                .map((texto, i) => ({ texto: texto.trim(), ...(detalhes[i] ?? semDetalhe()) }))
+                .filter((d) => d.texto && (d.valor.trim() || d.link.trim())),
+            )}
+          />
         </>
       )}
 
@@ -297,6 +402,14 @@ export function EditorOpcoes({
             <Plus className="size-3.5" aria-hidden /> Adicionar opção
           </Button>
         )}
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={comDetalhes}
+            onChange={(e) => setComDetalhes(e.target.checked)}
+          />
+          Valor por pessoa e link
+        </label>
         <p role="status" className="text-xs text-muted-foreground">
           {total()} {total() === 1 ? "opção" : "opções"}
           {aviso() ? ` · ${aviso()}` : ""}

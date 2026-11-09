@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import {
   ArrowLeft,
+  CalendarClock,
   CircleDot,
   Eye,
   EyeOff,
@@ -26,6 +27,7 @@ import {
   ocultarEnquete,
   renomearCatalogo,
   renomearCategoria,
+  salvarRegraEnquete,
 } from "@/actions/catalogos";
 import { BotaoMover } from "@/components/features/botao-mover";
 import { EstadoVazio } from "@/components/features/estado-vazio";
@@ -45,6 +47,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { getCatalogoAdmin } from "@/lib/admin";
+import { formatarDataHora } from "@/lib/datas";
+import { formatarReal } from "@/lib/orcamento";
 import { getNomeCatalogo } from "@/lib/votacoes";
 import { exigirAdmin } from "@/lib/dal";
 
@@ -285,6 +289,13 @@ export default async function CatalogoAdminPage(
                           <Users className="size-3.5" aria-hidden />
                           {e.votantes} {e.votantes === 1 ? "membro votou" : "membros votaram"}
                         </span>
+                        {e.regra.prazo && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarClock className="size-3.5" aria-hidden />
+                            fecha em {formatarDataHora.format(e.regra.prazo)}
+                          </span>
+                        )}
+                        {e.regra.quorumPct && <span>quórum de {e.regra.quorumPct}%</span>}
                       </p>
                       <ul className="mt-3 flex flex-wrap gap-2">
                         {e.opcoes.map((o) => (
@@ -294,6 +305,12 @@ export default async function CatalogoAdminPage(
                           >
                             {o.texto}
                             {o.exclusiva && <span className="text-muted-foreground"> (exclusiva)</span>}
+                            {o.valorPessoa != null && (
+                              <span className="text-muted-foreground tabular-nums">
+                                {" · "}
+                                {formatarReal.format(o.valorPessoa)}/pessoa
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -315,6 +332,44 @@ export default async function CatalogoAdminPage(
                         posicao={categoria.enquetes.indexOf(e) + 1}
                         total={categoria.enquetes.length}
                       />
+                      <FormDialog
+                        rotulo="Prazo e quórum"
+                        icone={<CalendarClock aria-hidden />}
+                        titulo="Regra para fixar a decisão"
+                        descricao="Combine antes com a turma. Depois do prazo a pergunta não aceita mais voto. Se a comissão fixar fora da regra, precisa escrever o motivo."
+                        acao={salvarRegraEnquete}
+                        campos={{ enqueteId: e.id }}
+                        rotuloSubmit="Salvar regra"
+                      >
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor={`prazo-${e.id}`} className="text-xs">
+                            Prazo para votar (opcional)
+                          </Label>
+                          <Input
+                            id={`prazo-${e.id}`}
+                            name="prazo"
+                            type="datetime-local"
+                            defaultValue={e.regra.prazoLocal}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor={`quorum-${e.id}`} className="text-xs">
+                            Quórum mínimo, em % da turma (opcional)
+                          </Label>
+                          <Input
+                            id={`quorum-${e.id}`}
+                            name="quorum"
+                            inputMode="numeric"
+                            placeholder="50"
+                            maxLength={4}
+                            defaultValue={e.regra.quorumPct ?? ""}
+                            className="w-28 tabular-nums"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Deixe em branco para tirar. Toda mudança aparece no histórico da turma.
+                        </p>
+                      </FormDialog>
                       {!editavel && (
                         <form action={e.oculta ? mostrarEnquete : ocultarEnquete}>
                           <input type="hidden" name="enqueteId" value={e.id} />
@@ -366,7 +421,8 @@ export default async function CatalogoAdminPage(
                                 opcoesIniciais={e.opcoes}
                               />
                               <p className="text-xs text-muted-foreground">
-                                Uma opção só é removida se ainda não tiver voto.
+                                Uma opção só é removida se ainda não tiver voto. Mudar o valor
+                                depois que a votação começou fica no histórico da turma.
                               </p>
                             </fieldset>
                           </FormDialog>

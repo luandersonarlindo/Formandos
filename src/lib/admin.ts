@@ -27,13 +27,25 @@ export type CatalogoAdmin = {
 // `votos` é a trava de remoção: o servidor só apaga uma opção sem voto nenhum
 // (atualizarEnquete), e o editor precisa mostrar a mesma trava em vez de
 // fingir que a opção vai sumir.
-export type OpcaoAdmin = { id: string; texto: string; exclusiva: boolean; votos: number };
+export type OpcaoAdmin = {
+  id: string;
+  texto: string;
+  exclusiva: boolean;
+  votos: number;
+  // Valor por pessoa e link (ADR-0003): só em perguntas do catálogo da turma.
+  valorPessoa: number | null;
+  link: string | null;
+};
+// Regra da pergunta para esta turma (regras_enquete). `prazoLocal` vem pronto
+// para <input type="datetime-local">, no horário de Brasília.
+export type RegraAdmin = { prazo: Date | null; prazoLocal: string; quorumPct: number | null };
 export type EnqueteAdmin = {
   id: string;
   titulo: string;
   tipo: "unica" | "multipla";
   votantes: number;
   opcoes: OpcaoAdmin[];
+  regra: RegraAdmin;
   // Só vale para o catálogo padrão: pergunta que esta turma escolheu não ver.
   oculta: boolean;
 };
@@ -54,6 +66,9 @@ export type VotosEnquete = {
   naoVotaram: Votante[];
   // Opções fixadas como decisão da turma (vazio se ainda não decidiu).
   decisao: string[];
+  // Justificativa gravada com a decisão atual (ADR-0003).
+  justificativa: string | null;
+  regra: { prazo: Date | null; quorumPct: number | null };
 };
 
 export async function getEventoAdmin(turmaId: string): Promise<EventoAdmin> {
@@ -108,13 +123,18 @@ export async function getCatalogoAdmin(
     pool.query(
       `select e.id, e.categoria_id, e.titulo, e.tipo,
               exists (select 1 from enquetes_ocultas eo
-                       where eo.turma_id = $2 and eo.enquete_id = e.id) as oculta
+                       where eo.turma_id = $2 and eo.enquete_id = e.id) as oculta,
+              r.prazo, r.quorum_pct as "quorumPct",
+              coalesce(to_char(r.prazo at time zone 'America/Sao_Paulo',
+                               'YYYY-MM-DD"T"HH24:MI'), '') as "prazoLocal"
          from enquetes e join categorias ca on ca.id = e.categoria_id
+         left join regras_enquete r on r.turma_id = $2 and r.enquete_id = e.id
         where ca.catalogo_id = $1 order by e.ordem`,
       [catalogoId, turmaId],
     ),
     pool.query(
       `select o.id, o.enquete_id, o.texto, o.exclusiva,
+              o.valor_pessoa::float8 as "valorPessoa", o.link,
               coalesce(vc.votos, 0)::int as votos
          from opcoes o
          join enquetes e on e.id = o.enquete_id
@@ -151,9 +171,17 @@ export async function getCatalogoAdmin(
           tipo: e.tipo,
           votantes: n.get(e.id) ?? 0,
           oculta: e.oculta,
+          regra: { prazo: e.prazo, prazoLocal: e.prazoLocal, quorumPct: e.quorumPct },
           opcoes: opcoes.rows
             .filter((o) => o.enquete_id === e.id)
-            .map((o) => ({ id: o.id, texto: o.texto, exclusiva: o.exclusiva, votos: o.votos })),
+            .map((o) => ({
+              id: o.id,
+              texto: o.texto,
+              exclusiva: o.exclusiva,
+              votos: o.votos,
+              valorPessoa: o.valorPessoa,
+              link: o.link,
+            })),
         })),
     })),
   };
@@ -191,7 +219,7 @@ export async function getVotosEnquete(
   );
   if (enq.length === 0) return null;
 
-  const [linhas, ausentes, decisoes] = await Promise.all([
+  const [linhas, ausentes, decisoes, regras] = await Promise.all([
     pool.query(
       `select o.id as opcao_id, o.texto, u.id as uid, u.name, u.image
          from opcoes o
@@ -214,7 +242,12 @@ export async function getVotosEnquete(
       [turmaId, enqueteId],
     ),
     pool.query(
-      "select opcao_id from decisoes where turma_id = $1 and enquete_id = $2",
+      "select opcao_id, justificativa from decisoes where turma_id = $1 and enquete_id = $2",
+      [turmaId, enqueteId],
+    ),
+    pool.query(
+      `select prazo, quorum_pct as "quorumPct"
+         from regras_enquete where turma_id = $1 and enquete_id = $2`,
       [turmaId, enqueteId],
     ),
   ]);
@@ -233,6 +266,8 @@ export async function getVotosEnquete(
     opcoes,
     naoVotaram: ausentes.rows,
     decisao: decisoes.rows.map((d) => d.opcao_id),
+    justificativa: decisoes.rows[0]?.justificativa ?? null,
+    regra: regras.rows[0] ?? { prazo: null, quorumPct: null },
   };
 }
 

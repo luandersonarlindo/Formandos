@@ -84,7 +84,7 @@ export function FormVotacaoCatalogo({
   function alternar(enqueteId: string, opcaoId: string) {
     if (pendente) return;
     const enquete = EnqueteDoCatalogo(catalogo, enqueteId);
-    if (!enquete || enquete.decisao.length > 0) return;
+    if (!enquete || enquete.decisao.length > 0 || enquete.encerrada) return;
     const exclusiva =
       enquete.opcoes.find((o) => o.id === opcaoId)?.exclusiva ?? false;
     setSelecionadas((atual) => {

@@ -20,7 +20,17 @@ export type DetalhesEvento = {
   dataFim: Date | null;
 };
 
-export type Decisao = { enqueteId: string; pergunta: string; categoria: string; escolhas: string[] };
+export type Decisao = {
+  enqueteId: string;
+  pergunta: string;
+  categoria: string;
+  escolhas: string[];
+  // Fotografia do dia em que foi fixada (ADR-0003). Nulos em decisões antigas.
+  votantes: number | null;
+  membros: number | null;
+  foraDaRegra: boolean;
+  justificativa: string | null;
+};
 
 export type ResumoTurma = {
   membros: number;
@@ -174,7 +184,10 @@ export async function getDadosEvento(
 export async function listarDecisoes(membro: Membro): Promise<Decisao[]> {
   const { rows } = await pool.query(
     `select e.id as "enqueteId", e.titulo as pergunta, ca.nome as categoria,
-            array_agg(o.texto order by o.ordem) as escolhas
+            array_agg(o.texto order by o.ordem) as escolhas,
+            max(d.votantes) as votantes, max(d.membros) as membros,
+            coalesce(max(cardinality(d.fora_da_regra)), 0) > 0 as "foraDaRegra",
+            max(d.justificativa) as justificativa
        from decisoes d
        join enquetes e on e.id = d.enquete_id
        join categorias ca on ca.id = e.categoria_id

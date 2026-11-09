@@ -6,6 +6,10 @@ import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { getModelo } from "@/lib/modelos";
+import { registrarAuditoria } from "@/lib/auditoria";
+import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
+import { lerQuorum } from "@/lib/decisao-regras";
+import { lerDetalheOpcao, lerPrazoLocal, type DetalheOpcao } from "@/lib/opcao-detalhe";
 import type { EstadoForm } from "./tipos";
 
 // Só o catálogo PERSONALIZADO da própria turma pode ser alterado. Toda consulta
@@ -42,7 +46,34 @@ const esquemaEnquete = z.object({
     .min(1, "Informe as opções da pergunta, uma por linha.")
     .max(3200, "As opções estão longas demais."),
   exclusiva: z.string().trim().max(255, "A opção exclusiva é longa demais."),
+  // Valor por pessoa e link de cada opção (ADR-0003), em JSON:
+  // [{ texto, valor, link }]. Opcional.
+  detalhes: z.string().max(20000).optional().default(""),
 });
+
+// Lê o JSON `detalhes` do formulário de pergunta nova e devolve o detalhe de
+// cada opção pelo texto (minúsculo), ou a mensagem de erro.
+function lerDetalhesNova(json: string): Map<string, DetalheOpcao> | { erro: string } {
+  const mapa = new Map<string, DetalheOpcao>();
+  if (!json) return mapa;
+  let lista: unknown;
+  try {
+    lista = JSON.parse(json);
+  } catch {
+    return { erro: "Dados das opções inválidos. Recarregue a página." };
+  }
+  const itens = z
+    .array(z.object({ texto: z.string(), valor: z.string(), link: z.string() }))
+    .max(12)
+    .safeParse(lista);
+  if (!itens.success) return { erro: "Dados das opções inválidos. Recarregue a página." };
+  for (const item of itens.data) {
+    const detalhe = lerDetalheOpcao(item.texto.trim(), item.valor, item.link);
+    if ("erro" in detalhe) return detalhe;
+    mapa.set(item.texto.trim().toLowerCase(), detalhe);
+  }
+  return mapa;
+}
 
 function revalidarCatalogo(catalogoId?: string) {
   revalidatePath("/admin/votacoes");
@@ -448,6 +479,8 @@ export async function adicionarEnquete(
   }
   const { categoriaId, titulo, tipo, opcoes: bruto, exclusiva } = dados.data;
   const erro = (mensagem: string): EstadoForm => ({ erro: mensagem, valores: enviados });
+  const detalhes = lerDetalhesNova(dados.data.detalhes);
+  if (!(detalhes instanceof Map)) return erro(detalhes.erro);
 
   const vistas = new Set<string>();
   const textos: { texto: string; exclusiva: boolean }[] = [];
@@ -493,9 +526,11 @@ export async function adicionarEnquete(
       [categoriaId, titulo, tipo, rows[0].proxima],
     );
     for (const [i, o] of textos.entries()) {
+      const d = detalhes.get(o.texto.toLowerCase());
       await db.query(
-        "insert into opcoes (enquete_id, texto, exclusiva, ordem) values ($1, $2, $3, $4)",
-        [nova[0].id, o.texto, o.exclusiva, i],
+        `insert into opcoes (enquete_id, texto, exclusiva, ordem, valor_pessoa, link)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [nova[0].id, o.texto, o.exclusiva, i, d?.valorPessoa ?? null, d?.link ?? null],
       );
     }
     return { estado: "ok" as const, catalogo: rows[0].catalogo as string, id: nova[0].id as string };
@@ -538,18 +573,30 @@ export async function atualizarEnquete(
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { enqueteId, titulo, tipo, novaOpcao, exclusivaId } = dados.data;
 
-  const edicoes = new Map<string, { texto: string; remover: boolean }>();
+  const edicoes = new Map<string, { texto: string; remover: boolean } & DetalheOpcao>();
   for (const [chave, valor] of formData) {
     if (typeof valor !== "string" || !chave.startsWith("opcao-")) continue;
     const texto = valor.trim().slice(0, 255);
     if (!texto) continue;
     const id = chave.slice("opcao-".length);
-    edicoes.set(id, { texto, remover: formData.get(`remover-${id}`) === "on" });
+    const detalhe = lerDetalheOpcao(
+      texto,
+      String(formData.get(`valor-${id}`) ?? ""),
+      String(formData.get(`link-${id}`) ?? ""),
+    );
+    if ("erro" in detalhe) return { erro: detalhe.erro };
+    edicoes.set(id, { texto, remover: formData.get(`remover-${id}`) === "on", ...detalhe });
   }
+  const detalheNova = lerDetalheOpcao(
+    novaOpcao.trim(),
+    String(formData.get("novaValor") ?? ""),
+    String(formData.get("novaLink") ?? ""),
+  );
+  if ("erro" in detalheNova) return { erro: detalheNova.erro };
 
   const resultado = await transacao(async (db) => {
     const { rows } = await db.query(
-      `select e.tipo, e.categoria_id,
+      `select e.tipo, e.categoria_id, e.titulo,
               (select count(distinct v.usuario_id)::int from votos v
                  join opcoes o on o.id = v.opcao_id where o.enquete_id = e.id) as votantes
          from enquetes e
@@ -569,7 +616,8 @@ export async function atualizarEnquete(
     if (repetido(titulo, irmas)) return { estado: "tituloRepetido" as const };
 
     const { rows: opcoesAtuais } = await db.query(
-      `select o.id, (select count(*)::int from votos v where v.opcao_id = o.id) as votos
+      `select o.id, o.texto, o.valor_pessoa::float8 as "valorPessoa",
+              (select count(*)::int from votos v where v.opcao_id = o.id) as votos
          from opcoes o where o.enquete_id = $1`,
       [enqueteId],
     );
@@ -593,12 +641,29 @@ export async function atualizarEnquete(
         await db.query("delete from opcoes where id = $1 and enquete_id = $2", [id, enqueteId]);
         continue;
       }
-      await db.query("update opcoes set texto = $1, exclusiva = $2 where id = $3 and enquete_id = $4", [
-        e.texto,
-        tipo === "multipla" && exclusivaId === id,
-        id,
-        enqueteId,
-      ]);
+      await db.query(
+        `update opcoes set texto = $1, exclusiva = $2, valor_pessoa = $3, link = $4
+          where id = $5 and enquete_id = $6`,
+        [e.texto, tipo === "multipla" && exclusivaId === id, e.valorPessoa, e.link, id, enqueteId],
+      );
+      // Mudar o preço com a votação andando fica no histórico da turma
+      // (ADR-0003): quem já votou precisa poder ver que o valor mudou.
+      const atual = opcoesAtuais.find((o) => o.id === id);
+      if (atual && rows[0].votantes > 0 && atual.valorPessoa !== e.valorPessoa) {
+        await registrarAuditoria(db, {
+          usuarioId: admin.usuarioId,
+          turmaId: admin.turmaId,
+          acao: "opcao.valor_alterado",
+          entidade: "enquete",
+          entidadeId: enqueteId,
+          detalhe: {
+            pergunta: titulo,
+            opcao: e.texto,
+            antes: atual.valorPessoa,
+            depois: e.valorPessoa,
+          },
+        });
+      }
     }
 
     if (novaOpcao.trim()) {
@@ -606,12 +671,18 @@ export async function atualizarEnquete(
         "select coalesce(max(ordem), -1) + 1 as proxima from opcoes where enquete_id = $1",
         [enqueteId],
       );
-      await db.query("insert into opcoes (enquete_id, texto, exclusiva, ordem) values ($1, $2, $3, $4)", [
-        enqueteId,
-        novaOpcao.trim().slice(0, 255),
-        tipo === "multipla" && exclusivaId === "nova",
-        ordemRows[0].proxima,
-      ]);
+      await db.query(
+        `insert into opcoes (enquete_id, texto, exclusiva, ordem, valor_pessoa, link)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [
+          enqueteId,
+          novaOpcao.trim().slice(0, 255),
+          tipo === "multipla" && exclusivaId === "nova",
+          ordemRows[0].proxima,
+          detalheNova.valorPessoa,
+          detalheNova.link,
+        ],
+      );
     }
     return { estado: "ok" as const };
   });
@@ -686,4 +757,91 @@ export async function mostrarEnquete(formData: FormData) {
   ]);
   revalidarCatalogo(catalogoId);
   revalidatePath("/dashboard");
+}
+
+// Regra da pergunta para a turma (ADR-0003): prazo e quórum, os dois
+// opcionais. Vale também para perguntas do catálogo padrão, porque a regra fica
+// em `regras_enquete` (por turma) e não na pergunta compartilhada. Mudar a
+// regra é permitido, mas fica no histórico que a turma vê.
+const esquemaRegra = z.object({
+  enqueteId: z.uuid(),
+  prazo: z.string().optional().default(""),
+  quorum: z.string().optional().default(""),
+});
+
+export async function salvarRegraEnquete(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = esquemaRegra.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: "Pergunta não encontrada." };
+  const prazo = lerPrazoLocal(dados.data.prazo);
+  if (prazo === "invalido") return { erro: "Prazo inválido. Escolha data e hora." };
+  const quorum = lerQuorum(dados.data.quorum);
+  if (quorum === "invalido") return { erro: "O quórum precisa ser um número de 1 a 100." };
+  const { enqueteId } = dados.data;
+
+  const resultado = await transacao(
+    async (db) => {
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+        `${admin.turmaId}:${enqueteId}`,
+      ]);
+      const { rows: enq } = await db.query(
+        `select e.titulo
+           from enquetes e
+           join categorias ca on ca.id = e.categoria_id
+           join catalogos c on c.id = ca.catalogo_id
+          where e.id = $1 and ${catalogoVisivelSql("$2")}`,
+        [enqueteId, admin.turmaId],
+      );
+      if (enq.length === 0) return "inexistente" as const;
+
+      const fmt = `coalesce(to_char(prazo at time zone 'America/Sao_Paulo', 'YYYY-MM-DD"T"HH24:MI'), '')`;
+      const { rows: antes } = await db.query(
+        `select ${fmt} as prazo, quorum_pct as "quorumPct"
+           from regras_enquete where turma_id = $1 and enquete_id = $2`,
+        [admin.turmaId, enqueteId],
+      );
+      const anterior = { prazo: antes[0]?.prazo || null, quorumPct: antes[0]?.quorumPct ?? null };
+      const nova = { prazo, quorumPct: quorum };
+      if (anterior.prazo === nova.prazo && anterior.quorumPct === nova.quorumPct) {
+        return "igual" as const;
+      }
+
+      if (prazo === null && quorum === null) {
+        await db.query("delete from regras_enquete where turma_id = $1 and enquete_id = $2", [
+          admin.turmaId,
+          enqueteId,
+        ]);
+      } else {
+        await db.query(
+          `insert into regras_enquete (turma_id, enquete_id, prazo, quorum_pct)
+           values ($1, $2, $3::timestamp at time zone 'America/Sao_Paulo', $4)
+           on conflict (turma_id, enquete_id)
+           do update set prazo = excluded.prazo, quorum_pct = excluded.quorum_pct,
+                         updated_at = now()`,
+          [admin.turmaId, enqueteId, prazo, quorum],
+        );
+      }
+      await registrarAuditoria(db, {
+        usuarioId: admin.usuarioId,
+        turmaId: admin.turmaId,
+        acao: "regra.alterada",
+        entidade: "enquete",
+        entidadeId: enqueteId,
+        detalhe: { pergunta: enq[0].titulo, antes: anterior, depois: nova },
+      });
+      return "ok" as const;
+    },
+    { acao: "catalogos.regra" },
+  );
+
+  if (resultado === "inexistente") return { erro: "Pergunta não encontrada." };
+  if (resultado === "igual") return { ok: "Nada mudou." };
+  revalidarCatalogo();
+  revalidatePath("/admin/votacoes", "layout");
+  revalidatePath("/votacoes", "layout");
+  revalidatePath("/dashboard");
+  return { ok: "Regra salva. A mudança aparece no histórico da turma." };
 }

@@ -2,14 +2,18 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { ArrowLeft, CircleCheck, Gavel, Pencil, Pin, RotateCcw, Trophy } from "lucide-react";
+import { ArrowLeft, CircleCheck, Gavel, History, Pencil, Pin, RotateCcw, Trophy } from "lucide-react";
 import { fixarDecisao, reabrirVotacao } from "@/actions/decisoes";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { CamposFixarDecisao } from "@/components/features/campos-fixar-decisao";
 import { FormDialog } from "@/components/features/form-dialog";
+import { HistoricoDecisoes } from "@/components/features/historico-decisoes";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getTituloEnquete, getVotosEnquete, type Votante } from "@/lib/admin";
+import { listarHistoricoDecisoes } from "@/lib/auditoria";
+import { formatarDataHora } from "@/lib/datas";
 import { exigirAdmin } from "@/lib/dal";
 
 function Pessoa({ v }: { v: Votante }) {
@@ -38,7 +42,10 @@ export default async function VotosEnquetePage(
   const admin = await exigirAdmin();
   const { enqueteId } = await props.params;
   if (!z.uuid().safeParse(enqueteId).success) notFound();
-  const dados = await getVotosEnquete(enqueteId, admin.turmaId);
+  const [dados, historico] = await Promise.all([
+    getVotosEnquete(enqueteId, admin.turmaId),
+    listarHistoricoDecisoes(admin.turmaId, enqueteId),
+  ]);
   if (!dados) notFound();
 
   const votantes = new Set(dados.opcoes.flatMap((o) => o.votantes.map((v) => v.id)));
@@ -94,47 +101,54 @@ export default async function VotosEnquetePage(
               ? "Esta escolha aparece no dashboard de todos e ninguém mais consegue votar. Para votar de novo, reabra a votação."
               : "Fixe a opção escolhida pela comissão. Ela vai para o dashboard de todos e a votação desta pergunta é encerrada."}
           </CardDescription>
+          {(dados.regra.prazo || dados.regra.quorumPct) && (
+            <p className="text-sm text-muted-foreground">
+              Regra combinada:{" "}
+              {[
+                dados.regra.prazo && `votação até ${formatarDataHora.format(dados.regra.prazo)}`,
+                dados.regra.quorumPct && `quórum de ${dados.regra.quorumPct}% da turma`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              .
+            </p>
+          )}
+          {decidida && dados.justificativa && (
+            <p className="text-sm">Motivo informado: “{dados.justificativa}”</p>
+          )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <FormDialog
             rotulo={decidida ? "Trocar decisão" : "Fixar decisão"}
             icone={decidida ? <Pencil aria-hidden /> : <Pin aria-hidden />}
             titulo={decidida ? "Trocar a decisão" : "Fixar decisão"}
-            descricao="A opção escolhida vai para o dashboard de todos e a votação desta pergunta é encerrada."
+            descricao="A opção escolhida vai para o dashboard de todos e a votação desta pergunta é encerrada. A turma vê os números e o motivo."
             acao={fixarDecisao}
             campos={{ enqueteId }}
             rotuloSubmit={decidida ? "Trocar decisão" : "Fixar decisão"}
             rotuloPendente="Salvando…"
           >
-            <fieldset className="grid gap-2">
-              <legend className="sr-only">Opção escolhida</legend>
-              {dados.opcoes.map((o) => (
-                <label
-                  key={o.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-[var(--vitrine-a)] has-checked:bg-[color-mix(in_oklch,var(--vitrine-a)_8%,transparent)] has-checked:font-medium"
-                >
-                  <input
-                    type={dados.tipo === "unica" ? "radio" : "checkbox"}
-                    name="opcaoId"
-                    value={o.id}
-                    defaultChecked={sugeridas.includes(o.id)}
-                    required={dados.tipo === "unica"}
-                    className="size-4 accent-[var(--vitrine-a)]"
-                  />
-                  {o.texto}
-                  {!decidida && sugeridas.includes(o.id) && (
-                    <span className="ml-auto text-xs text-muted-foreground">Mais votada</span>
-                  )}
-                </label>
-              ))}
-            </fieldset>
+            <CamposFixarDecisao
+              tipo={dados.tipo}
+              opcoes={dados.opcoes.map((o) => ({
+                id: o.id,
+                texto: o.texto,
+                votos: o.votantes.length,
+              }))}
+              sugeridas={sugeridas}
+              votantes={votantes.size}
+              membros={totalMembros}
+              prazo={dados.regra.prazo ? dados.regra.prazo.toISOString() : null}
+              quorumPct={dados.regra.quorumPct}
+              justificativaAtual={dados.justificativa}
+            />
           </FormDialog>
           {decidida && (
             <FormDialog
               rotulo="Reabrir votação"
               icone={<RotateCcw aria-hidden />}
               titulo="Reabrir votação"
-              descricao="Todos voltam a poder votar. As decisões fixadas no dashboard continuam lá até você trocá-las."
+              descricao="Todos voltam a poder votar e a decisão sai do dashboard. A decisão anterior continua no histórico da turma."
               acao={reabrirVotacao}
               campos={{ enqueteId }}
               rotuloSubmit="Reabrir votação"
@@ -201,6 +215,18 @@ export default async function VotosEnquetePage(
                 ))}
               </ul>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <History className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Histórico
+            </CardTitle>
+            <CardDescription>A turma também vê este histórico no dashboard.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <HistoricoDecisoes itens={historico} />
           </CardContent>
         </Card>
       </div>

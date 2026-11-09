@@ -22,6 +22,8 @@ import { ContagemRegressiva } from "@/components/features/contagem-regressiva";
 import { EventoAdmin } from "@/components/features/evento-admin";
 import { FormPresenca } from "@/components/features/form-presenca";
 import { FormSairTurma } from "@/components/features/form-sair-turma";
+import { HistoricoDecisoes } from "@/components/features/historico-decisoes";
+import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -31,6 +33,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { listarHistoricoDecisoes } from "@/lib/auditoria";
 import { exigirMembro } from "@/lib/dal";
 import { getDadosEvento, getResumosDashboard, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
 import { listarUltimosAvisos } from "@/lib/avisos";
@@ -94,12 +97,13 @@ export default async function DashboardPage() {
   // Uma única leva de queries (programacao uma vez, resumos e evento em 1
   // roundtrip cada): antes, o EventoAdmin buscava programacao de novo +
   // exigirAdmin, os resumos eram 2 queries e os dados do evento outras 2.
-  const [programacao, { resumo, admin: resumoAdmin }, { detalhes, evento }, decisoes, presenca, avisos] =
+  const [programacao, { resumo, admin: resumoAdmin }, { detalhes, evento }, decisoes, historico, presenca, avisos] =
     await Promise.all([
       listarProgramacao(membro),
       getResumosDashboard(membro),
       getDadosEvento(membro),
       listarDecisoes(membro),
+      listarHistoricoDecisoes(membro.turmaId),
       getMinhaPresenca(membro),
       listarUltimosAvisos(membro),
     ]);
@@ -321,7 +325,7 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {decisoes.length > 0 && (
+      {(decisoes.length > 0 || historico.length > 0) && (
         <Card className="mt-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -329,16 +333,49 @@ export default async function DashboardPage() {
             </CardTitle>
             <CardDescription>O que a comissão já fixou depois das votações.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              {decisoes.map((d) => (
-                <div key={d.enqueteId} className="rounded-xl border bg-background/80 p-3">
-                  <dt className="text-xs text-muted-foreground">{d.categoria}</dt>
-                  <dd className="mt-0.5 text-sm text-pretty text-muted-foreground">{d.pergunta}</dd>
-                  <dd className="mt-1 text-sm font-medium wrap-break-word">{d.escolhas.join(" · ")}</dd>
+          <CardContent className="flex flex-col gap-4">
+            {decisoes.length > 0 && (
+              <dl className="grid gap-3 sm:grid-cols-2">
+                {decisoes.map((d) => (
+                  <div key={d.enqueteId} className="rounded-xl border bg-background/80 p-3">
+                    <dt className="text-xs text-muted-foreground">{d.categoria}</dt>
+                    <dd className="mt-0.5 text-sm text-pretty text-muted-foreground">{d.pergunta}</dd>
+                    <dd className="mt-1 text-sm font-medium wrap-break-word">{d.escolhas.join(" · ")}</dd>
+                    {/* Números do dia e regra (ADR-0003). Decisões antigas não
+                        têm a fotografia, então ficam só com a escolha. */}
+                    {d.votantes !== null && (
+                      <dd className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="tabular-nums">
+                          votaram {d.votantes} de {d.membros}
+                        </span>
+                        {!d.foraDaRegra ? (
+                          <Badge variant="secondary">Dentro da regra</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-amber-700 dark:text-amber-400">
+                            Fixada fora da regra
+                          </Badge>
+                        )}
+                      </dd>
+                    )}
+                    {d.justificativa && (
+                      <dd className="mt-1 text-xs text-pretty text-muted-foreground">
+                        Motivo: “{d.justificativa}”
+                      </dd>
+                    )}
+                  </div>
+                ))}
+              </dl>
+            )}
+            {historico.length > 0 && (
+              <PainelRecolhivel className="group rounded-xl border p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Ver histórico das decisões
+                </summary>
+                <div className="mt-3">
+                  <HistoricoDecisoes itens={historico} mostrarPergunta />
                 </div>
-              ))}
-            </dl>
+              </PainelRecolhivel>
+            )}
           </CardContent>
         </Card>
       )}

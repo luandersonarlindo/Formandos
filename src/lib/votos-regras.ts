@@ -25,3 +25,9 @@ export function validarSelecao(
   }
   return null;
 }
+
+// Prazo da votação (ADR-0003): depois dele a pergunta não aceita mais voto.
+// Não há agendador: a tela e a Server Action calculam na hora.
+export function votacaoEncerrada(prazo: Date | null, agora: Date): boolean {
+  return prazo !== null && agora >= prazo;
+}
