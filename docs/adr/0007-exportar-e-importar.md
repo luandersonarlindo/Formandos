@@ -130,12 +130,26 @@ O convite por lista é o maior risco de privacidade deste item: o site passa a g
 
 ## Ações
 
-1. [ ] Backup (`pg_dump`). `db/schema.sql`: tabela `convites_email`.
-2. [ ] `src/lib/csv.ts` (`paraCsv`, com teste: `;`, BOM, aspas, quebra de linha, proteção contra fórmula) e `src/lib/convite-lista.ts` (`lerListaConvites`, com teste: `email`, `nome; email`, vírgula, tab, repetidos, inválidos, limite de 200).
-3. [ ] `src/lib/auditoria-acoes.ts`: `turma.exportada` (restrita).
-4. [ ] `/admin/turma/exportar` (CSV, 6 tipos, pagamentos só tesouraria, auditoria) e card "Exportar o registro da turma" em `/admin/turma`.
-5. [ ] `/admin/turma/registro`: página de impressão com as seções do item 1 e "Salvar como PDF".
-6. [ ] Convite por lista: `emailConviteTurma` em `email.ts`; actions `previaConvites`, `enviarConvites`, `reenviarConvite`, `removerConvite`; lista "Convidados que ainda não entraram" em `/admin/membros`; `entrarPorConvite` apaga a linha; a rota de lembretes apaga convites com mais de 90 dias.
-7. [ ] `/conta/meus-dados` legível e os dois botões em `/conta`; `/privacidade` com a linha sobre convites.
-8. [ ] Textos revisados com `design:ux-copy`; telas e PDF conferidos em 360px.
-9. [ ] `npm run typecheck`, `npm test`, passo novo em `fluxos.mjs` (baixar um CSV e conferir cabeçalho e auditoria; registro abre com as seções; convite por lista manda email no Mailpit e o convidado some da lista quando entra).
+1. [x] Backup (`pg_dump`). `db/schema.sql`: tabela `convites_email`.
+2. [x] `src/lib/csv.ts` (`paraCsv`, com teste: `;`, BOM, aspas, quebra de linha, proteção contra fórmula) e `src/lib/convite-lista.ts` (`lerListaConvites`, com teste: `email`, `nome; email`, vírgula, tab, repetidos, inválidos, limite de 200).
+3. [x] `src/lib/auditoria-acoes.ts`: `turma.exportada` (restrita).
+4. [x] `/admin/turma/exportar` (CSV, 6 tipos, pagamentos só tesouraria, auditoria) e card "Exportar o registro da turma" em `/admin/turma`.
+5. [x] `/admin/turma/registro`: página de impressão com as seções do item 1 e "Salvar como PDF".
+6. [x] Convite por lista: `emailConviteTurma` em `email.ts`; actions `previaConvites`, `enviarConvites`, `reenviarConvite`, `removerConvite`; lista "Convidados que ainda não entraram" em `/admin/membros`; `entrarPorConvite` apaga a linha; a rota de lembretes apaga convites com mais de 90 dias.
+7. [x] `/conta/meus-dados` legível e os dois botões em `/conta`; `/privacidade` com a linha sobre convites.
+8. [x] Textos revisados com `design:ux-copy`; telas e PDF conferidos em 360px.
+9. [x] `npm run typecheck`, `npm test`, passo novo em `fluxos.mjs` (baixar um CSV e conferir cabeçalho e auditoria; registro abre com as seções; convite por lista manda email no Mailpit e o convidado some da lista quando entra).
+
+### Andamento (2026-11-09)
+
+Todas as ações feitas.
+
+- `src/lib/csv.ts` e `src/lib/convite-lista.ts` (12 testes). A lista também aceita `Ana <ana@ex.com>`, como sai do Gmail.
+- `src/lib/exportacao.ts` e `GET /admin/turma/exportar`. **Bug achado no teste de fluxo:** duas colunas SQL sem nome (`case`) viravam a mesma chave e uma sumia da planilha; agora toda coluna tem nome.
+- `src/lib/registro.ts` e `/admin/turma/registro`; `BotaoImprimir`; regra `@media print` em `globals.css` que esconde o menu lateral (o cabeçalho usa `print:hidden`).
+- Convite por lista: `src/actions/convites.ts` (`convidarPorLista` com prévia e envio no mesmo formulário, limite de 10 listas por hora por turma; `reenviarConvite`, uma vez por dia; `removerConvite`), `emailConviteTurma`, `FormConvitesLista`, lista "Convidados que ainda não entraram" em `/admin/membros`. `entrarPorConvite` apaga a linha; a rodada de lembretes apaga convites com mais de 90 dias.
+- `/conta/meus-dados` e os dois botões em `/conta`; seção "Convites por email" em `/privacidade`.
+- Testes: `typecheck`, `npm test` (283). Passo "ADR-0007" no grupo `admin` de `fluxos.mjs`. Grupo `admin`: 30 de 36, a melhor rodada; as 6 falhas são as que já existiam. Telas em 360px conferidas.
+- **Não testado de ponta a ponta:** a pessoa convidada entrar e sumir da lista (exigiria criar conta nova no teste).
+- **Achado fora do escopo:** `scripts/teste/semear.sh` diz que o voto da Maria é no catálogo padrão, mas pega a primeira opção de qualquer catálogo; num banco com outras turmas, o voto cai num catálogo que a turma de teste não vê. Pode explicar falhas antigas do grupo `admin`, como "relatório: empate no topo".
+
