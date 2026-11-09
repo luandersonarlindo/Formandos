@@ -8,7 +8,7 @@ Versão explicada do `docs/guia-de-estudo.md`. O conteúdo é o mesmo, mas aqui 
 
 Serve para quem nunca usou Next.js, React, PostgreSQL, OAuth, SMTP etc. Não é preciso ler tudo de uma vez: use o **Glossário** (seção 1) como dicionário e volte a ele sempre que aparecer um termo novo.
 
-> **Situação (07/11/2026):** o MVP está pronto e publicado (Vercel + banco Neon), incluindo a parte de LGPD. Este guia é material de estudo: ele explica o que já foi feito, para que qualquer pessoa do grupo entenda e consiga mexer.
+> **Situação (07/11/2026):** o MVP está pronto, incluindo a parte de LGPD. O site **não está publicado na internet**: o código fica no GitHub e o app roda na máquina de cada pessoa (com Docker ou com `npm run dev`). O passo a passo de publicação (Vercel + Neon) continua no README, caso o grupo decida publicar um dia. Este guia é material de estudo: ele explica o que já foi feito, para que qualquer pessoa do grupo entenda e consiga mexer.
 
 > **Atenção:** o projeto usa **Next.js 16.3.8** e **React 19.2.8**. Muitos tutoriais da internet são de versões antigas e ensinam coisas que **não funcionam mais** aqui (por exemplo `middleware.ts`, pasta `pages/`, `getServerSideProps`). Na dúvida, leia a documentação que vem junto com o projeto, em `node_modules/next/dist/docs/01-app/`. Ela é exatamente da versão instalada.
 
@@ -48,7 +48,7 @@ Termos em ordem alfabética. Cada um tem uma explicação curta e, quando cabe, 
 | **Breakpoint** | Largura de tela a partir da qual o layout muda. Ex.: `md` = 768px. Abaixo disso o menu lateral vira uma gaveta. |
 | **Build** | Processo que transforma o código-fonte na versão otimizada que vai para produção (`npm run build`). |
 | **Cache** | Guardar um resultado para não precisar calcular de novo. Ex.: `cache()` do React evita consultar a sessão duas vezes na mesma requisição. |
-| **CDN / Hospedagem** | Onde o site fica no ar. Aqui é a **Vercel**. |
+| **CDN / Hospedagem** | Onde o site fica no ar. O projeto não está hospedado hoje; o README explica como seria na **Vercel**. |
 | **Client Component** | Componente React que roda **no navegador**. Necessário para cliques, estado e animações. Marcado com `"use client"` no topo do arquivo. |
 | **Commit / Branch / Pull Request** | Conceitos do Git. Commit = um "salvamento" com descrição. Branch = linha de trabalho paralela. Pull Request (PR) = pedido para juntar uma branch na principal, com revisão dos colegas. |
 | **Cookie** | Pequeno texto que o navegador guarda e reenvia ao site em toda requisição. É assim que o site "lembra" que você está logado. |
@@ -73,7 +73,7 @@ Termos em ordem alfabética. Cada um tem uma explicação curta e, quando cabe, 
 | **MCP** (Model Context Protocol) | Protocolo que dá a assistentes de IA (como o Claude Code) acesso a ferramentas externas, como os erros do `next dev`. |
 | **Migração (migration)** | Script que cria ou altera tabelas do banco, para todos terem o mesmo esquema. |
 | **MVP** | "Produto mínimo viável": a primeira versão com o essencial funcionando. |
-| **Neon** | Serviço que hospeda PostgreSQL na nuvem. É o banco de produção. |
+| **Neon** | Serviço que hospeda PostgreSQL na nuvem. Seria o banco de produção se o site fosse publicado. |
 | **Node.js / npm** | Node roda JavaScript fora do navegador (no servidor). npm é o gerenciador de pacotes: `npm install`, `npm run dev`. |
 | **OAuth** | Protocolo que permite "Entrar com Google": o Google confirma quem é a pessoa e avisa o nosso app, **sem** o app ver a senha do Google. |
 | **ORM** | Biblioteca que gera SQL a partir de objetos (ex.: Prisma, Drizzle). **Este projeto não usa ORM**: escreve SQL direto. |
@@ -100,7 +100,7 @@ Termos em ordem alfabética. Cada um tem uma explicação curta e, quando cabe, 
 | **Transação** | Grupo de comandos no banco que acontecem **todos ou nenhum**. Se um falhar, tudo volta atrás (rollback). |
 | **TypeScript** | JavaScript com tipos. O editor avisa erros antes de rodar, como passar texto onde se espera número. |
 | **UUID** | Identificador aleatório e único, como `3f2a...-...`. Usado como `id` nas tabelas. Difícil de adivinhar. |
-| **Vercel** | Empresa/plataforma que hospeda o app em produção. Criada pelos mesmos autores do Next.js. |
+| **Vercel** | Plataforma de hospedagem criada pelos mesmos autores do Next.js. É a opção descrita no README para publicar o app (hoje ele não está publicado). |
 | **Zod** | Biblioteca de validação: descreve o formato esperado dos dados e rejeita o que não bate. |
 
 ---
@@ -367,11 +367,13 @@ Escolhas de design: barras horizontais ordenadas da mais votada para a menos vot
 | `vitest` | Roda testes automatizados | `npm test` (seção 10) |
 | `babel-plugin-react-compiler` | O React Compiler | Otimização automática (seção 3.2) |
 
-### 3.13 Vercel e Neon (produção)
+### 3.13 Vercel e Neon (produção, se o site for publicado)
 
-**Vercel:** plataforma que hospeda o app. Cada `git push` na branch principal pode gerar um novo deploy automático. Feita pelos criadores do Next, então tudo funciona sem configuração extra.
+> **Hoje o site não está publicado.** O grupo desistiu do deploy e o projeto fica só no GitHub, rodando em cada computador. Esta seção explica como seria a publicação, que continua documentada no README.
 
-**Neon:** PostgreSQL na nuvem, com plano gratuito. A Vercel não guarda banco, então o banco de produção fica no Neon.
+**Vercel:** plataforma que hospedaria o app. Cada `git push` na branch principal pode gerar um novo deploy automático. Feita pelos criadores do Next, então tudo funciona sem configuração extra.
+
+**Neon:** PostgreSQL na nuvem, com plano gratuito. A Vercel não guarda banco, então o banco de produção ficaria no Neon.
 
 **Por que esse par:** ambos têm plano gratuito suficiente para o projeto e exigem pouca configuração. Antes de cada build, o `prebuild` roda `db/migrate.mjs` para criar/atualizar as tabelas no Neon.
 
@@ -613,7 +615,7 @@ O `$1` é preenchido pelo driver de forma segura: o texto digitado é tratado se
 
 | Comando | O que faz | Quando usar |
 |---|---|---|
-| `npm run db:migrate` | Cria as tabelas do Better Auth e roda `db/schema.sql` | Primeira vez; também roda sozinho antes do build na Vercel |
+| `npm run db:migrate` | Cria as tabelas do Better Auth e roda `db/schema.sql` | Primeira vez; no Docker roda sozinho a cada `docker compose up`; numa publicação na Vercel rodaria antes do build |
 | `npm run db:schema` | Só roda `db/schema.sql` | Depois de alterar o esquema, em desenvolvimento |
 | `npm run db:seed` | Insere o catálogo padrão (10 categorias, 23 enquetes, 129 opções) a partir de `docs/catalogos-modelo/catalogo-enquetes.md` | Banco novo. Rodar de novo só acrescenta o que falta. `-- --dry` só mostra o que faria |
 
@@ -621,7 +623,9 @@ Os comandos leem o `.env.local`. Se `DATABASE_URL` estiver definida no terminal,
 
 **Limite do `schema.sql`:** ele usa `create table if not exists`, então pode rodar várias vezes. Mas **não altera** uma tabela que já existe. Para mudanças em tabelas existentes, use `alter table ... add column if not exists` (como o projeto já faz em alguns pontos) ou, no futuro, arquivos de migração numerados (`001_...sql`, `002_...sql`).
 
-**Em desenvolvimento:** cada pessoa roda o PostgreSQL instalado no próprio computador. Não há Docker.
+**Em desenvolvimento:** há dois jeitos. Com Docker (`docker compose up`, ver README, seção "Rodar com Docker"), o PostgreSQL, a migração e o Mailpit (caixa de email falsa em http://localhost:8025) sobem sozinhos. Sem Docker, cada pessoa usa o PostgreSQL instalado no próprio computador e roda `npm run dev`.
+
+**Atenção com o Docker:** o container lê o `.env.local` só quando é criado. Depois de mudar o `.env.local`, rode `docker compose up -d app` (recria o container). `docker compose restart` não basta.
 
 ---
 
@@ -771,7 +775,7 @@ Cada etapa termina com algo visível funcionando. Todas já foram feitas no proj
 | 7. Dúvidas | `useOptimistic`, `revalidatePath` | `src/actions/duvidas.ts`, `botao-upvote.tsx` |
 | 8. Admin | Checagem de admin em toda action | `src/actions/admin.ts`, `src/actions/catalogos.ts` |
 | 9. Acabamento | `error.tsx`, `loading.tsx`, acessibilidade, testes | `src/app/error.tsx`, `src/lib/*.test.ts` |
-| 10. Deploy | Variáveis de ambiente, Vercel, Neon | README, seção "Deploy na Vercel com o Neon" |
+| 10. Deploy (opcional, o site não está publicado) | Variáveis de ambiente, Vercel, Neon | README, seção "Deploy na Vercel com o Neon" |
 | 11. LGPD | Consentimento, exportação, auditoria | `src/app/(conta)/conta/`, `src/lib/auditoria.ts` |
 
 Documentação do Next para ler, em ordem, em `node_modules/next/dist/docs/01-app/01-getting-started/`:
