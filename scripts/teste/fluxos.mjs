@@ -1162,13 +1162,22 @@ await grupo("admin", async () => {
       igual(sql(`select string_agg(to_char(vencimento,'DD/MM'), ',' order by numero) from parcelas where turma_id='${turma}'`), "10/10,10/11,10/12", "plano no banco");
 
       // Parcela e meia de uma vez, paga pela mãe: cobre a 1ª e metade da 2ª.
+      // O diálogo "Montar plano" também tem campo "valor": espera ele fechar,
+      // senão o teste preenche o diálogo errado.
+      await nav.esperar("!document.querySelector('[role=dialog]')", 10000, "diálogo do plano fechar");
       await nav.clicar("Lançar", { escopo: "@li[data-membro='João Lima']", seletor: "button" });
-      await nav.esperar("!!document.querySelector('[role=dialog] [name=valor]')", 10000, "formulário de lançamento");
+      await nav.esperar(
+        "[...document.querySelectorAll('[role=dialog]')].some((d) => d.textContent.includes('Lançar para João Lima'))",
+        10000,
+        "formulário de lançamento",
+      );
       await nav.preencher("[role=dialog] [name=valor]", "150");
       await nav.preencher("[role=dialog] [name=pagoPor]", "mãe");
       await nav.clicar("Lançar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
-      await dormir(2000);
-      igual(sql(`select valor || ' ' || status || ' ' || pago_por from pagamentos where turma_id='${turma}'`), "150.00 confirmado mãe", "lançamento no banco");
+      // Espera o banco, e não um tempo fixo: no Docker o envio às vezes passa de 2 s.
+      const lancado = () => sql(`select valor || ' ' || status || ' ' || pago_por from pagamentos where turma_id='${turma}'`);
+      for (let i = 0; i < 20 && !lancado(); i++) await dormir(500);
+      igual(lancado(), "150.00 confirmado mãe", "lançamento no banco");
       igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao in ('papel.tesouraria','plano.alterado','pagamento.lancado')`), "3", "tudo na auditoria");
 
       // O formando vê a própria situação.
@@ -1284,7 +1293,11 @@ await grupo("admin", async () => {
       await nav.clicar("Remover", { escopo: "Temporário E2E", seletor: "button" });
       await nav.esperarTexto("Pagou R$\u00a040,00");
       await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
-      await dormir(2000);
+      // Espera a remoção no banco (ela também manda email, e no Docker passa de 2 s).
+      const aindaMembro = () =>
+        sql(`select count(*) from membros where turma_id='${turma}' and usuario_id=${idDe("teste-tmp@example.invalid")}`);
+      for (let i = 0; i < 30 && aindaMembro() !== "0"; i++) await dormir(500);
+      igual(aindaMembro(), "0", "membro removido");
       igual(
         sql(`select string_agg(valor || ':' || status || ':' || coalesce(usuario_id::text,'sem nome'), ',' order by valor) from pagamentos where turma_id='${turma}' and valor in (10,40)`),
         "40.00:confirmado:sem nome",
@@ -1385,6 +1398,59 @@ await grupo("admin", async () => {
       sql(`delete from decisoes where turma_id='${turma}'`);
       sql(`delete from regras_enquete where turma_id='${turma}'`);
       sql(`delete from lembretes_enviados where turma_id='${turma}'`);
+    }
+  });
+  await passo("ADR-0007: planilha, registro da turma e convite por lista", async () => {
+    const turma = turmaTeste();
+    const base = process.env.BASE_URL ?? "http://localhost:3000";
+    const baixar = (tipo, cookie) =>
+      fetch(`${base}/admin/turma/exportar?tipo=${tipo}`, {
+        headers: { cookie: `better-auth.session_token=${lerCookie(cookie)}` },
+        redirect: "manual",
+      });
+    try {
+      // Planilha de membros: BOM, ";" e auditoria do download.
+      const r = await baixar("membros", "cookie-admin.txt");
+      igual(r.status, 200, "planilha de membros");
+      verdade((r.headers.get("content-disposition") ?? "").includes(".csv"), "baixa como .csv");
+      // text() descarta o BOM ao decodificar: confere nos bytes.
+      const bytes = new Uint8Array(await r.arrayBuffer());
+      verdade(bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf, "começa com BOM UTF-8");
+      const csv = new TextDecoder().decode(bytes);
+      verdade(csv.startsWith("Nome;Email;Papel"), `cabeçalho: ${csv.slice(0, 40)}`);
+      verdade(csv.includes("João Lima;teste-jl@example.invalid;participante"), "linha do participante");
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='turma.exportada'`), "1", "download na auditoria");
+      // Pagamentos só para a tesouraria; participante não baixa nada.
+      igual((await baixar("pagamentos", "cookie-admin.txt")).status, 403, "pagamentos sem ser tesouraria");
+      igual((await baixar("membros", "cookie-participante.txt")).status === 200, false, "participante não baixa");
+
+      // Registro da turma: seções e nenhum email de membro.
+      await nav.abrir("/admin/turma/registro");
+      await nav.esperarTexto("Resultado das votações");
+      await nav.esperarTexto("Fornecedores contratados");
+      verdade(!(await nav.tem("teste-jl@example.invalid")), "registro sem email de membro");
+
+      // Convite por lista: prévia, envio, email no Mailpit 
+      await fetch("http://localhost:8025/api/v1/messages", { method: "DELETE" }).catch(() => {});
+      await nav.abrir("/admin/membros");
+      await nav.preencher("#lista-convites", "Nova Pessoa; teste-nova@example.invalid\nteste-jl@example.invalid\nlixo sem email");
+      await nav.clicar("Ver prévia", { seletor: "button" });
+      await nav.esperarTexto("1 convite novo, 1 já é membro, 1 sem email válido");
+      await nav.clicar("Enviar convites", { seletor: "button" });
+      await nav.esperarTexto("Convites enviados");
+      igual(sql(`select nome || ' ' || email from convites_email where turma_id='${turma}'`), "Nova Pessoa teste-nova@example.invalid", "convite gravado");
+      let chegou = 0;
+      for (let i = 0; i < 20 && !chegou; i++) {
+        await dormir(500);
+        const d = await (await fetch("http://localhost:8025/api/v1/messages")).json().catch(() => ({ messages: [] }));
+        chegou = d.messages.filter((m) => m.To[0].Address === "teste-nova@example.invalid" && m.Subject.startsWith("Convite:")).length;
+      }
+      igual(chegou, 1, "email de convite no Mailpit");
+      await nav.abrir("/admin/membros");
+      await nav.esperarTexto("Convidados que ainda não entraram (1)");
+    } finally {
+      sql(`delete from convites_email where turma_id='${turma}'`);
+      sql("delete from usuarios where email='teste-nova@example.invalid'");
     }
   });
   await passo("relatório: vários catálogos e empate no topo", async () => {
