@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Crown, RefreshCw, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
+import { Crown, Landmark, RefreshCw, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
 import { alterarPapel, regenerarConvite, removerMembro } from "@/actions/admin";
+import { alternarTesouraria } from "@/actions/tesouraria";
 import { BotaoConvite } from "@/components/features/botao-convite";
 import { BotaoCopiar } from "@/components/features/botao-copiar";
 import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
@@ -162,6 +163,22 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
                       <Badge variant={m.papel === "admin" ? "default" : "secondary"}>
                         {m.papel === "admin" ? "Administrador" : "Participante"}
                       </Badge>
+                      {m.tesouraria && (
+                        <Badge variant="outline">
+                          <Landmark aria-hidden /> Tesouraria
+                        </Badge>
+                      )}
+                      {/* Só admin cuida do dinheiro (ADR-0005). Quem é tesouraria
+                          vê e lança quanto cada pessoa pagou. */}
+                      {m.papel === "admin" && (
+                        <form action={alternarTesouraria}>
+                          <input type="hidden" name="usuarioId" value={m.id} />
+                          <Button type="submit" size="sm" variant="outline">
+                            <Landmark aria-hidden />
+                            {m.tesouraria ? "Tirar da tesouraria" : "Pôr na tesouraria"}
+                          </Button>
+                        </form>
+                      )}
                       {!ultimoAdmin && (
                         <FormDialog
                           rotulo={

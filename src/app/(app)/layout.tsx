@@ -6,6 +6,7 @@ import {
   Megaphone,
   Store,
   Vote,
+  Wallet,
 } from "lucide-react";
 import { AppShell, type ItemMenu } from "@/components/features/app-shell";
 import { exigirMembro, exigirSessao, getSeletorTurmas } from "@/lib/dal";
@@ -14,6 +15,7 @@ import { ehMaster } from "@/lib/master";
 const itens: ItemMenu[] = [
   { href: "/dashboard", rotulo: "Dashboard", icone: LayoutDashboard },
   { href: "/avisos", rotulo: "Avisos", icone: Megaphone },
+  { href: "/minha-situacao", rotulo: "Minha situação", icone: Wallet },
   { href: "/tarefas", rotulo: "Tarefas", icone: ClipboardList },
   { href: "/votacoes", rotulo: "Votações", icone: Vote, exato: true },
   { href: "/votacoes/relatorio", rotulo: "Relatório", icone: BarChart3 },

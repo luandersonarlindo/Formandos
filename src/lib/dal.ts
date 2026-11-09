@@ -31,6 +31,8 @@ export type Membro = {
   turmaId: string;
   turmaNome: string;
   papel: "admin" | "participante";
+  // Admin marcado como tesouraria (ADR-0005): vê e lança o dinheiro de cada um.
+  tesouraria: boolean;
   dataEvento: Date | null;
   localEvento: string | null;
   // Quantos acompanhantes cada membro pode levar (escolha do admin da turma).
@@ -59,7 +61,7 @@ export async function definirTurmaAtiva(turmaId: string) {
 export const getVinculos = cache(async (): Promise<Membro[]> => {
   const sessao = await exigirSessao();
   const { rows } = await pool.query(
-    `select m.turma_id, m.papel, t.nome, t.data_evento, t.local_evento,
+    `select m.turma_id, m.papel, m.tesouraria, t.nome, t.data_evento, t.local_evento,
             t.max_acompanhantes, t.usar_catalogo_padrao, t.arquivada_em
        from membros m
        join turmas t on t.id = m.turma_id
@@ -72,6 +74,7 @@ export const getVinculos = cache(async (): Promise<Membro[]> => {
     turmaId: r.turma_id,
     turmaNome: r.nome,
     papel: r.papel,
+    tesouraria: r.papel === "admin" && r.tesouraria,
     dataEvento: r.data_evento,
     localEvento: r.local_evento,
     maxAcompanhantes: r.max_acompanhantes,
@@ -136,6 +139,20 @@ export async function exigirAdminEditavel() {
 
 // Exige login e ser administrador master (gestor de toda a plataforma).
 // Para quem não é master a página "não existe": não revela que há uma área master.
+// Exige ser a tesouraria da turma (ADR-0005). Os outros admins não veem quanto
+// cada pessoa pagou.
+export async function exigirTesouraria() {
+  const membro = await exigirAdmin();
+  if (!membro.tesouraria) redirect("/admin");
+  return membro;
+}
+
+export async function exigirTesourariaEditavel() {
+  const membro = await exigirTesouraria();
+  if (membro.arquivadaEm) redirect("/admin/tesouraria");
+  return membro;
+}
+
 export async function exigirMaster() {
   const { user } = await exigirSessao();
   if (!ehMaster(user)) notFound();

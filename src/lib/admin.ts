@@ -323,6 +323,8 @@ export type LinhaMembro = {
   email: string;
   image: string | null;
   papel: "admin" | "participante";
+  // Cuida do dinheiro da turma (ADR-0005). Só admin pode ser.
+  tesouraria: boolean;
 };
 
 export const POR_PAGINA_MEMBROS = 10;
@@ -371,7 +373,7 @@ export async function listarMembrosAdmin(
   const paginaAtual = limitarPagina(pagina, totalPaginas);
 
   const { rows } = await pool.query<LinhaMembro>(
-    `select u.id, u.name, u.email, u.image, m.papel
+    `select u.id, u.name, u.email, u.image, m.papel, (m.papel = 'admin' and m.tesouraria) as tesouraria
        from membros m
        join usuarios u on u.id = m.usuario_id
       where m.turma_id = $1 ${filtro}

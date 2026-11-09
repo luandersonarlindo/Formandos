@@ -324,3 +324,50 @@ create table if not exists throttle (
   created_at timestamptz not null default now()
 );
 create index if not exists idx_throttle_chave on throttle (chave, created_at);
+
+-- Dinheiro que entra: plano de parcelas e pagamentos (ADR-0005) --------------
+
+-- Quem cuida do dinheiro: só um admin pode ser marcado. Só a tesouraria e a
+-- própria pessoa veem quanto cada um pagou; o resto da comissão vê só o caixa.
+alter table membros add column if not exists tesouraria boolean not null default false;
+
+-- Regras de desistência, devolução e multa, em texto livre, escritas pela
+-- tesouraria e mostradas em "Minha situação".
+alter table turmas add column if not exists regras_dinheiro text;
+
+-- Plano da turma, igual para todos.
+create table if not exists parcelas (
+  id         uuid primary key default gen_random_uuid(),
+  turma_id   uuid not null references turmas(id) on delete cascade,
+  numero     smallint not null check (numero between 1 and 60),
+  valor      numeric(10,2) not null check (valor > 0),
+  vencimento date not null,
+  unique (turma_id, numero)
+);
+
+-- Lançamentos por pessoa. Não apontam para uma parcela: o total pago é
+-- aplicado às parcelas em ordem de vencimento (src/lib/situacao-regras.ts),
+-- o que cobre parcial, parcela dupla e adiantado. usuario_id nulo = ex-membro
+-- (o confirmado fica no caixa da turma, sem o nome). Sem anexo: o comprovante
+-- é o texto de `referencia` (id do Pix).
+create table if not exists pagamentos (
+  id             uuid primary key default gen_random_uuid(),
+  turma_id       uuid not null references turmas(id) on delete cascade,
+  usuario_id     uuid references usuarios(id) on delete set null,
+  tipo           varchar(12) not null default 'pagamento'
+                 check (tipo in ('pagamento', 'devolucao', 'ajuste')),
+  valor          numeric(10,2) not null check (valor > 0),
+  pago_em        date not null,
+  forma          varchar(15) not null default 'pix'
+                 check (forma in ('pix', 'dinheiro', 'transferencia', 'outro')),
+  pago_por       varchar(120),
+  referencia     varchar(120),
+  status         varchar(12) not null default 'confirmado'
+                 check (status in ('informado', 'confirmado', 'recusado')),
+  motivo_recusa  varchar(255),
+  lancado_por    uuid references usuarios(id) on delete set null,
+  confirmado_por uuid references usuarios(id) on delete set null,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+create index if not exists idx_pagamentos_turma_usuario on pagamentos (turma_id, usuario_id);

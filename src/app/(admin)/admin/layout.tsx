@@ -1,4 +1,5 @@
 import {
+  Landmark,
   Settings,
   UserCheck,
   Users,
@@ -26,7 +27,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     <AppShell
       titulo={`Administração · ${membro.turmaNome}`}
       turmas={await getSeletorTurmas(membro.turmaId)}
-      itens={itens}
+      // Tesouraria só aparece para quem é (ADR-0005).
+      itens={
+        membro.tesouraria
+          ? [...itens.slice(0, 2), { href: "/admin/tesouraria", rotulo: "Tesouraria", icone: Landmark }, ...itens.slice(2)]
+          : itens
+      }
       arquivadaEm={membro.arquivadaEm?.toISOString() ?? null}
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}
       rodape={[

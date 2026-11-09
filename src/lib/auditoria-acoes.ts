@@ -13,6 +13,15 @@ export const ACOES_AUDITORIA = [
   "decisao.reaberta",
   "regra.alterada",
   "opcao.valor_alterado",
+  // ADR-0005: tesouraria, plano de parcelas e pagamentos.
+  "papel.tesouraria",
+  "plano.alterado",
+  "pagamento.lancado",
+  "pagamento.informado",
+  "pagamento.confirmado",
+  "pagamento.recusado",
+  "pagamento.editado",
+  "pagamento.excluido",
 ] as const;
 export type AcaoAuditoria = (typeof ACOES_AUDITORIA)[number];
 

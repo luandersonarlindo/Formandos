@@ -59,7 +59,8 @@ export async function alterarPapel(
       return;
     }
     await db.query(
-      "update membros set papel = $1 where turma_id = $2 and usuario_id = $3",
+      // Quem deixa de ser admin deixa de ser tesouraria (ADR-0005).
+      "update membros set papel = $1::varchar, tesouraria = (tesouraria and $1::varchar = 'admin') where turma_id = $2 and usuario_id = $3",
       [papel, admin.turmaId, usuarioId],
     );
     await registrarAuditoria(db, {
