@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
 import { transacao } from "@/lib/db";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { emailDecisao, urlDoSite } from "@/lib/email";
+import { destinatariosDaTurma, enviarParaTurma } from "@/lib/email-turma";
 import { avaliarDecisao, validarJustificativa, type MotivoForaDaRegra } from "@/lib/decisao-regras";
 import type { EstadoForm } from "./tipos";
 
@@ -151,7 +154,16 @@ export async function fixarDecisao(
         justificativa: justificativa || null,
       },
     });
-    return { estado: "ok" as const, motivos };
+    return {
+      estado: "ok" as const,
+      motivos,
+      email: {
+        pergunta: enquetes[0].titulo as string,
+        escolhas: escolhidas.map((o) => o.texto as string),
+        votantes: votantes as number,
+        membros: membros as number,
+      },
+    };
     },
     { acao: "decisoes.fixar" },
   );
@@ -166,6 +178,21 @@ export async function fixarDecisao(
     return { erro: resultado.mensagem, valores: { justificativa } };
   }
   revalidarDecisoes();
+  // Email "Decidido" para a turma (ADR-0006), depois da resposta: a tela não
+  // espera os envios.
+  const dadosEmail = resultado.email;
+  after(async () => {
+    const destinatarios = await destinatariosDaTurma(admin.turmaId, admin.usuarioId);
+    await enviarParaTurma(destinatarios, (d) =>
+      emailDecisao({
+        nome: d.nome,
+        turma: admin.turmaNome,
+        ...dadosEmail,
+        justificativa: justificativa || null,
+        url: urlDoSite("/dashboard"),
+      }),
+    );
+  });
   return { ok: mensagemFixada(resultado.motivos) };
 }
 

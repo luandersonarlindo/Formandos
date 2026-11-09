@@ -49,6 +49,15 @@ export default function PrivacidadePage() {
           </p>
         </section>
         <section>
+          <h2 className="font-semibold">Emails da turma</h2>
+          <p className="mt-1 text-muted-foreground">
+            Mandamos email só quando a comissão fixa uma decisão, quando muda a data,
+            o horário ou o local da festa, e dois dias antes de uma votação fechar ou
+            de uma parcela sua vencer. Você desliga quando quiser em Minha conta;
+            os emails da conta (confirmação e senha) chegam sempre.
+          </p>
+        </section>
+        <section>
           <h2 className="font-semibold">Seus direitos (LGPD, art. 18)</h2>
           <p className="mt-1 text-muted-foreground">
             Confirmar, acessar, corrigir, anonimizar, bloquear, eliminar, levar

@@ -371,3 +371,29 @@ create table if not exists pagamentos (
   updated_at     timestamptz not null default now()
 );
 create index if not exists idx_pagamentos_turma_usuario on pagamentos (turma_id, usuario_id);
+
+-- Emails da turma (ADR-0006) ------------------------------------------------
+
+-- Quem não quer receber decisões, mudanças no evento e prazos por email.
+-- Os emails da conta (confirmação, senha, saída da turma) saem sempre.
+alter table usuarios add column if not exists receber_emails boolean not null default true;
+
+-- Lembretes de prazo já enviados: a rota /api/cron/lembretes pode ser chamada
+-- várias vezes por dia sem repetir email. `referencia` é a enquete (votação)
+-- ou a parcela.
+create table if not exists lembretes_enviados (
+  tipo       varchar(20) not null check (tipo in ('votacao', 'parcela')),
+  referencia uuid not null,
+  turma_id   uuid not null references turmas(id) on delete cascade,
+  usuario_id uuid not null references usuarios(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (tipo, referencia, turma_id, usuario_id)
+);
+
+-- Última execução de cada tarefa agendada (ADR-0006), para o /api/healthz
+-- mostrar se o agendador parou.
+create table if not exists cron_execucoes (
+  nome    varchar(40) primary key,
+  ultima  timestamptz not null default now(),
+  detalhe jsonb not null default '{}'
+);

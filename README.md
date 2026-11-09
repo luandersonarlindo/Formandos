@@ -288,6 +288,15 @@ Alternativa ao passo a passo acima: sobe o PostgreSQL, cria as tabelas, carrega 
 
 ---
 
+## ✉️ Emails da turma e lembretes
+
+O app manda poucos emails para a turma (ADR-0006): **decisão fixada**, **mudança de data, horário ou local** e **lembretes de prazo** (votação que fecha em 2 dias, para quem ainda não votou; parcela que vence em 2 dias). Cada pessoa pode desligar em Minha conta.
+
+- **Lembretes:** a rota `/api/cron/lembretes` precisa do cabeçalho `Authorization: Bearer $CRON_SECRET`. No Docker, o serviço `cron` chama a rota de hora em hora (`docker compose logs -f cron`). Num deploy, use o Vercel Cron ou o GitHub Actions chamando a mesma rota. Chamar várias vezes não repete email.
+- **Depois de mudar o `.env.local`** (por exemplo, para pôr o `CRON_SECRET`), rode `docker compose up -d app cron`: o container só lê o arquivo quando é criado.
+- **Provedor de envio:** o Gmail aceita cerca de 500 destinatários por dia e serve para testar com uma ou duas turmas. Para várias turmas, use um provedor transacional com domínio próprio (Brevo, Resend, Amazon SES, Mailgun). Todos aceitam SMTP, então basta trocar `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` e `EMAIL_FROM`, e ajustar `EMAIL_TETO_DIA`.
+- No Docker, todos os emails vão para o Mailpit: `http://localhost:8025`.
+
 ## ☁️ Deploy na Vercel com o Neon
 
 ### O que é preciso ter antes

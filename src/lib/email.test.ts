@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  emailDecisao,
+  emailEventoMudou,
+  emailPrazoParcela,
+  emailPrazoVotacao,
   emailBoasVindas,
   emailContaExcluida,
   emailEntrouNaTurma,
@@ -297,5 +301,73 @@ describe("email de saída da turma", () => {
     expect(
       emailSaiuDaTurma("Ana", "Turma 2026", "https://formandos.app/x").html,
     ).toContain("traz você de volta");
+  });
+});
+// ADR-0006: emails da turma. Assunto com a palavra que importa e, no texto,
+// sempre o caminho para desligar.
+describe("emails da turma", () => {
+  const url = "https://formandos.app/dashboard";
+  const casos: Array<[string, Omit<Email, "para">, RegExp]> = [
+    [
+      "decisão",
+      emailDecisao({
+        nome: "Ana",
+        turma: "SI 2026",
+        pergunta: "Qual buffet?",
+        escolhas: ["Buffet B"],
+        votantes: 22,
+        membros: 38,
+        justificativa: "O A não tem a data.",
+        url,
+      }),
+      /^Decidido: Qual buffet\?$/,
+    ],
+    [
+      "evento",
+      emailEventoMudou({
+        nome: "Ana",
+        turma: "SI 2026",
+        oQue: "horário",
+        mudancas: [{ rotulo: "horário", antes: "20:00", depois: "19:00" }],
+        url,
+      }),
+      /^Mudou: horário da formatura$/,
+    ],
+    [
+      "prazo de votação",
+      emailPrazoVotacao({
+        nome: "Ana",
+        turma: "SI 2026",
+        pergunta: "Qual buffet?",
+        prazo: new Date("2026-12-13T02:59:00Z"),
+        url,
+      }),
+      /^Prazo: votação "Qual buffet\?" fecha em 12\/12 às 23:59$/,
+    ],
+    [
+      "prazo de parcela",
+      emailPrazoParcela({ nome: "Ana", turma: "SI 2026", numero: 3, falta: 150, vencimento: "2026-12-10", url }),
+      /^Prazo: sua parcela de R\$\s150,00 vence em 10\/12\/2026$/,
+    ],
+  ];
+
+  for (const [nome, email, assunto] of casos) {
+    it(`${nome}: assunto com a palavra-chave`, () => {
+      expect(email.assunto).toMatch(assunto);
+    });
+    it(`${nome}: texto diz como parar de receber`, () => {
+      expect(email.texto).toContain("Para não receber mais, desligue em Minha conta");
+      expect(email.html).toContain("Para não receber mais");
+    });
+  }
+
+  it("decisão leva números e motivo", () => {
+    const [, email] = casos[0];
+    expect(email.texto).toContain("Votaram 22 de 38.");
+    expect(email.texto).toContain("Motivo da comissão: O A não tem a data.");
+  });
+
+  it("evento mostra antes e agora", () => {
+    expect(casos[1][1].texto).toContain("Horário: era 20:00, agora é 19:00");
   });
 });

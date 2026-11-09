@@ -1,10 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { ehLinkHttps } from "@/lib/evento";
+import { emailEventoMudou, urlDoSite } from "@/lib/email";
+import { destinatariosDaTurma, enviarParaTurma } from "@/lib/email-turma";
+import { listarRotulos, mudancasEvento, type EstadoEvento } from "@/lib/lembretes-regras";
 import type { EstadoForm } from "./tipos";
 
 // <input type="datetime-local"> envia "AAAA-MM-DDTHH:mm" (sem fuso).
@@ -80,16 +84,49 @@ export async function salvarEvento(
     return { erro: "O término precisa ser depois do início." };
   }
 
-  await pool.query(
-    `update turmas
-        set nome = $1,
-            data_evento = $2::timestamp at time zone 'America/Sao_Paulo',
-            data_fim_evento = $3::timestamp at time zone 'America/Sao_Paulo',
-            local_evento = $4, descricao = $5, endereco = $6, link_mapa = $7,
-            traje = $8, observacoes_local = $9
-      where id = $10`,
-    [nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal, admin.turmaId],
+  // Lê o estado anterior na mesma transação para saber o que mudou e avisar a
+  // turma por email ("Mudou: horário da formatura", ADR-0006).
+  const mudancas = await transacao(
+    async (db) => {
+      const { rows } = await db.query(
+        `select coalesce(to_char(data_evento at time zone 'America/Sao_Paulo', 'YYYY-MM-DD"T"HH24:MI'), '') as inicio,
+                coalesce(local_evento, '') as local, coalesce(endereco, '') as endereco
+           from turmas where id = $1 for update`,
+        [admin.turmaId],
+      );
+      await db.query(
+        `update turmas
+            set nome = $1,
+                data_evento = $2::timestamp at time zone 'America/Sao_Paulo',
+                data_fim_evento = $3::timestamp at time zone 'America/Sao_Paulo',
+                local_evento = $4, descricao = $5, endereco = $6, link_mapa = $7,
+                traje = $8, observacoes_local = $9
+          where id = $10`,
+        [nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal, admin.turmaId],
+      );
+      const depois: EstadoEvento = {
+        inicio: dataEvento ?? "",
+        local: localEvento ?? "",
+        endereco: endereco ?? "",
+      };
+      return mudancasEvento(rows[0] as EstadoEvento, depois);
+    },
+    { acao: "evento.salvar" },
   );
+  if (mudancas.length > 0) {
+    after(async () => {
+      const destinatarios = await destinatariosDaTurma(admin.turmaId, admin.usuarioId);
+      await enviarParaTurma(destinatarios, (d) =>
+        emailEventoMudou({
+          nome: d.nome,
+          turma: nome || admin.turmaNome,
+          oQue: listarRotulos(mudancas),
+          mudancas,
+          url: urlDoSite("/dashboard"),
+        }),
+      );
+    });
+  }
   revalidarEvento();
   revalidatePath("/", "layout");
   return { ok: "Dados do evento salvos." };

@@ -47,5 +47,8 @@ export const config = {
     "/master/:path*",
     "/convite/:path*",
     "/conta/:path*",
+    // Links dos emails da turma (ADR-0006) voltam para cá depois do login.
+    "/minha-situacao/:path*",
+    "/avisos/:path*",
   ],
 };

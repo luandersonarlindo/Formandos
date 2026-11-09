@@ -1,11 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { COOKIE_TURMA, exigirSessao } from "@/lib/dal";
-import { transacao } from "@/lib/db";
+import { pool, transacao } from "@/lib/db";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { emailContaExcluida, enviarEmailSilencioso } from "@/lib/email";
 import { ehMaster } from "@/lib/master";
@@ -95,4 +96,13 @@ export async function excluirMinhaConta(
   // As sessões foram apagadas junto com a conta; só resta limpar o cookie da turma.
   (await cookies()).delete(COOKIE_TURMA);
   redirect("/");
+}
+
+// Liga ou desliga os emails da turma (ADR-0006): decisões, mudanças no evento
+// e prazos. Os emails da conta (confirmação, senha) continuam sempre.
+export async function alternarEmailsDaTurma(formData: FormData) {
+  const { user } = await exigirSessao();
+  const receber = formData.get("receber") === "sim";
+  await pool.query("update usuarios set receber_emails = $1 where id = $2", [receber, user.id]);
+  revalidatePath("/conta");
 }

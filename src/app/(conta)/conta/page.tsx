@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Download, MailQuestion, TriangleAlert } from "lucide-react";
-import { excluirMinhaConta, atualizarMeuNome } from "@/actions/conta";
+import { BellOff, BellRing, Download, MailQuestion, TriangleAlert } from "lucide-react";
+import { alternarEmailsDaTurma, excluirMinhaConta, atualizarMeuNome } from "@/actions/conta";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { FormAcao } from "@/components/features/form-acao";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exigirSessao } from "@/lib/dal";
+import { pool } from "@/lib/db";
 import { AVISO_INSTITUCIONAL_CURTO, DPO } from "@/lib/empresa";
 import { ehMaster } from "@/lib/master";
 import { getImpactoExclusaoConta } from "@/lib/usuarios";
@@ -20,7 +21,11 @@ const lista = (nomes: string[]) => nomes.map((n) => `“${n}”`).join(", ");
 
 export default async function ContaPage() {
   const { user } = await exigirSessao();
-  const impacto = await getImpactoExclusaoConta(user.id);
+  const [impacto, { rows: preferencia }] = await Promise.all([
+    getImpactoExclusaoConta(user.id),
+    pool.query("select receber_emails from usuarios where id = $1", [user.id]),
+  ]);
+  const recebeEmails: boolean = preferencia[0]?.receber_emails ?? true;
   const master = ehMaster(user);
   const bloqueada = impacto.bloqueiam.length > 0;
 
@@ -59,6 +64,28 @@ export default async function ContaPage() {
               <p className="text-xs text-muted-foreground">Até 120 caracteres.</p>
             </div>
           </FormAcao>
+        </CardContent>
+      </Card>
+
+      {/* ADR-0006: só decisões, mudanças no evento e prazos. */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-lg">Emails da turma</CardTitle>
+          <CardDescription className="text-pretty">
+            {recebeEmails
+              ? "Você recebe email quando a comissão fixa uma decisão, quando muda a data, o horário ou o local da festa, e dois dias antes de uma votação fechar (se ainda não votou) ou de uma parcela sua vencer."
+              : "Você não recebe emails da turma. Decisões, mudanças no evento e prazos continuam no site e no grupo."}{" "}
+            Emails da conta (confirmação e senha) chegam sempre.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={alternarEmailsDaTurma}>
+            <input type="hidden" name="receber" value={recebeEmails ? "nao" : "sim"} />
+            <Button type="submit" variant="outline">
+              {recebeEmails ? <BellOff aria-hidden /> : <BellRing aria-hidden />}
+              {recebeEmails ? "Parar de receber emails da turma" : "Voltar a receber emails da turma"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 

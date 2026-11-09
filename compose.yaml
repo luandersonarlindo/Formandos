@@ -108,6 +108,30 @@ services:
     ports:
       - "127.0.0.1:8025:8025"
 
+  # Lembretes de prazo por email (ADR-0006): chama /api/cron/lembretes de hora
+  # em hora. A rota marca o que já enviou, então repetir é seguro e cobre o
+  # computador que estava desligado no horário. Precisa de CRON_SECRET no
+  # .env.local (sem ele a rota responde 404 e nada é enviado). Os emails caem
+  # no Mailpit, como os outros.
+  #   docker compose logs -f cron     # resultado de cada chamada
+  cron:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    env_file:
+      - path: .env.local
+        required: false
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 60
+        while true; do
+          curl -sS -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/lembretes
+          echo " ($$(date -u +%FT%TZ))"
+          sleep 3600
+        done
+    depends_on:
+      - app
+
   # Opcional: endereço HTTPS público (Cloudflare quick tunnel), sem conta e sem
   # abrir porta no roteador. Só sobe com o perfil:
   #   docker compose --profile tunnel up -d tunnel

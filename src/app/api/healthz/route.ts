@@ -5,9 +5,16 @@ import { pool } from "@/lib/db";
 // Sem auth de propósito: não expõe dado, só "banco responde?".
 export async function GET() {
   try {
-    await pool.query("select 1");
+    // Última execução dos lembretes (ADR-0006): parado há muito tempo = o
+    // agendador caiu. Só a hora, sem dado de ninguém.
+    const { rows } = await pool.query("select ultima from cron_execucoes where nome = 'lembretes'");
     return Response.json(
-      { ok: true, banco: "ok", versao: process.env.npm_package_version ?? "0.1.0" },
+      {
+        ok: true,
+        banco: "ok",
+        versao: process.env.npm_package_version ?? "0.1.0",
+        lembretes: rows[0]?.ultima ?? null,
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {

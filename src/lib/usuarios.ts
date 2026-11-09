@@ -76,7 +76,7 @@ export async function getMeusDados(usuarioId: string) {
   const { rows: conta } = await pool.query(
     `select name as nome, email, image as imagem,
             "emailVerified" as email_verificado, "createdAt" as criada_em,
-            consentimento_em
+            consentimento_em, receber_emails
        from usuarios where id = $1`,
     [usuarioId],
   );

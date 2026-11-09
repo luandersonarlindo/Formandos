@@ -179,7 +179,9 @@ ${CABECALO_META}
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapar(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${TINTA.fundo}">
 <tr><td align="center" style="padding:28px 12px">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;background:#ffffff;border:1px solid ${TINTA.borda};border-radius:12px">
+<!-- 100% com teto de 600px: no celular a caixa encolhe. Com width:600px, o
+     max-width:100% era ignorado em tabela e o texto saía cortado à direita. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid ${TINTA.borda};border-radius:12px">
 <tr><td style="height:4px;font-size:0;line-height:0;background:linear-gradient(90deg,${corA},${corB})">&nbsp;</td></tr>
 <tr><td style="padding:26px 32px 0">
 <p style="margin:0;font-size:18px;font-weight:600;letter-spacing:-0.02em;color:${TINTA.titulo}">Formandos <span style="color:${TINTA.marca}">&#127891;</span></p>
@@ -386,6 +388,154 @@ export function emailContaExcluida(
         listaDeTurmas(turmas) +
         p("A conta e tudo o que dependia dela saíram do ar: sessões, participação, votos, dúvidas e tarefas. <strong>Não há como recuperar.</strong>") +
         pApagado("Se você não pediu isso, entre em contato com quem administra a sua turma."),
+    }),
+  };
+}
+// ---------------------------------------------------------------------------
+// Turma (ADR-0006): só o essencial. Assunto com a palavra que importa
+// ("Decidido", "Mudou", "Prazo"), corpo curto, um botão e o caminho para
+// desligar. Quem desligou em Minha conta não recebe (filtro de quem chama).
+
+const fusoBr = { timeZone: "America/Sao_Paulo" } as const;
+const dataHoraBr = (d: Date) =>
+  `${new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", ...fusoBr }).format(d)} às ${new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", ...fusoBr }).format(d)}`;
+const reais = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+const isoParaBr = (iso: string) => iso.split("-").reverse().join("/");
+
+function motivoTurma(turma: string) {
+  return `Você recebe este email porque é da turma ${turma} no Formandos. Para não receber mais, desligue em Minha conta: ${urlDoSite("/conta")}`;
+}
+const rodapeTexto = (turma: string) => `—\n${motivoTurma(turma)}`;
+
+export function emailDecisao(d: {
+  nome: string;
+  turma: string;
+  pergunta: string;
+  escolhas: string[];
+  votantes: number | null;
+  membros: number | null;
+  justificativa: string | null;
+  url: string;
+}): Omit<Email, "para"> {
+  const escolha = d.escolhas.join(", ");
+  const numeros = d.votantes !== null && d.membros !== null ? `Votaram ${d.votantes} de ${d.membros}.` : "";
+  return {
+    assunto: `Decidido: ${d.pergunta}`,
+    texto: [
+      `Olá, ${d.nome}! A comissão da turma ${d.turma} fixou a decisão.`,
+      `${d.pergunta}\nEscolha da turma: ${escolha}`,
+      numeros,
+      d.justificativa ? `Motivo da comissão: ${d.justificativa}` : "",
+      `Detalhes e histórico: ${d.url}`,
+      rodapeTexto(d.turma),
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+    html: caixaEmail({
+      preheader: `Escolha da turma: ${escolha}`,
+      titulo: `Decidido: ${d.pergunta}`,
+      motivo: motivoTurma(d.turma),
+      corpo:
+        p(`Escolha da turma: <strong>${escapar(escolha)}</strong>`) +
+        (numeros ? p(escapar(numeros)) : "") +
+        (d.justificativa ? p(`Motivo da comissão: “${escapar(d.justificativa)}”`) : "") +
+        botao(d.url, "Ver a decisão") +
+        linkCru(d.url),
+    }),
+  };
+}
+
+export function emailEventoMudou(d: {
+  nome: string;
+  turma: string;
+  // "horário", "data e local"...
+  oQue: string;
+  mudancas: { rotulo: string; antes: string; depois: string }[];
+  url: string;
+}): Omit<Email, "para"> {
+  const linhas = d.mudancas.map((m) => `${m.rotulo[0].toUpperCase()}${m.rotulo.slice(1)}: era ${m.antes}, agora é ${m.depois}`);
+  return {
+    assunto: `Mudou: ${d.oQue} da formatura`,
+    texto: [
+      `Olá, ${d.nome}! A comissão da turma ${d.turma} mudou ${d.oQue} da formatura.`,
+      linhas.join("\n"),
+      `Tudo sobre o evento: ${d.url}`,
+      rodapeTexto(d.turma),
+    ].join("\n\n"),
+    html: caixaEmail({
+      preheader: linhas[0] ?? "",
+      titulo: `Mudou: ${d.oQue} da formatura`,
+      motivo: motivoTurma(d.turma),
+      corpo:
+        d.mudancas
+          .map((m) =>
+            p(`${escapar(m.rotulo[0].toUpperCase() + m.rotulo.slice(1))}: <s>${escapar(m.antes)}</s> → <strong>${escapar(m.depois)}</strong>`),
+          )
+          .join("") +
+        botao(d.url, "Ver o evento") +
+        linkCru(d.url),
+    }),
+  };
+}
+
+export function emailPrazoVotacao(d: {
+  nome: string;
+  turma: string;
+  pergunta: string;
+  prazo: Date;
+  url: string;
+}): Omit<Email, "para"> {
+  const quando = dataHoraBr(d.prazo);
+  return {
+    assunto: `Prazo: votação "${d.pergunta}" fecha em ${quando}`,
+    texto: [
+      `Olá, ${d.nome}! Você ainda não votou nesta pergunta da turma ${d.turma}:`,
+      d.pergunta,
+      `A votação fecha em ${quando}. Depois disso, a comissão decide com os votos que tiver.`,
+      `Vote aqui: ${d.url}`,
+      rodapeTexto(d.turma),
+    ].join("\n\n"),
+    html: caixaEmail({
+      preheader: `Fecha em ${quando}. Você ainda não votou.`,
+      titulo: `A votação fecha em ${quando}`,
+      motivo: motivoTurma(d.turma),
+      corpo:
+        p(`Você ainda não votou em: <strong>${escapar(d.pergunta)}</strong>`) +
+        p("Depois do prazo, a comissão decide com os votos que tiver.") +
+        botao(d.url, "Votar agora") +
+        linkCru(d.url),
+    }),
+  };
+}
+
+export function emailPrazoParcela(d: {
+  nome: string;
+  turma: string;
+  numero: number;
+  falta: number;
+  vencimento: string; // AAAA-MM-DD
+  url: string;
+}): Omit<Email, "para"> {
+  const valor = reais(d.falta);
+  const quando = isoParaBr(d.vencimento);
+  return {
+    assunto: `Prazo: sua parcela de ${valor} vence em ${quando}`,
+    texto: [
+      `Olá, ${d.nome}! Sua parcela ${d.numero} da formatura (turma ${d.turma}) vence em ${quando}. Falta pagar ${valor}.`,
+      `Se você já pagou, avise a tesouraria em "Já paguei": ${d.url}`,
+      rodapeTexto(d.turma),
+    ].join("\n\n"),
+    html: caixaEmail({
+      preheader: `Falta pagar ${valor} da parcela ${d.numero}.`,
+      titulo: `Sua parcela vence em ${quando}`,
+      motivo: motivoTurma(d.turma),
+      corpo:
+        p(`Parcela ${d.numero}: falta pagar <strong>${escapar(valor)}</strong> até ${escapar(quando)}.`) +
+        pApagado("Só você e a tesouraria da turma veem este valor.") +
+        p("Se você já pagou, avise a tesouraria pelo botão “Já paguei”.") +
+        botao(d.url, "Ver minha situação") +
+        linkCru(d.url),
     }),
   };
 }
