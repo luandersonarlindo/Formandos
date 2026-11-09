@@ -162,15 +162,22 @@ Deixar o valor só em perguntas da turma é o corte mais simples que resolve o c
 
 ## Ações
 
-1. [ ] **Backup antes** (`pg_dump` do banco do Docker). Depois, `db/schema.sql`: tabela `regras_enquete`; colunas `justificativa`, `votantes`, `membros` e `fora_da_regra` em `decisoes`; colunas `valor_pessoa` e `link` em `opcoes`. Tudo com `if not exists`.
-2. [ ] `src/lib/decisao-regras.ts` (novo): `avaliarDecisao(...)`, com teste para mais votada, empate, múltipla, sem quórum, antes do prazo com e sem todos os votos, sem votos e sem regra.
-3. [ ] `src/lib/votos-regras.ts`: `votacaoEncerrada(...)`, com teste (sem prazo, antes, depois, decidida).
-4. [ ] `src/lib/auditoria.ts`: ações `decisao.fixada`, `decisao.reaberta`, `regra.alterada` e `opcao.valor_alterado`; leitura `listarHistoricoDecisoes` com lista fechada de ações e teste.
-5. [ ] `src/actions/decisoes.ts`: `fixarDecisao` conta votos e membros na mesma transação, aplica `avaliarDecisao`, exige justificativa, grava a fotografia e registra `decisao.fixada`; `reabrirVotacao` registra `decisao.reaberta` antes de apagar.
-6. [ ] `src/actions/votos.ts`: `salvarVotos` lê `regras_enquete` e recusa pergunta encerrada pelo prazo.
-7. [ ] `src/actions/catalogos.ts`: `salvarRegraEnquete` (perguntas do padrão e da turma, com `regra.alterada`); `adicionarEnquete` e `atualizarEnquete` aceitam `valor-<id>` e `link-<id>` só em catálogo da turma, com `lerValorOrcado` e `ehLinkHttps`, e registram `opcao.valor_alterado` quando já há votos.
-8. [ ] Leituras: `src/lib/votacoes.ts` (regra, valor, link e "encerrada"), `src/lib/admin.ts` (`getVotosEnquete` com regra e contagem para o diálogo), `src/lib/dashboard.ts` (`listarDecisoes` com números, selo e justificativa).
+1. [x] **Backup antes** (`pg_dump` do banco do Docker). Depois, `db/schema.sql`: tabela `regras_enquete`; colunas `justificativa`, `votantes`, `membros` e `fora_da_regra` em `decisoes`; colunas `valor_pessoa` e `link` em `opcoes`. Tudo com `if not exists`.
+2. [x] `src/lib/decisao-regras.ts` (novo): `avaliarDecisao(...)`, com teste para mais votada, empate, múltipla, sem quórum, antes do prazo com e sem todos os votos, sem votos e sem regra.
+3. [x] `src/lib/votos-regras.ts`: `votacaoEncerrada(...)`, com teste (sem prazo, antes, depois, decidida).
+4. [x] `src/lib/auditoria.ts`: ações `decisao.fixada`, `decisao.reaberta`, `regra.alterada` e `opcao.valor_alterado`; leitura `listarHistoricoDecisoes` com lista fechada de ações e teste.
+5. [x] `src/actions/decisoes.ts`: `fixarDecisao` conta votos e membros na mesma transação, aplica `avaliarDecisao`, exige justificativa, grava a fotografia e registra `decisao.fixada`; `reabrirVotacao` registra `decisao.reaberta` antes de apagar.
+6. [x] `src/actions/votos.ts`: `salvarVotos` lê `regras_enquete` e recusa pergunta encerrada pelo prazo.
+7. [x] `src/actions/catalogos.ts`: `salvarRegraEnquete` (perguntas do padrão e da turma, com `regra.alterada`); `adicionarEnquete` e `atualizarEnquete` aceitam `valor-<id>` e `link-<id>` só em catálogo da turma, com `lerValorOrcado` e `ehLinkHttps`, e registram `opcao.valor_alterado` quando já há votos.
+8. [x] Leituras: `src/lib/votacoes.ts` (regra, valor, link e "encerrada"), `src/lib/admin.ts` (`getVotosEnquete` com regra e contagem para o diálogo), `src/lib/dashboard.ts` (`listarDecisoes` com números, selo e justificativa).
 9. [ ] Telas listadas na Decisão, item 6. Textos do diálogo de fixar e dos selos revisados com `design:ux-copy`.
-10. [ ] `src/lib/usuarios.ts` (`getMeusDados`): conferir se as novas ações da `auditoria` feitas pela pessoa entram no "baixar meus dados" (a consulta por `usuario_id` já cobre).
+10. [x] `src/lib/usuarios.ts` (`getMeusDados`): conferir se as novas ações da `auditoria` feitas pela pessoa entram no "baixar meus dados" (a consulta por `usuario_id` já cobre).
 11. [ ] Testar à mão no Docker: fixar a mais votada (sem justificativa); fixar outra (exige justificativa); empate; quórum não atingido; prazo vencido recusando voto; reabrir e ver o histórico com as duas entradas; valor por pessoa aparecendo no card; valor alterado com votos aparecendo no histórico; pergunta do padrão sem campo de valor; turma arquivada continua só leitura.
 12. [ ] `npm run typecheck`, `npm test` e `scripts/teste/fluxos.mjs` (blocos `participante,app,admin`, onde está o passo do empate).
+
+### Andamento (2026-11-09)
+
+- Itens 1 a 8 e 10 feitos. A consulta de `getMeusDados` por `usuario_id` já inclui as ações novas da auditoria.
+- Item 9: telas feitas; a revisão dos textos com `design:ux-copy` ainda falta.
+- Item 11: coberto pelo passo "ADR-0003" e pelo passo da decisão em `scripts/teste/fluxos.mjs` (regra pelo diálogo, prazo vencido, valor no voto, justificativa obrigatória, histórico de fixar e reabrir). Falta testar `opcao.valor_alterado` (mudar valor com votos), empate e quórum na tela, e as telas no celular.
+- Item 12: `typecheck` e `npm test` passando (218 testes). Grupo `admin` de `fluxos.mjs`: 23 de 30 no Docker; as 7 falhas são as mesmas da rodada sem esta mudança (22 de 29). Grupos `participante` e `app` não rodaram limpos no Docker (o teste lê emails do log, e no Docker eles vão para o Mailpit).
