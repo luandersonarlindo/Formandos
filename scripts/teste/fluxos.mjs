@@ -1311,6 +1311,82 @@ await grupo("admin", async () => {
       sql("delete from usuarios where email='teste-tmp@example.invalid'");
     }
   });
+  await passo("ADR-0006: emails de decisão, mudança no evento e prazo, sem repetir", async () => {
+    // Os emails do Docker caem no Mailpit. Fora do Docker (sem Mailpit), o passo não se aplica.
+    const MAILPIT = process.env.MAILPIT_URL ?? "http://localhost:8025";
+    const caixa = async () => {
+      const r = await fetch(`${MAILPIT}/api/v1/messages?limit=200`);
+      const d = await r.json();
+      return d.messages.map((m) => ({ para: m.To[0].Address, assunto: m.Subject }));
+    };
+    const doJoao = async (trecho) =>
+      (await caixa()).filter((m) => m.para === "teste-jl@example.invalid" && m.assunto.includes(trecho)).length;
+    try {
+      await fetch(`${MAILPIT}/api/v1/messages`, { method: "DELETE" });
+    } catch {
+      verdade(false, `Mailpit fora do ar em ${MAILPIT}: rode no Docker ou defina MAILPIT_URL`);
+    }
+    const turma = turmaTeste();
+    const enq = enqueteLocal();
+    const segredo = fs.readFileSync(".env.local", "utf8").match(/^CRON_SECRET="?([^"\n]*)"?/m)?.[1];
+    try {
+      // Decisão fixada: email "Decidido" para a turma (menos quem fixou).
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
+      await nav.clicar("Fixar decisão", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #justificativa')", 10000, "diálogo de fixar");
+      // Sem votos, nenhuma opção vem marcada: escolhe uma (o rádio é obrigatório).
+      await nav.clicar("Salão Clássico", { escopo: "@[role=dialog]", seletor: "label" });
+      await nav.preencher("#justificativa", "Teste do email da ADR-0006.");
+      await nav.clicar("Fixar decisão", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperarTexto("Decisão fixada");
+      for (let i = 0; i < 20 && (await doJoao("Decidido: Onde vai ser o nosso evento?")) === 0; i++) await dormir(500);
+      igual(await doJoao("Decidido: Onde vai ser o nosso evento?"), 1, "email de decisão para o participante");
+      igual(
+        (await caixa()).filter((m) => m.para === "teste-sh@example.invalid" && m.assunto.startsWith("Decidido")).length,
+        0,
+        "quem fixou não recebe",
+      );
+
+      // Mudança de local: email "Mudou".
+      await nav.abrir("/dashboard");
+      await abrirDadosDoEvento();
+      await nav.preencher("#localEvento", "Salão Email E2E");
+      await nav.clicar("Salvar", { seletor: "button", contem: false });
+      for (let i = 0; i < 20 && (await doJoao("Mudou: local da formatura")) === 0; i++) await dormir(500);
+      igual(await doJoao("Mudou: local da formatura"), 1, "email de mudança no evento");
+
+      // Quem desligou não recebe.
+      sql("update usuarios set receber_emails=false where email='teste-jl@example.invalid'");
+      await nav.abrir("/dashboard");
+      await abrirDadosDoEvento();
+      await nav.preencher("#localEvento", "Salão Email E2E 2");
+      await nav.clicar("Salvar", { seletor: "button", contem: false });
+      await dormir(4000);
+      igual(await doJoao("Mudou: local da formatura"), 1, "desligado não recebe outro");
+      sql("update usuarios set receber_emails=true where email='teste-jl@example.invalid'");
+
+      // Lembrete de prazo: duas chamadas, um email só.
+      if (segredo) {
+        sql(`delete from decisoes where turma_id='${turma}'`);
+        sql(`insert into regras_enquete (turma_id,enquete_id,prazo) values ('${turma}','${enq}', now() + interval '20 hours')
+             on conflict (turma_id,enquete_id) do update set prazo = excluded.prazo`);
+        const base = process.env.BASE_URL ?? "http://localhost:3000";
+        for (let i = 0; i < 2; i++) {
+          const r = await fetch(`${base}/api/cron/lembretes`, { headers: { Authorization: `Bearer ${segredo}` } });
+          igual(r.status, 200, "rota de lembretes");
+        }
+        const semSenha = await fetch(`${base}/api/cron/lembretes`);
+        igual(semSenha.status, 401, "rota sem senha recusa");
+        await dormir(1500);
+        igual(await doJoao("Prazo: votação"), 1, "lembrete de votação uma vez só");
+      }
+    } finally {
+      sql("update usuarios set receber_emails=true where email like 'teste-%@example.invalid'");
+      sql(`delete from decisoes where turma_id='${turma}'`);
+      sql(`delete from regras_enquete where turma_id='${turma}'`);
+      sql(`delete from lembretes_enviados where turma_id='${turma}'`);
+    }
+  });
   await passo("relatório: vários catálogos e empate no topo", async () => {
     sql(`insert into votos (turma_id,opcao_id,usuario_id)
       select '${turmaTeste()}', o.id, u.id from usuarios u, opcoes o join enquetes e on e.id=o.enquete_id
