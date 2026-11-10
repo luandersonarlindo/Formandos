@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SCRIPT_TEMA } from "@/lib/tema";
+import { ScriptTema } from "@/components/features/script-tema";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -45,8 +45,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             pintar qualquer conteúdo abaixo. Aplica o modo de cor guardado e marca
             o modo de movimento. Sem este script, quem escolheu "escuro" veria a
             página clara e depois escura. A string vem de lib/tema.ts, que também
-            tem a lógica testada. */}
-        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+            tem a lógica testada; ScriptTema explica o type no cliente. */}
+        <ScriptTema />
         <a
           href="#conteudo"
           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow-md focus:ring-2 focus:ring-ring"

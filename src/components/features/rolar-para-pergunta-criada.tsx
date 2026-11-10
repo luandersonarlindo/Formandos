@@ -21,12 +21,15 @@ import { useEffect } from "react";
 //   enquanto ela roda, prende o foco dentro dele: focar antes devolve o foco
 //   para o diálogo na hora. E o Radix ainda devolve o foco ao botão de origem
 //   quando termina. Por isso a espera só conta quando não há nenhum diálogo
-//   aberto.
+//   na tela, nem o que está fechando.
 const ESPERA_MS = 8000;
 const INTERVALO_MS = 150;
+const FIRMAR_FOCO_MS = 600;
 
-const dialogoAberto = () =>
-  document.querySelector('[role="dialog"][data-state="open"]') !== null;
+// Conta também o diálogo que está saindo (data-state="closed", ainda na
+// tela durante a animação): só depois que ele sai de vez o Radix devolve o
+// foco ao botão de origem. Focar antes disso perde o foco para o botão.
+const dialogoNaTela = () => document.querySelector('[role="dialog"]') !== null;
 
 export function RolarParaPerguntaCriada() {
   useEffect(() => {
@@ -37,7 +40,7 @@ export function RolarParaPerguntaCriada() {
       const limite = Date.now() + ESPERA_MS;
       const tentar = () => {
         const item = document.getElementById(`enq-${id}`);
-        if (item && !dialogoAberto()) {
+        if (item && !dialogoNaTela()) {
           // smooth + preventScroll: o scrollIntoView posiciona a rolagem, e
           // focar sem rolar de novo evita o salto.
           item.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -47,6 +50,18 @@ export function RolarParaPerguntaCriada() {
             () => item.classList.remove("ring-2", "ring-[var(--vitrine-a)]"),
             2000,
           );
+          // O Radix devolve o foco ao botão de origem num setTimeout próprio,
+          // que às vezes roda depois daqui; e a revalidação pode trocar o
+          // elemento. Por meio segundo, se o foco sair da pergunta, volta.
+          const firmeAte = Date.now() + FIRMAR_FOCO_MS;
+          const firmar = () => {
+            const atual = document.getElementById(`enq-${id}`);
+            if (atual && !atual.contains(document.activeElement)) {
+              atual.focus({ preventScroll: true });
+            }
+            if (Date.now() < firmeAte) window.setTimeout(firmar, 100);
+          };
+          window.setTimeout(firmar, 100);
           return;
         }
         // O item ainda não chegou, ou o diálogo de criação ainda está saindo. O
