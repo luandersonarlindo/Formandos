@@ -6,6 +6,15 @@
 # Uso: DATABASE_URL=postgres://... scripts/backup.sh [pasta]
 # No Docker, o serviço `backup` do compose.yaml roda isto uma vez por dia.
 # As cópias têm dados de pessoas: a pasta fica fora do git (.gitignore).
+#
+# Restaurar (testado em 2026-11-09, ver R-04 em docs/auditoria-direitos/riscos.md),
+# num container descartável, sem tocar no banco de verdade:
+#   docker run -d --rm --name restauro -e POSTGRES_HOST_AUTH_METHOD=trust \
+#     -e POSTGRES_DB=restauro -v "$PWD/db/backups:/backups:ro" postgres:18-alpine
+#   docker exec restauro pg_restore -U postgres -d restauro --no-owner /backups/<arquivo>.dump
+#   docker stop restauro
+# Para voltar o banco do compose, o mesmo pg_restore com --clean contra o
+# serviço db (faça antes uma cópia do estado atual).
 set -eu
 
 PASTA="${1:-db/backups}"

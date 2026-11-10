@@ -35,7 +35,7 @@ próprio trabalho é **ameaça de autorrevisão** à independência. Medidas:
 | A-04 | Headers e config | PSI N.03, SoA 8.9 | `next.config.ts`; teste de resposta HTTP | Por entrega |
 | A-05 | Direitos do titular (LGPD) | `legislacao.md`, SoA 8.10 | E2E exclusão de conta; conta apagada cita turmas por email | Trimestral |
 | A-06 | Dependências | SoA 8.8 | `npm audit`; `package-lock.json` versionado | Mensal |
-| A-07 | Backup/RPO (risco R-04) | PSI §2, SoA 8.13 | Comprovante PITR Neon + teste de restore | Até 2026-11-10, depois semestral |
+| A-07 | Backup/RPO (risco R-04) | PSI §2, SoA 8.13 | Rotina própria (`scripts/backup.sh`) + teste de restore: feito em 2026-11-09 (2 s, 29 tabelas, sem erro) | Semestral (próximo até 2027-05-09) |
 
 ## 4. Registro de achados (modelo)
 

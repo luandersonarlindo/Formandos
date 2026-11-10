@@ -149,6 +149,6 @@ Ações feitas, com uma pendência na 8.
 - Ação 5: o texto usa os números do dia em que a decisão foi fixada (`decisoes.votantes` e `membros`), não a contagem atual.
 - Ação 6: a data do evento vem como horário de Brasília ("AAAA-MM-DDTHH:mm") e é lida com `-03:00`; o Brasil não tem horário de verão desde 2019.
 - Ação 7: textos revisados. Link no fim com rótulo uniforme ("Ver no Formandos", "Ver detalhes no Formandos", e "Vote aqui" na votação), "Ninguém votou ainda." em vez de "0 de N", e a descrição do diálogo diz que o texto mudado não fica salvo.
-- Ação 8: diálogo conferido em 360px. A primeira versão usava o `Textarea` com `field-sizing-content`, e o link longo e sem espaço alargava a caixa e cortava o texto; agora o tamanho é fixo e o link quebra linha. **Pendente:** colar o texto num grupo de WhatsApp de verdade e abrir o link `wa.me` num celular.
+- Ação 8: diálogo conferido em 360px. A primeira versão usava o `Textarea` com `field-sizing-content`, e o link longo e sem espaço alargava a caixa e cortava o texto; agora o tamanho é fixo e o link quebra linha. Testado num grupo de WhatsApp de verdade, com o link `wa.me` aberto no celular (2026-11-09): funciona.
 - Ação 9: `typecheck` e `npm test` passando (229 testes, 11 deles de `texto-whatsapp`). Passo novo "ADR-0004" no grupo `admin` de `fluxos.mjs` (prévia da pergunta e do aviso, link direto, contagem, link do WhatsApp, nenhum nome de membro): grupo com 25 de 31 no Docker, e as falhas são as que já existiam.
 
