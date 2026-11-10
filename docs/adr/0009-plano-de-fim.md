@@ -136,11 +136,21 @@ O texto de encerramento do site não custa código e responde à pergunta "e se 
 
 ## Ações
 
-1. [ ] Backup (`pg_dump`). `db/schema.sql`: `turmas.excluir_em`; `lembretes_enviados.tipo` aceita `exclusao`; migração das turmas já arquivadas.
-2. [ ] `src/lib/fim-da-turma.ts`: `apagarTurma` (apaga a auditoria da turma, grava `turma.excluida`, apaga a turma) e regras puras do prazo (`dataExclusao(hoje, dias)`, opções 30/60/90/180, piso de 30 dias), com teste. `excluirTurmaDoAdmin` e `excluirTurma` (master) passam a usar.
-3. [ ] `arquivarTurma` com o prazo; action `mudarPrazoExclusao`; `desarquivarTurma` apaga a data. Auditoria `turma.prazo_exclusao` em `auditoria-acoes.ts` e frase em `historico-texto.ts`.
-4. [ ] Telas: escolha do prazo no diálogo de arquivar, "Será excluída em" e "Mudar a data" no card, faixa de turma arquivada com a data.
-5. [ ] Emails `emailTurmaArquivada` e `emailExclusaoProxima` em `src/lib/email.ts`; aviso ao arquivar e ao mudar a data em `after()`; aviso de 7 dias e `excluirTurmasNoPrazo` em `src/lib/lembretes.ts`.
-6. [ ] `scripts/backup.sh` (diário, apaga com mais de 30 dias) e chamada no serviço `cron` do `compose.yaml`.
-7. [ ] Termos ("Se o Formandos for encerrado") e Política (prazo da turma arquivada, aviso mesmo com emails desligados, o que sobra depois da exclusão, backup em 30 dias). Atualizar R-04 em `docs/auditoria-direitos/riscos.md`.
-8. [ ] Textos revisados com `design:ux-copy`; telas em 360px; `typecheck`, `npm test` e passo novo em `fluxos.mjs` (arquivar com 30 dias, ver a data na faixa, mudar a data, forçar a data para ontem com o aviso marcado e ver a turma excluída pela rota de lembretes com só `turma.excluida` na auditoria; sem o aviso, a turma não é excluída).
+1. [x] Backup (`pg_dump`). `db/schema.sql`: `turmas.excluir_em`; `lembretes_enviados.tipo` aceita `exclusao`; migração das turmas já arquivadas.
+2. [x] `src/lib/fim-da-turma.ts`: `apagarTurma` (apaga a auditoria da turma, grava `turma.excluida`, apaga a turma) e regras puras do prazo (`dataExclusao(hoje, dias)`, opções 30/60/90/180, piso de 30 dias), com teste. `excluirTurmaDoAdmin` e `excluirTurma` (master) passam a usar.
+3. [x] `arquivarTurma` com o prazo; action `mudarPrazoExclusao`; `desarquivarTurma` apaga a data. Auditoria `turma.prazo_exclusao` em `auditoria-acoes.ts` e frase em `historico-texto.ts`.
+4. [x] Telas: escolha do prazo no diálogo de arquivar, "Será excluída em" e "Mudar a data" no card, faixa de turma arquivada com a data.
+5. [x] Emails de exclusão em `src/lib/email.ts`; aviso ao arquivar e ao mudar a data em `after()`; aviso de 7 dias e `excluirTurmasNoPrazo` em `src/lib/lembretes.ts`.
+6. [x] `scripts/backup.sh` (diário, apaga com mais de 30 dias) e serviço `backup` no `compose.yaml`.
+7. [x] Termos ("Se o Formandos for encerrado") e Política (prazo da turma arquivada, aviso mesmo com emails desligados, o que sobra depois da exclusão, backup em 30 dias). Atualizar R-04 em `docs/auditoria-direitos/riscos.md`.
+8. [x] Textos revisados com `design:ux-copy`; telas em 360px; `typecheck`, `npm test` e passo novo em `fluxos.mjs` (arquivar com 30 dias, ver a data na faixa, mudar a data, forçar a data para ontem com o aviso marcado e ver a turma excluída pela rota de lembretes com só `turma.excluida` na auditoria; sem o aviso, a turma não é excluída).
+
+### Andamento (2026-11-09)
+
+Todas as ações feitas. Diferenças em relação ao texto acima:
+
+- Os três emails viraram uma função só, `emailExclusaoTurma` (momentos `arquivada`, `nova_data` e `proxima`). Quem arquivou ou mudou a data não recebe o email do que acabou de fazer; o aviso de 7 dias vai para todos.
+- A lógica fica em `src/lib/fim-da-turma.ts` (`apagarTurma`, `avisarExclusaoMarcada`, `avisarExclusoesProximas`, `excluirTurmasNoPrazo`); `rodarLembretes` só chama as duas últimas e devolve `exclusao` e `excluidas`. Regras puras em `src/lib/fim-da-turma-regras.ts` (4 testes).
+- `turma.arquivada`, `turma.desarquivada` e `turma.prazo_exclusao` entraram em `ACOES_VISIVEIS_TURMA`; `turma.arquivada` guarda `excluirEm` e `dias`.
+- O backup roda num serviço próprio, `backup` (imagem `postgres:18-alpine`, que tem `pg_dump`), e não no serviço `cron` (imagem só com `curl`). As cópias saem como `root` na pasta `db/backups/`.
+- Testes: `typecheck`, `npm test` (301). Passo "ADR-0009" no grupo `admin` de `fluxos.mjs`. Grupo `admin`: 31 de 38, só as 7 falhas que já existiam. `/admin/turma` (ativa, diálogo e arquivada) e a faixa do dashboard conferidos em 360px.

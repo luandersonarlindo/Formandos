@@ -11,7 +11,7 @@ mitigar ou evitar. **Versão:** 1.0 — 2026-10-10. **Dono:** Direção.
 | R-01 | Vazamento de sessão (cookie roubado via XSS) | 1 | 3 | 3 médio | Mitigar | `nosniff` + `DENY` frame + React escapa output por padrão; único `dangerouslySetInnerHTML` é o script estático de tema (`layout.tsx:49`), sem dado de usuário | Baixo |
 | R-02 | Enumeração de contas no login/reset | 1 | 2 | 2 baixo | Mitigar | Resposta genérica no reset (`form-senha.tsx:49`); erro genérico no login | Baixo |
 | R-03 | Injeção SQL | 1 | 3 | 3 médio | Mitigar | 100% SQL parametrizado (`$1…`); Zod em toda action | Baixo |
-| R-04 | Perda de dados (sem rotina própria de backup) | 2 | 3 | 6 **alto** | Transferir + mitigar | Herdado Neon/Vercel; **ação:** confirmar PITR do plano Neon e documentar RPO/RTO — prazo 30 dias | Médio |
+| R-04 | Perda de dados (backup) | 2 | 3 | 6 **alto** | Mitigar | Rotina diária própria desde a ADR-0009 (`scripts/backup.sh`, serviço `backup` do `compose.yaml`): `pg_dump` por dia, cópias apagadas com 30 dias (prazo prometido na Política). RPO de 1 dia. **Ação:** testar a restauração de uma cópia; se houver hospedagem, confirmar que o backup do provedor cabe nos 30 dias antes de publicar | Médio |
 | R-05 | Adivinhação de código de convite | 1 | 2 | 2 baixo | Mitigar | Rate limit `tentativas_convite` (`turmas.ts:119-138`) + alfabeto sem ambíguos | Baixo |
 | R-06 | Conta falsa / descartável | 2 | 2 | 4 médio | Mitigar | Verificação obrigatória + anti-descartável/typo (`email-validacao.ts`, hook `auth.ts`) | Baixo |
 | R-07 | Vazamento via email (SMTP interceptado) | 1 | 3 | 3 médio | Transferir | TLS no SMTP; sem senha/link sensível no corpo (só links com token e validade) | Baixo |
