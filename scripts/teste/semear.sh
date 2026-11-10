@@ -71,11 +71,18 @@ select t.id,v.n,v.c,v.d,v.ct
  where t.codigo_convite='TESTESH0001'
    and not exists (select 1 from fornecedores x where x.turma_id=t.id);
 
--- Um voto da Maria na primeira opção do catálogo padrão.
+-- Um voto da Maria na primeira opção do catálogo padrão (o global, sem
+-- turma, o mesmo de idPadrao() em fluxos.mjs). Sem o filtro, a ordenação
+-- pegava a primeira opção de qualquer catálogo, inclusive o de outra turma.
 insert into votos (turma_id,opcao_id,usuario_id)
 select t.id,o.id,u.id
   from turmas t, usuarios u,
-       (select o.id from opcoes o join enquetes e on e.id=o.enquete_id order by e.ordem,o.ordem limit 1) o
+       (select o.id from opcoes o
+          join enquetes e on e.id=o.enquete_id
+          join categorias ca on ca.id=e.categoria_id
+          join catalogos c on c.id=ca.catalogo_id
+         where c.turma_id is null
+         order by c.nome,ca.ordem,e.ordem,o.ordem limit 1) o
  where t.codigo_convite='TESTESH0001' and u.email='teste-sh@example.invalid'
 on conflict do nothing;
 

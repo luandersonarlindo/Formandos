@@ -1,9 +1,11 @@
 // Testes de fluxo no navegador de verdade (Chrome headless): preenche
 // formulários, clica em botões e confere o resultado na tela e no banco.
 //
-// Precisa do dev server com SMTP desligado (o email vai para o log, e nenhum
-// email real é enviado) e, para o grupo "master", com a conta fictícia como master:
+// Roda contra o Docker (os emails caem no Mailpit, lido pela API) ou contra o
+// dev server no host com SMTP desligado (o email vai para o log, e nenhum
+// email real é enviado). Para o grupo "master", a conta fictícia tem de ser master:
 //   SMTP_HOST= ADMIN_MASTER_EMAILS="teste-sh@example.invalid" npm run dev > scripts/teste/.tmp/dev.log 2>&1
+// No Docker: DATABASE_URL=postgres://formandos:formandos@127.0.0.1:5433/formandos
 // Uso:
 //   scripts/teste/semear.sh
 //   node scripts/teste/fluxos.mjs [grupos,csv]     (padrão: todos)
@@ -25,11 +27,21 @@ const grupos = (process.argv[2] ?? "auth,participante,app,admin,master,extras").
 const resultados = [];
 let grupoAtual = "";
 async function passo(nome, fn) {
+  // Marca cada erro de console com o passo em que apareceu: sem isso, o
+  // "sem erros de console no grupo" não diz de onde veio o erro.
+  const inicio = nav.logs.length;
+  const marcar = () => {
+    for (let i = inicio; i < nav.logs.length; i++) {
+      if (!nav.logs[i].startsWith("[")) nav.logs[i] = `[${nome}] ${nav.logs[i]}`;
+    }
+  };
   try {
     await fn();
+    marcar();
     resultados.push({ grupoAtual, nome, ok: true });
     console.log(`  ✅ ${nome}`);
   } catch (e) {
+    marcar();
     resultados.push({ grupoAtual, nome, ok: false, erro: e.message });
     console.log(`  ❌ ${nome}\n     ${e.message.split("\n")[0]}`);
   }
@@ -40,33 +52,53 @@ const igual = (a, b, msg) => {
 const verdade = (c, msg) => {
   if (!c) throw new Error(msg);
 };
+// Emails enviados pelo servidor. Duas fontes:
+// - Mailpit (Docker: o SMTP do container cai nele), quando responde em
+//   MAILPIT_URL (padrão http://localhost:8025);
+// - o log do dev server no host, rodando com SMTP_HOST vazio (src/lib/email.ts
+//   imprime o email inteiro). Force com EMAILS=log.
+// Os dois devolvem o email como texto (assunto + corpo), do mais novo para o
+// mais antigo. Os emails da turma saem em after(), depois da resposta: por
+// isso as buscas esperam até 10 s.
+const MAILPIT = process.env.MAILPIT_URL ?? "http://localhost:8025";
+const usarMailpit =
+  process.env.EMAILS !== "log" &&
+  (await fetch(`${MAILPIT}/api/v1/info`).then((r) => r.ok).catch(() => false));
 const JANELA_LOG = 40000;
-const ultimoLink = (parte) => {
-  const links = fs.readFileSync(LOG, "utf8").slice(-JANELA_LOG).match(/https?:\/\/[^\s"'<>]+/g) ?? [];
-  const l = links.filter((x) => x.includes(parte)).at(-1);
-  if (!l) throw new Error(`link com "${parte}" não apareceu no log do servidor (${LOG})`);
-  return l.replace(/&amp;/g, "&");
-};
-// Sem SMTP_HOST o servidor imprime o email inteiro no log (src/lib/email.ts).
-// A janela é maior que a do ultimoLink porque agora cada ação da turma também
-// manda email, e um email novo pode empurrar o link antigo para fora da fatia.
-// O corte é pela marca do log, e não por linha em branco: o corpo do email tem
-// parágrafos, e quebrar nele cortaria o email no meio.
 const MARCA_EMAIL = "[email não enviado: SMTP_HOST vazio]";
-const emails = () => fs.readFileSync(LOG, "utf8").slice(-JANELA_LOG);
-const ultimoEmail = (trecho) => {
-  const bloco = emails()
-    .split(MARCA_EMAIL)
-    .filter((b) => b.includes(trecho))
-    .at(-1);
-  if (!bloco) {
-    throw new Error(
-      `email com "${trecho}" não apareceu no log do servidor (${LOG}). ` +
-        `A suíte precisa rodar com SMTP_HOST vazio: com provedor configurado não há log para ler.`,
-    );
+const ORIGEM_EMAILS = usarMailpit ? `Mailpit (${MAILPIT})` : `log do servidor (${LOG})`;
+async function emailsRecentes() {
+  if (!usarMailpit) {
+    // O corte é pela marca do log, e não por linha em branco: o corpo do email
+    // tem parágrafos, e quebrar nele cortaria o email no meio.
+    return fs.readFileSync(LOG, "utf8").slice(-JANELA_LOG).split(MARCA_EMAIL).reverse();
   }
-  return bloco;
-};
+  const { messages } = await (await fetch(`${MAILPIT}/api/v1/messages?limit=30`)).json();
+  return Promise.all(
+    messages.map(async (m) => {
+      const d = await (await fetch(`${MAILPIT}/api/v1/message/${m.ID}`)).json();
+      return `Para: ${m.To.map((t) => t.Address).join(", ")}\nAssunto: ${d.Subject}\n\n${d.Text}`;
+    }),
+  );
+}
+async function procurarEmail(achar, descricao) {
+  for (let i = 0; i < 20; i++) {
+    const r = achar(await emailsRecentes());
+    if (r) return r;
+    await dormir(500);
+  }
+  throw new Error(`${descricao} não apareceu no ${ORIGEM_EMAILS}`);
+}
+const ultimoLink = (parte) =>
+  procurarEmail((lista) => {
+    for (const e of lista) {
+      const l = (e.match(/https?:\/\/[^\s"'<>]+/g) ?? []).filter((x) => x.includes(parte)).at(-1);
+      if (l) return l.replace(/&amp;/g, "&");
+    }
+    return null;
+  }, `link com "${parte}"`);
+const ultimoEmail = (trecho) =>
+  procurarEmail((lista) => lista.find((e) => e.includes(trecho)) ?? null, `email com "${trecho}"`);
 const idPadrao = () => sql("select id from catalogos where turma_id is null order by nome limit 1");
 // A turma do seed (o código de convite pode ser trocado pelos testes; o email do criador não).
 const turmaTeste = () => sql("select id from turmas where criado_por = (select id from usuarios where email='teste-sh@example.invalid') and nome='Sistemas de Informação 2026'");
@@ -196,11 +228,11 @@ await grupo("auth", async () => {
   });
   await passo("o link do email confirma a conta e leva ao convite", async () => {
     await dormir(500);
-    await nav.abrir(ultimoLink("verify-email"));
+    await nav.abrir(await ultimoLink("verify-email"));
     await nav.esperarUrl("/convite");
     igual(sql(`select "emailVerified" from usuarios where email='${NOVO}'`), "t", "email confirmado");
     // Confirmar o email dispara as boas-vindas logo em seguida.
-    verdade(ultimoEmail("Sua conta no Formandos está pronta").includes(NOVO), "email de boas-vindas enviado");
+    verdade((await ultimoEmail("Sua conta no Formandos está pronta")).includes(NOVO), "email de boas-vindas enviado");
   });
   await passo("código de convite inválido mostra erro", async () => {
     await nav.preencher("#codigo", "ZZZZZZZZ");
@@ -266,13 +298,13 @@ await grupo("auth", async () => {
     await nav.clicar("Enviar link", { seletor: "button" });
     await nav.esperarTexto("Confira o seu email");
     verdade(
-      ultimoEmail("Defina sua senha no Formandos").includes("reset-password"),
+      (await ultimoEmail("Defina sua senha no Formandos")).includes("reset-password"),
       "email de redefinição aponta para o link da senha",
     );
   });
   await passo("redefinir a senha pelo link e entrar com a nova", async () => {
     await dormir(500);
-    await nav.abrir(ultimoLink("reset-password"));
+    await nav.abrir(await ultimoLink("reset-password"));
     await nav.esperarUrl("/redefinir-senha");
     await nav.preencher("#senha", "OutraSenha456");
     await nav.clicar("Salvar senha", { seletor: "button" });
@@ -297,7 +329,7 @@ await grupo("auth", async () => {
     igual(sql(`select count(*) from usuarios where email='${NOVO}'`), "0", "conta apagada");
     igual(sql("select count(*) from turmas where nome='Turma Nova Teste'"), "0", "turma dele apagada junto");
     // O email chega depois da conta cair, então tem de citar as turmas de antes.
-    const exclusao = ultimoEmail("como você pediu");
+    const exclusao = await ultimoEmail("como você pediu");
     verdade(exclusao.includes("Turma Nova Teste"), "email de exclusão cita a turma que ele estava");
     // O texto puro do log é o que a pessoa recebe quando o cliente não mostra
     // HTML; é nele que a irreversibilidade precisa estar escrita.
@@ -321,7 +353,7 @@ await grupo("participante", async () => {
     await nav.esperarUrl("/convite");
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "sem turma");
     verdade(
-      ultimoEmail("Você saiu da turma Sistemas de Informação 2026").includes("Se mudar de ideia"),
+      (await ultimoEmail("Você saiu da turma Sistemas de Informação 2026")).includes("Se mudar de ideia"),
       "email de saída oferece voltar com o código de convite",
     );
     await nav.preencher("#codigo", "TESTESH0001");
@@ -329,7 +361,7 @@ await grupo("participante", async () => {
     await nav.esperarUrl("/dashboard");
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "participante", "papel");
     verdade(
-      ultimoEmail("Você entrou na turma Sistemas de Informação 2026").includes("João Lima"),
+      (await ultimoEmail("Você entrou na turma Sistemas de Informação 2026")).includes("João Lima"),
       "email de entrada saúda pelo nome",
     );
     // Sair limpa a autoria: a tarefa segue na turma, mas sem responsável, como manda a regra.
@@ -451,8 +483,17 @@ await grupo("app", async () => {
     await nav.esperarTexto("Respondida");
   });
   await passo("catálogo padrão lista o progresso na página de votações", async () => {
+    // Conta no banco: o semear.sh já deixa um voto da Maria no catálogo padrão,
+    // e o passo anterior responde outra pergunta.
+    const [feitas, total] = sql(`select
+        (select count(distinct e.id) from votos v join opcoes o on o.id=v.opcao_id join enquetes e on e.id=o.enquete_id
+           join categorias ca on ca.id=e.categoria_id
+          where ca.catalogo_id='${idPadrao()}' and v.turma_id='${turmaTeste()}'
+            and v.usuario_id=(select id from usuarios where email='teste-sh@example.invalid')),
+        (select count(*) from enquetes e join categorias ca on ca.id=e.categoria_id where ca.catalogo_id='${idPadrao()}')`).split("|");
+    verdade(Number(feitas) >= 2, `a Maria respondeu o voto do semear e o do passo anterior (${feitas})`);
     await nav.abrir("/votacoes");
-    await nav.esperarTexto("1 de 23 enquetes respondidas");
+    await nav.esperarTexto(`${feitas} de ${total} enquetes respondidas`);
   });
   await passo("enviar dúvida e votar nela", async () => {
     await nav.abrir("/duvidas");
@@ -947,11 +988,18 @@ await grupo("admin", async () => {
     );
     // A rolagem é suave: esperar terminar a animação em vez de medir o quadro
     // imediatamente após o foco.
-    await nav.esperar(
-      "(() => { const li = document.activeElement?.closest('li[id^=enq-]'); if (!li) return false; const r = li.getBoundingClientRect(); return r.top > 0 && r.bottom < window.innerHeight; })()",
-      10000,
-      "a pergunta nova fica à vista, sem precisar rolar",
-    );
+    try {
+      await nav.esperar(
+        "(() => { const li = document.activeElement?.closest('li[id^=enq-]'); if (!li) return false; const r = li.getBoundingClientRect(); return r.top > 0 && r.bottom < window.innerHeight; })()",
+        10000,
+        "a pergunta nova fica à vista, sem precisar rolar",
+      );
+    } catch (e) {
+      const onde = await nav.ev(
+        "(() => { const li = document.activeElement?.closest('li[id^=enq-]'); const r = li?.getBoundingClientRect(); return JSON.stringify({ foco: document.activeElement?.tagName, top: r?.top, bottom: r?.bottom, altura: innerHeight, scrollY }); })()",
+      );
+      throw new Error(`${e.message} ${onde}`);
+    }
 
     // Preview: a mesma pergunta montada como na tela de votação, com os
     // controles desligados.
@@ -992,20 +1040,28 @@ await grupo("admin", async () => {
   });
   const enqueteLocal = () => sql("select id from enquetes where titulo='Onde vai ser o nosso evento?'");
   await passo("decisão da turma: fixar, aparecer no dashboard, encerrar a votação e reabrir", async () => {
+    // A Chácara precisa ser a mais votada para o Rooftop (sem votos) fugir da
+    // regra. O grupo "app" já deixa o voto da Maria nela; rodando só o
+    // "admin", o voto entra aqui.
+    if (sql(`select count(*) from votos v join opcoes o on o.id=v.opcao_id where o.enquete_id='${enqueteLocal()}' and v.turma_id='${turmaTeste()}'`) === "0") {
+      sql(`insert into votos (turma_id,opcao_id,usuario_id)
+        select '${turmaTeste()}', o.id, u.id from opcoes o, usuarios u
+         where o.enquete_id='${enqueteLocal()}' and o.texto='Espaço ao Ar Livre / Chácara' and u.email='teste-sh@example.invalid'`);
+    }
     await nav.abrir(`/admin/votacoes/votos/${enqueteLocal()}`);
     await nav.esperarTexto("Decisão da turma");
     await nav.clicar("Fixar decisão", { seletor: "button" });
-    await nav.clicar("Espaço ao Ar Livre / Chácara", { escopo: "@[role=dialog]", seletor: "label" });
+    await nav.clicar("Rooftop Urbano", { escopo: "@[role=dialog]", seletor: "label" });
     // ADR-0003: fora da regra (não é a mais votada) a justificativa é obrigatória.
     await nav.esperarTexto("Esta decisão foge da regra combinada.");
     await nav.preencher("#justificativa", "A chácara mais votada não tem a data livre.");
     await nav.clicar("Fixar decisão", { escopo: "@[role=dialog]", seletor: "button" });
     await nav.esperarTexto("Decisão fixada");
-    igual(sql(`select o.texto from decisoes d join opcoes o on o.id=d.opcao_id where d.turma_id='${turmaTeste()}' and d.enquete_id='${enqueteLocal()}'`), "Espaço ao Ar Livre / Chácara", "decisão no banco");
+    igual(sql(`select o.texto from decisoes d join opcoes o on o.id=d.opcao_id where d.turma_id='${turmaTeste()}' and d.enquete_id='${enqueteLocal()}'`), "Rooftop Urbano", "decisão no banco");
     igual(sql(`select justificativa from decisoes where turma_id='${turmaTeste()}' and enquete_id='${enqueteLocal()}'`), "A chácara mais votada não tem a data livre.", "justificativa no banco");
     await nav.abrir("/dashboard");
     await nav.esperarTexto("Decisões da turma");
-    await nav.esperarTexto("Espaço ao Ar Livre / Chácara");
+    await nav.esperarTexto("Rooftop Urbano");
     await nav.esperarTexto("Fora da regra");
     await nav.esperarTexto("Ver histórico das decisões");
     await nav.abrir(`/votacoes/${idPadrao()}`);
@@ -1145,14 +1201,22 @@ await grupo("admin", async () => {
       await nav.abrir("/admin/tesouraria");
       await nav.esperar("location.pathname !== '/admin/tesouraria' && document.readyState === 'complete'", 15000, "admin sem tesouraria não entra");
 
-      await nav.abrir("/admin/membros");
+      // Busca pelo email: com 10 por página, o card dela pode não estar na primeira.
+      await nav.abrir("/admin/membros?busca=teste-sh%40");
       await nav.esperarTexto("Maria Souza");
       // Mira pelo email, que só existe no card dela, e espera o botão aparecer.
-      await nav.esperar(
-        "[...document.querySelectorAll('li')].some((li) => li.textContent.includes('teste-sh@example.invalid') && li.textContent.includes('Pôr na tesouraria'))",
-        15000,
-        "botão de tesouraria no card da Maria",
-      );
+      try {
+        await nav.esperar(
+          "[...document.querySelectorAll('li')].some((li) => li.textContent.includes('teste-sh@example.invalid') && li.textContent.includes('Pôr na tesouraria'))",
+          15000,
+          "botão de tesouraria no card da Maria",
+        );
+      } catch (e) {
+        const card = await nav.ev(
+          "[...document.querySelectorAll('li')].find((li) => li.textContent.includes('teste-sh@example.invalid'))?.innerText.replace(/\\s+/g, ' ').slice(0, 300) ?? 'sem card'",
+        );
+        throw new Error(`${e.message} (tesouraria no banco: ${sql(`select tesouraria from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-sh@example.invalid' and m.turma_id='${turma}'`)}; card: ${card})`);
+      }
       await nav.clicar("Pôr na tesouraria", { escopo: "teste-sh@example.invalid", seletor: "button" });
       await nav.esperarTexto("Tirar da tesouraria");
       igual(sql(`select tesouraria from membros m join usuarios u on u.id=m.usuario_id where m.turma_id='${turma}' and u.email='teste-sh@example.invalid'`), "t", "marcada no banco");
@@ -1526,9 +1590,15 @@ await grupo("admin", async () => {
     }
   });
   await passo("relatório: vários catálogos e empate no topo", async () => {
-    sql(`insert into votos (turma_id,opcao_id,usuario_id)
-      select '${turmaTeste()}', o.id, u.id from usuarios u, opcoes o join enquetes e on e.id=o.enquete_id
-       where u.email='teste-jl@example.invalid' and e.titulo='Onde vai ser o nosso evento?' and o.texto='Salão Clássico' on conflict do nothing`);
+    // Monta o empate aqui: o passo da ADR-0003 apaga os votos desta pergunta
+    // no fim, então não dá para contar com o voto da Maria do grupo "app".
+    const turma = turmaTeste();
+    sql(`delete from votos where turma_id='${turma}' and opcao_id in (select id from opcoes where enquete_id='${enqueteLocal()}')`);
+    for (const [email, opcao] of [["teste-sh@example.invalid", "Espaço ao Ar Livre / Chácara"], ["teste-jl@example.invalid", "Salão Clássico"]]) {
+      sql(`insert into votos (turma_id,opcao_id,usuario_id)
+        select '${turma}', o.id, u.id from usuarios u, opcoes o
+         where u.email='${email}' and o.enquete_id='${enqueteLocal()}' and o.texto='${opcao}'`);
+    }
     await nav.abrir("/votacoes/relatorio");
     await nav.esperarTexto("Catálogo E2E Renomeado");
     await nav.esperarTexto("Empate no topo");
@@ -1611,10 +1681,12 @@ await grupo("admin", async () => {
       select '${turmaTeste()}', u.id, 'participante' from usuarios u where u.email like 'teste-pm-%@example.invalid'
       on conflict do nothing`);
     try {
+      // 10 por página (POR_PAGINA_MEMBROS, src/lib/admin.ts).
       const total = sql(`select count(*) from membros where turma_id='${turmaTeste()}'`);
+      const paginas = Math.ceil(Number(total) / 10);
       await nav.abrir("/admin/membros");
       await nav.esperarTexto(`${total} membros na turma`);
-      await nav.esperarTexto("Página 1 de 2");
+      await nav.esperarTexto(`Página 1 de ${paginas}`);
       igual(await proximo(), "/admin/membros?pagina=2", "link da próxima página");
       await nav.abrir("/admin/membros?busca=joao");
       await nav.esperarTexto("1 membro encontrado");
@@ -1624,7 +1696,7 @@ await grupo("admin", async () => {
       verdade(!(await nav.tem("Página 1 de")), "uma página só não mostra paginação");
       await nav.abrir("/admin/membros?busca=" + encodeURIComponent("PAGINAÇÃO"));
       await nav.esperarTexto("25 membros encontrados");
-      await nav.esperarTexto("Página 1 de 2");
+      await nav.esperarTexto("Página 1 de 3");
       igual(await proximo(), "/admin/membros?busca=PAGINA%C3%87%C3%83O&pagina=2", "a busca se mantém no link");
       await nav.abrir("/admin/membros?busca=teste-pm-7%40");
       await nav.esperarTexto("1 membro encontrado");
@@ -1633,7 +1705,7 @@ await grupo("admin", async () => {
       await nav.abrir("/admin/membros?busca=zzzz");
       await nav.esperarTexto("Nenhum membro encontrado");
       await nav.abrir("/admin/membros?pagina=99");
-      await nav.esperarTexto("Página 2 de 2");
+      await nav.esperarTexto(`Página ${paginas} de ${paginas}`);
     } finally {
       sql("delete from usuarios where email like 'teste-pm-%@example.invalid'");
     }
@@ -1834,7 +1906,7 @@ await grupo("admin", async () => {
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "removido");
     // Saiu por decisão do admin: o email tem de dizer isso, não "você saiu".
     verdade(
-      ultimoEmail("Você foi removido da turma Sistemas de Informação 2026").includes(
+      (await ultimoEmail("Você foi removido da turma Sistemas de Informação 2026")).includes(
         "Um administrador removeu você da turma",
       ),
       "email de remoção diz que foi decisão do admin",
@@ -1874,8 +1946,9 @@ await grupo("master", async () => {
       select 'Zz Paginação ' || g, 'teste-pg-' || g || '@example.invalid', true from generate_series(1, 21) g
       on conflict do nothing`);
     try {
+      // 10 por página (POR_PAGINA_MASTER, src/lib/plataforma.ts).
       const total = Number(sql("select count(*) from usuarios"));
-      const paginas = String(Math.ceil(total / 20));
+      const paginas = String(Math.ceil(total / 10));
       await nav.abrir("/master/usuarios");
       await nav.esperarTexto(`Página 1 de ${paginas}`);
       await nav.esperarTexto(`${total} usuários cadastrados`);
@@ -1919,7 +1992,7 @@ await grupo("master", async () => {
     // Mesmo assunto da exclusão pedida pela própria pessoa; o corpo é que diz
     // que veio de um administrador.
     verdade(
-      ultimoEmail("Um administrador excluiu sua conta").includes("Um administrador excluiu sua conta"),
+      (await ultimoEmail("Um administrador excluiu sua conta")).includes("Um administrador excluiu sua conta"),
       "email de exclusão pelo master diz quem excluiu",
     );
   });
@@ -1950,7 +2023,7 @@ await grupo("master", async () => {
       "removido da turma pelo master",
     );
     verdade(
-      ultimoEmail("Você foi removido da turma Sistemas de Informação 2026").includes(
+      (await ultimoEmail("Você foi removido da turma Sistemas de Informação 2026")).includes(
         "Um administrador removeu você da turma",
       ),
       "email de remoção pelo master",
@@ -1996,6 +2069,11 @@ await grupo("extras", async () => {
     }
   });
   await passo("a animação de entrada acontece de fato (opacidade e contador)", async () => {
+    // Abre uma vez antes de gravar: na primeira carga o dev server ainda
+    // compila, a montagem passa de 3 s e o timer de segurança do SCRIPT_TEMA
+    // desliga a animação (data-sem-animacao), como deve fazer.
+    await nav.abrir("/dashboard");
+    await nav.assentar();
     // Um gravador roda desde o início do documento e anota, a cada quadro, a opacidade
     // dos primeiros blocos da página e o texto do primeiro contador.
     const { identifier } = await nav.cdp("Page.addScriptToEvaluateOnNewDocument", {
@@ -2034,14 +2112,14 @@ await grupo("extras", async () => {
     await nav.tamanho(390, 800, true);
     await nav.abrir("/dashboard");
     igual(await dialogAberto(), false, "gaveta começa fechada no celular");
-    await nav.clicar("Toggle Sidebar", { seletor: "button" });
+    await nav.clicar("Alternar menu", { seletor: "button" });
     await nav.esperar("!!document.querySelector('[role=dialog]')", 5000, "gaveta abriu");
     await nav.tem("Tarefas"); // link da navegação visível dentro da gaveta
     await nav.clicar("Tarefas", { seletor: "a" });
     await nav.esperarUrl("/tarefas");
     await dormir(400);
     igual(await dialogAberto(), false, "navegar pelo link fecha a gaveta sozinha");
-    await nav.clicar("Toggle Sidebar", { seletor: "button" });
+    await nav.clicar("Alternar menu", { seletor: "button" });
     await nav.esperar("!!document.querySelector('[role=dialog]')", 5000, "reabre");
     await nav.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
     await nav.cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
@@ -2056,10 +2134,10 @@ await grupo("extras", async () => {
       await nav.abrir("/dashboard");
       igual(await estado(), "expanded", `sidebar já aberta, sem precisar abrir (${largura}px)`);
       await nav.tem("Tarefas");
-      await nav.clicar("Toggle Sidebar", { seletor: "button" });
+      await nav.clicar("Alternar menu", { seletor: "button" });
       await dormir(300);
       igual(await estado(), "collapsed", `recolhe para só ícones (${largura}px)`);
-      await nav.clicar("Toggle Sidebar", { seletor: "button" });
+      await nav.clicar("Alternar menu", { seletor: "button" });
       await dormir(300);
       igual(await estado(), "expanded", `abre de novo (${largura}px)`);
     }
