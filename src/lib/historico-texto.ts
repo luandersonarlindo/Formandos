@@ -132,11 +132,25 @@ export function descreverAcao(
     case "membro.removido":
       return { frase: `removeu ${pessoa} da turma.`, detalhes: d.por === "master" ? ["Feito pela gestão da plataforma."] : [] };
     case "turma.arquivada":
-      return { frase: "arquivou a turma.", detalhes: [] };
+      return {
+        frase: "arquivou a turma.",
+        detalhes: typeof d.excluirEm === "string" ? [`Tudo será excluído em ${dataBr(d.excluirEm)}.`] : [],
+      };
+    case "turma.prazo_exclusao":
+      return {
+        frase: "mudou a data de exclusão da turma.",
+        detalhes:
+          typeof d.antes === "string" && typeof d.depois === "string"
+            ? [`Era ${dataBr(d.antes)}, agora é ${dataBr(d.depois)}.`]
+            : [],
+      };
     case "turma.desarquivada":
       return { frase: "desarquivou a turma.", detalhes: [] };
     case "turma.excluida":
-      return { frase: "excluiu a turma.", detalhes: [] };
+      return {
+        frase: d.por === "prazo" ? "a turma foi excluída na data marcada." : "excluiu a turma.",
+        detalhes: [],
+      };
     case "turma.exportada":
       return { frase: `baixou a planilha de ${PLANILHA[d.tipo] ?? d.tipo}.`, detalhes: [] };
     case "pagamento.lancado":

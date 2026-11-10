@@ -41,6 +41,8 @@ export type Membro = {
   usarCatalogoPadrao: boolean;
   // Turma arquivada é só leitura: veja exigirMembroEditavel.
   arquivadaEm: Date | null;
+  // Data de exclusão da turma arquivada (AAAA-MM-DD, ADR-0009), ou null.
+  excluirEm: string | null;
 };
 
 // Cookie que lembra qual turma o usuário está usando. É só uma preferência:
@@ -62,7 +64,8 @@ export const getVinculos = cache(async (): Promise<Membro[]> => {
   const sessao = await exigirSessao();
   const { rows } = await pool.query(
     `select m.turma_id, m.papel, m.tesouraria, t.nome, t.data_evento, t.local_evento,
-            t.max_acompanhantes, t.usar_catalogo_padrao, t.arquivada_em
+            t.max_acompanhantes, t.usar_catalogo_padrao, t.arquivada_em,
+            to_char(t.excluir_em, 'YYYY-MM-DD') as excluir_em
        from membros m
        join turmas t on t.id = m.turma_id
       where m.usuario_id = $1
@@ -80,6 +83,7 @@ export const getVinculos = cache(async (): Promise<Membro[]> => {
     maxAcompanhantes: r.max_acompanhantes,
     usarCatalogoPadrao: r.usar_catalogo_padrao,
     arquivadaEm: r.arquivada_em,
+    excluirEm: r.excluir_em,
   }));
 });
 

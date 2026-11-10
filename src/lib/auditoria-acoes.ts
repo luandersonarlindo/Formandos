@@ -28,6 +28,8 @@ export const ACOES_AUDITORIA = [
   "evento.alterado",
   "evento.link_publico",
   "fornecedor.alterado",
+  // ADR-0009: data de exclusão da turma arquivada mudou.
+  "turma.prazo_exclusao",
 ] as const;
 export type AcaoAuditoria = (typeof ACOES_AUDITORIA)[number];
 
@@ -44,6 +46,11 @@ export const ACOES_VISIVEIS_TURMA = [
   "plano.alterado",
   // ADR-0008: data, horário, local ou endereço do evento.
   "evento.alterado",
+  // ADR-0009: arquivamento e data de exclusão (todos precisam saber quando
+  // tudo será apagado; o detalhe leva só o nome da turma e as datas).
+  "turma.arquivada",
+  "turma.desarquivada",
+  "turma.prazo_exclusao",
 ] as const satisfies readonly AcaoAuditoria[];
 
 // Pagamentos individuais: só a tesouraria vê no histórico (ADR-0005). Os

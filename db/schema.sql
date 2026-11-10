@@ -417,3 +417,21 @@ create table if not exists convites_email (
 -- programação muda de fato.
 alter table turmas add column if not exists token_publico varchar(32) unique;
 alter table turmas add column if not exists evento_atualizado_em timestamptz;
+
+-- Plano de fim (ADR-0009): turma arquivada tem sempre uma data de exclusão,
+-- escolhida pela comissão (30, 60, 90 ou 180 dias). Nulo = turma ativa. A
+-- rodada de lembretes avisa 7 dias antes e exclui no prazo, nunca sem o aviso.
+alter table turmas add column if not exists excluir_em date;
+
+-- Turmas arquivadas antes da ADR-0009 ganham data: 180 dias depois do
+-- arquivamento, com no mínimo 30 dias a partir de hoje para o aviso.
+update turmas
+   set excluir_em = greatest(
+         (arquivada_em at time zone 'America/Sao_Paulo')::date + 180,
+         (now() at time zone 'America/Sao_Paulo')::date + 30)
+ where arquivada_em is not null and excluir_em is null;
+
+-- Aviso de 7 dias antes da exclusão: `referencia` é o id da própria turma.
+alter table lembretes_enviados drop constraint if exists lembretes_enviados_tipo_check;
+alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
+  check (tipo in ('votacao', 'parcela', 'exclusao'));

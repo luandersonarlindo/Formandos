@@ -53,8 +53,9 @@ export default function PrivacidadePage() {
           <p className="mt-1 text-muted-foreground">
             Mandamos email só quando a comissão fixa uma decisão, quando muda a data,
             o horário ou o local da festa, e dois dias antes de uma votação fechar ou
-            de uma parcela sua vencer. Você desliga quando quiser em Minha conta;
-            os emails da conta (confirmação e senha) chegam sempre.
+            de uma parcela sua vencer. Você desliga quando quiser em Minha conta.
+            Chegam sempre os emails da conta (confirmação e senha) e os avisos de
+            exclusão da turma, porque são sobre os seus dados.
           </p>
         </section>
         <section>
@@ -82,6 +83,17 @@ export default function PrivacidadePage() {
             Enquanto a conta existir. Conta excluída = dados apagados, sem
             recuperação. Registros de auditoria seguem retenção própria
             (6 meses a 5 anos, conforme o tipo).
+          </p>
+          <p className="mt-2 text-muted-foreground">
+            Turma: ao arquivar, a comissão escolhe em quantos dias tudo será
+            excluído (de 30 a 180). Todos os membros recebem um email nessa hora e
+            outro 7 dias antes. Quando a turma é excluída, apagamos tudo dela,
+            inclusive o histórico. Guardamos só o nome da turma e a data da
+            exclusão, por 5 anos.
+          </p>
+          <p className="mt-2 text-muted-foreground">
+            Cópias de segurança do banco são apagadas em até 30 dias. Dado
+            excluído some das cópias nesse prazo.
           </p>
         </section>
         <section>

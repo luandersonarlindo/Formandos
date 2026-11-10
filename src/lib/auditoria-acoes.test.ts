@@ -10,6 +10,9 @@ describe("ACOES_VISIVEIS_TURMA", () => {
       "opcao.valor_alterado",
       "plano.alterado",
       "regra.alterada",
+      "turma.arquivada",
+      "turma.desarquivada",
+      "turma.prazo_exclusao",
     ]);
   });
 

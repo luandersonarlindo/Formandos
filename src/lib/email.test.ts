@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   emailDecisao,
+  emailExclusaoTurma,
   emailEventoMudou,
   emailPrazoParcela,
   emailPrazoVotacao,
@@ -369,5 +370,27 @@ describe("emails da turma", () => {
 
   it("evento mostra antes e agora", () => {
     expect(casos[1][1].texto).toContain("Horário: era 20:00, agora é 19:00");
+  });
+});
+
+describe("aviso de exclusão da turma (ADR-0009)", () => {
+  const base = { nome: "Ana", turma: "Direito 2026", excluirEm: "2027-02-07", quem: "Maria", url: "https://x/conta" };
+
+  it("assunto diz a data em cada momento", () => {
+    expect(emailExclusaoTurma({ ...base, momento: "arquivada" }).assunto).toBe(
+      "Turma Direito 2026 arquivada: exclusão em 07/02/2027",
+    );
+    expect(emailExclusaoTurma({ ...base, momento: "nova_data" }).assunto).toContain("Nova data");
+    expect(emailExclusaoTurma({ ...base, momento: "proxima" }).assunto).toBe(
+      "Prazo: a turma Direito 2026 será excluída em 07/02/2027",
+    );
+  });
+
+  it("explica o que some, o que fazer e por que chega com emails desligados", () => {
+    const e = emailExclusaoTurma({ ...base, momento: "arquivada" });
+    expect(e.texto).toContain("Maria, da comissão, arquivou");
+    expect(e.texto).toContain("baixe seus dados em Minha conta");
+    expect(e.texto).toContain("mesmo com os emails da turma desligados");
+    expect(e.texto).not.toContain("desligue em Minha conta");
   });
 });

@@ -66,4 +66,13 @@ describe("descreverAcao", () => {
       }).frase,
     ).toMatch(/^montou o plano de parcelas: 2 × R\$\s100,00, a partir de 10\/10\/2026\.$/);
   });
+
+  it("arquivar e mudar a data mostram as datas (ADR-0009)", () => {
+    expect(descreverAcao("turma.arquivada", { excluirEm: "2027-02-07" }).detalhes).toEqual([
+      "Tudo será excluído em 07/02/2027.",
+    ]);
+    expect(descreverAcao("turma.prazo_exclusao", { antes: "2027-02-07", depois: "2027-05-08" }).detalhes).toEqual([
+      "Era 07/02/2027, agora é 08/05/2027.",
+    ]);
+  });
 });

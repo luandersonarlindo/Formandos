@@ -12,6 +12,7 @@ import {
   urlDoSite,
 } from "@/lib/email";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { apagarTurma } from "@/lib/fim-da-turma";
 import { emailsMaster } from "@/lib/master";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
 import { apagarUsuario, dadosParaEmail } from "@/lib/usuarios";
@@ -144,17 +145,7 @@ export async function excluirTurma(formData: FormData): Promise<EstadoForm> {
     ]);
     if (rows.length === 0) return "inexistente" as const;
     if (confirmacao !== rows[0].nome) return "confirmacao" as const;
-    const nomeTurma = rows[0].nome as string;
-    await registrarAuditoria(db, {
-      usuarioId: master.id,
-      turmaId,
-      acao: "turma.excluida",
-      entidade: "turma",
-      entidadeId: turmaId,
-      detalhe: { nome: nomeTurma, por: "master" },
-    });
-    // Apaga em cascata membros, catálogos, votos, dúvidas, tarefas e terceiros.
-    await db.query("delete from turmas where id = $1", [turmaId]);
+    await apagarTurma(db, { turmaId, nome: rows[0].nome, usuarioId: master.id, por: "master" });
     return "ok" as const;
   });
 

@@ -67,7 +67,19 @@ export default function TermosPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold">6. Mudanças e contato</h2>
+          <h2 className="font-semibold">6. Se o Formandos for encerrado</h2>
+          <p className="mt-1 text-muted-foreground">
+            Avisamos todos os usuários por email e numa faixa no site com 60 dias
+            de antecedência. Nesse prazo, não se cria turma nova, mas tudo continua
+            funcionando: a comissão exporta o registro da turma e cada pessoa
+            baixa os próprios dados em Minha conta. No fim do prazo, todos os
+            dados são apagados, e as cópias de segurança somem em até 30 dias.
+            Quem mantém o site é {EMPRESA.responsavel}. Se outra pessoa assumir,
+            todos são avisados por email antes, com o nome de quem assume.
+          </p>
+        </section>
+        <section>
+          <h2 className="font-semibold">7. Mudanças e contato</h2>
           <p className="mt-1 text-muted-foreground">
             Estes termos podem mudar com aviso na plataforma. Dúvidas: {DPO.email}.
             Foro: domicílio do usuário, nos termos do CDC.

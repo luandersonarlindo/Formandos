@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Archive, ArchiveRestore, FileDown, FileText, History, TriangleAlert } from "lucide-react";
+import { Archive, ArchiveRestore, CalendarClock, FileDown, FileText, History, TriangleAlert } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ROTULO_EXPORTACAO, TIPOS_EXPORTACAO } from "@/lib/exportacao";
-import { arquivarTurma, desarquivarTurma, excluirTurmaDoAdmin } from "@/actions/gestao-turma";
+import { arquivarTurma, desarquivarTurma, excluirTurmaDoAdmin, mudarPrazoExclusao } from "@/actions/gestao-turma";
+import { CampoPrazoExclusao } from "@/components/features/campo-prazo-exclusao";
 import { FormAcao } from "@/components/features/form-acao";
 import { FormDialog } from "@/components/features/form-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getResumoExclusao } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
+import { diasAte } from "@/lib/fim-da-turma-regras";
+import { dataBr, hojeBrasil } from "@/lib/situacao-regras";
 
 export const metadata: Metadata = { title: "Turma" };
 
@@ -20,6 +23,9 @@ export default async function GestaoTurmaPage() {
   const admin = await exigirAdmin();
   const resumo = await getResumoExclusao(admin.turmaId);
   const arquivada = admin.arquivadaEm !== null;
+  const hoje = hojeBrasil();
+  const excluirEm = admin.excluirEm;
+  const faltam = excluirEm ? diasAte(hoje, excluirEm) : 0;
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -73,30 +79,53 @@ export default async function GestaoTurmaPage() {
           <CardTitle className="text-lg">{arquivada ? "Turma arquivada" : "Arquivar turma"}</CardTitle>
           <CardDescription className="text-pretty">
             {arquivada
-              ? "Todo o registro está guardado e pode ser consultado, mas ninguém consegue alterar nada nem entrar por convite. Desarquive para voltar a editar."
-              : "A turma passa a ser só de leitura: todo o registro (votos, dúvidas, tarefas, programação e membros) continua disponível, mas ninguém consegue alterar nada nem entrar por convite. Dá para desarquivar depois."}
+              ? "Ninguém altera nada nem entra por convite. O registro pode ser consultado e exportado até a data de exclusão. Desarquive para voltar a editar e cancelar a exclusão."
+              : "Quando o evento acabar, arquive a turma: ninguém altera mais nada nem entra por convite, e você escolhe em quantos dias tudo será excluído (30 a 180). Até lá, o registro pode ser consultado e exportado. Dá para desarquivar."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <FormDialog
-            rotulo={arquivada ? "Desarquivar turma" : "Arquivar turma"}
-            icone={
-              arquivada ? (
-                <ArchiveRestore aria-hidden />
-              ) : (
-                <Archive aria-hidden />
-              )
-            }
-            titulo={arquivada ? "Desarquivar turma" : "Arquivar turma"}
-            descricao={
-              arquivada
-                ? "A turma volta a permitir alterações e convites."
-                : "A turma passa a ser só de leitura: o registro continua disponível, mas ninguém altera nada nem entra por convite. Dá para desarquivar depois."
-            }
-            acao={arquivada ? desarquivarTurma : arquivarTurma}
-            rotuloSubmit={arquivada ? "Desarquivar" : "Arquivar"}
-            rotuloPendente="Salvando…"
-          />
+        <CardContent className="flex flex-col gap-4">
+          {arquivada && excluirEm && (
+            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-pretty">
+              Tudo será excluído em <strong className="font-medium">{dataBr(excluirEm)}</strong> (
+              {faltam <= 0 ? "hoje" : faltam === 1 ? "falta 1 dia" : `faltam ${faltam} dias`}). Os membros recebem um
+              email 7 dias antes. Exporte o registro antes dessa data.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {arquivada ? (
+              <>
+                <FormDialog
+                  rotulo="Mudar a data de exclusão"
+                  icone={<CalendarClock aria-hidden />}
+                  titulo="Mudar a data de exclusão"
+                  descricao="A nova data conta a partir de hoje. Os membros recebem um email com a data nova."
+                  acao={mudarPrazoExclusao}
+                  rotuloSubmit="Mudar a data"
+                >
+                  <CampoPrazoExclusao hoje={hoje} />
+                </FormDialog>
+                <FormDialog
+                  rotulo="Desarquivar turma"
+                  icone={<ArchiveRestore aria-hidden />}
+                  titulo="Desarquivar turma"
+                  descricao="A turma volta a permitir alterações e convites, e a data de exclusão é cancelada."
+                  acao={desarquivarTurma}
+                  rotuloSubmit="Desarquivar"
+                />
+              </>
+            ) : (
+              <FormDialog
+                rotulo="Arquivar turma"
+                icone={<Archive aria-hidden />}
+                titulo="Arquivar turma"
+                descricao="Ninguém altera mais nada nem entra por convite. Antes da data, exporte o registro da turma (card acima): depois dela, nada pode ser recuperado."
+                acao={arquivarTurma}
+                rotuloSubmit="Arquivar"
+              >
+                <CampoPrazoExclusao hoje={hoje} />
+              </FormDialog>
+            )}
+          </div>
         </CardContent>
       </Card>
 

@@ -2,12 +2,14 @@ import "server-only";
 import { pool } from "./db";
 import { emailPrazoParcela, emailPrazoVotacao, urlDoSite } from "./email";
 import { enviarParaTurma, type Destinatario } from "./email-turma";
+import { avisarExclusoesProximas, excluirTurmasNoPrazo } from "./fim-da-turma";
 import { HORAS_JANELA_VOTACAO, parcelasParaLembrar } from "./lembretes-regras";
 import { hojeBrasil, type TipoLancamento } from "./situacao-regras";
 
 // Lembretes de prazo (ADR-0006), chamados por /api/cron/lembretes de hora em
 // hora. Cada envio fica marcado em `lembretes_enviados`, então rodar de novo
-// não repete email. Turma arquivada não recebe nada.
+// não repete email. Turma arquivada não recebe lembrete de prazo, só o aviso
+// de exclusão do plano de fim (ADR-0009, em fim-da-turma.ts).
 
 async function marcar(tipo: "votacao" | "parcela", referencia: string, turmaId: string, usuarioId: string) {
   await pool.query(
@@ -118,23 +120,30 @@ async function lembrarParcelas(hoje: string): Promise<number> {
 
 // Roda as duas listas com uma trava: duas chamadas ao mesmo tempo (agendador
 // atrasado + chamada manual) não mandam o mesmo email duas vezes.
-export async function rodarLembretes(): Promise<{ rodou: boolean; votacao: number; parcela: number }> {
+type Rodada = { rodou: boolean; votacao: number; parcela: number; exclusao: number; excluidas: number };
+
+export async function rodarLembretes(): Promise<Rodada> {
   const cliente = await pool.connect();
   try {
     const { rows } = await cliente.query("select pg_try_advisory_lock(hashtext('cron:lembretes')) as ok");
-    if (!rows[0].ok) return { rodou: false, votacao: 0, parcela: 0 };
+    if (!rows[0].ok) return { rodou: false, votacao: 0, parcela: 0, exclusao: 0, excluidas: 0 };
     try {
+      const hoje = hojeBrasil();
       const votacao = await lembrarVotacoes();
-      const parcela = await lembrarParcelas(hojeBrasil());
+      const parcela = await lembrarParcelas(hoje);
+      // Plano de fim (ADR-0009): aviso de 7 dias e exclusão no prazo, nesta
+      // ordem (quem recebe o aviso hoje só é excluído daqui a 7 dias).
+      const exclusao = await avisarExclusoesProximas(hoje);
+      const excluidas = await excluirTurmasNoPrazo(hoje);
       // Convites por lista sem resposta há 90 dias saem (ADR-0007): o site não
       // guarda email de quem não entrou por mais tempo que isso.
       await pool.query("delete from convites_email where enviado_em < now() - interval '90 days'");
       await pool.query(
         `insert into cron_execucoes (nome, ultima, detalhe) values ('lembretes', now(), $1)
          on conflict (nome) do update set ultima = excluded.ultima, detalhe = excluded.detalhe`,
-        [JSON.stringify({ votacao, parcela })],
+        [JSON.stringify({ votacao, parcela, exclusao, excluidas })],
       );
-      return { rodou: true, votacao, parcela };
+      return { rodou: true, votacao, parcela, exclusao, excluidas };
     } finally {
       await cliente.query("select pg_advisory_unlock(hashtext('cron:lembretes'))");
     }

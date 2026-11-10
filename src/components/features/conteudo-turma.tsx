@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Archive } from "lucide-react";
 
@@ -14,9 +15,11 @@ const CAMINHOS_LIVRES = ["/admin/turma"];
 // depende de mexer nos filhos diretos da página.
 export function ConteudoTurma({
   arquivadaEm,
+  excluirEm,
   children,
 }: {
   arquivadaEm: string | null;
+  excluirEm: string | null;
   children: React.ReactNode;
 }) {
   const caminho = usePathname();
@@ -36,8 +39,19 @@ export function ConteudoTurma({
       >
         <Archive className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
         <p className="text-pretty">
-          <strong className="font-medium">Turma arquivada em {data}.</strong> Todo o registro continua
-          disponível, mas nada pode ser alterado.
+          <strong className="font-medium">Turma arquivada em {data}.</strong> Nada pode ser alterado.{" "}
+          {excluirEm ? (
+            <>
+              Tudo será excluído em <strong className="font-medium">{excluirEm.split("-").reverse().join("/")}</strong>.
+              Para guardar seus dados, baixe em{" "}
+              <Link href="/conta" className="underline underline-offset-4">
+                Minha conta
+              </Link>
+              .
+            </>
+          ) : (
+            "Todo o registro continua disponível."
+          )}
         </p>
       </div>
       {livre ? (

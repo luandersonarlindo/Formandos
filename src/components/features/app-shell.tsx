@@ -50,6 +50,8 @@ type AppShellProps = {
   itens: ItemMenu[];
   // Data em que a turma foi arquivada (ISO), ou null. Deixa o conteúdo só leitura.
   arquivadaEm?: string | null;
+  // Data de exclusão da turma arquivada (AAAA-MM-DD, ADR-0009).
+  excluirEm?: string | null;
   rodape?: Rodape | Rodape[];
   usuario: { nome: string; email: string; imagem?: string | null };
   children: React.ReactNode;
@@ -64,6 +66,7 @@ export async function AppShell({
   turmas,
   itens,
   arquivadaEm = null,
+  excluirEm = null,
   rodape,
   usuario,
   children,
@@ -209,7 +212,7 @@ export async function AppShell({
             <AlternadorTema className="ml-auto md:ml-0" />
           </header>
           <main id="conteudo" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none sm:p-6 lg:p-8 2xl:p-12">
-            <ConteudoTurma arquivadaEm={arquivadaEm}>
+            <ConteudoTurma arquivadaEm={arquivadaEm} excluirEm={excluirEm}>
               <AnimarPagina>{children}</AnimarPagina>
             </ConteudoTurma>
           </main>

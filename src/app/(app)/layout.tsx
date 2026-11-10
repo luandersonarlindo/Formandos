@@ -36,6 +36,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       turmas={await getSeletorTurmas(membro.turmaId)}
       itens={itens}
       arquivadaEm={membro.arquivadaEm?.toISOString() ?? null}
+      excluirEm={membro.excluirEm}
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}
       rodape={[
         ...(membro.papel === "admin"

@@ -34,6 +34,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           : itens
       }
       arquivadaEm={membro.arquivadaEm?.toISOString() ?? null}
+      excluirEm={membro.excluirEm}
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}
       rodape={[
         { href: "/dashboard", rotulo: "Voltar para a turma" },

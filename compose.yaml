@@ -132,6 +132,28 @@ services:
     depends_on:
       - app
 
+  # Cópia de segurança com prazo (ADR-0009): pg_dump uma vez por dia em
+  # db/backups/ e apaga as cópias com mais de 30 dias (scripts/backup.sh).
+  #   docker compose logs backup      # cópias feitas e apagadas
+  backup:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://formandos:formandos@db:5432/formandos
+    volumes:
+      - ./db/backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          sh /backup.sh /backups || echo "falhou ($$(date -u +%FT%TZ))"
+          sleep 86400
+        done
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Opcional: endereço HTTPS público (Cloudflare quick tunnel), sem conta e sem
   # abrir porta no roteador. Só sobe com o perfil:
   #   docker compose --profile tunnel up -d tunnel

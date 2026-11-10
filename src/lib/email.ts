@@ -548,6 +548,54 @@ export function emailPrazoParcela(d: {
   };
 }
 
+// Plano de fim (ADR-0009): aviso de exclusão da turma arquivada. Chega mesmo a
+// quem desligou os emails da turma, como os emails da conta: é sobre os dados
+// da própria pessoa. Três momentos: ao arquivar, quando a data muda e 7 dias
+// antes.
+export function emailExclusaoTurma(d: {
+  nome: string;
+  turma: string;
+  momento: "arquivada" | "nova_data" | "proxima";
+  excluirEm: string; // AAAA-MM-DD
+  quem: string | null; // quem arquivou ou mudou a data
+  url: string; // Minha conta, para baixar os dados
+}): Omit<Email, "para"> {
+  const quando = isoParaBr(d.excluirEm);
+  const assunto =
+    d.momento === "proxima"
+      ? `Prazo: a turma ${d.turma} será excluída em ${quando}`
+      : d.momento === "nova_data"
+        ? `Nova data: a turma ${d.turma} será excluída em ${quando}`
+        : `Turma ${d.turma} arquivada: exclusão em ${quando}`;
+  const autor = d.quem ? `${d.quem}, da comissão,` : "A comissão";
+  const abertura =
+    d.momento === "proxima"
+      ? `Em ${quando}, a turma ${d.turma} será excluída do Formandos, como a comissão marcou ao arquivar.`
+      : d.momento === "nova_data"
+        ? `${autor} mudou a data de exclusão da turma ${d.turma}. A nova data é ${quando}.`
+        : `${autor} arquivou a turma ${d.turma}. Ninguém altera mais nada, e tudo será excluído em ${quando}.`;
+  const some =
+    "Nesse dia somem votos, dúvidas, decisões, pagamentos, presença, histórico e a página pública do evento. Não dá para recuperar depois.";
+  const fazer =
+    "Se quiser guardar algo, baixe seus dados em Minha conta antes dessa data. O registro completo da turma (decisões, votações, caixa) fica com a comissão: peça a ela.";
+  const motivo = `Você recebe este email porque é da turma ${d.turma} no Formandos. Ele chega mesmo com os emails da turma desligados, porque é sobre os seus dados.`;
+  return {
+    assunto,
+    texto: [`Olá, ${d.nome}!`, abertura, some, fazer, `Minha conta: ${d.url}`, `—\n${motivo}`].join("\n\n"),
+    html: caixaEmail({
+      preheader: `Tudo da turma será excluído em ${quando}.`,
+      titulo: d.momento === "proxima" ? `A turma será excluída em ${quando}` : `Exclusão da turma em ${quando}`,
+      motivo,
+      corpo:
+        p(escapar(abertura)) +
+        p(escapar(some)) +
+        p(escapar(fazer)) +
+        botao(d.url, "Baixar meus dados") +
+        linkCru(d.url),
+    }),
+  };
+}
+
 // Convite por lista (ADR-0007). A pessoa ainda não é usuária: o email diz
 // quem colou o endereço, que nada foi criado e que o endereço some em 90 dias.
 export function emailConviteTurma(d: {
