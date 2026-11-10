@@ -1668,6 +1668,98 @@ await grupo("admin", async () => {
     igual(await nav.ev("document.querySelector('#texto-duvida').matches(':disabled')"), false, "campo liberado");
     verdade(!(await nav.tem("Turma arquivada em")), "faixa sumiu");
   });
+  await passo("ADR-0009: arquivar com data, avisos por email e exclusão no prazo só depois do aviso", async () => {
+    const MAILPIT = process.env.MAILPIT_URL ?? "http://localhost:8025";
+    const segredo = fs.readFileSync(".env.local", "utf8").match(/^CRON_SECRET="?([^"\n]*)"?/m)?.[1];
+    verdade(segredo, "CRON_SECRET no .env.local");
+    const caixa = async () =>
+      (await (await fetch(`${MAILPIT}/api/v1/messages?limit=200`)).json()).messages.map((m) => ({
+        para: m.To[0].Address,
+        assunto: m.Subject,
+      }));
+    const recebeu = async (email, trecho) => (await caixa()).filter((m) => m.para === email && m.assunto.includes(trecho)).length;
+    const esperarEmail = async (email, trecho) => {
+      for (let i = 0; i < 20 && (await recebeu(email, trecho)) === 0; i++) await dormir(500);
+      return recebeu(email, trecho);
+    };
+    const cron = async () => {
+      const r = await fetch(`${process.env.BASE_URL ?? "http://localhost:3000"}/api/cron/lembretes`, {
+        headers: { Authorization: `Bearer ${segredo}` },
+      });
+      igual(r.status, 200, "rota de lembretes");
+      return r.json();
+    };
+    const id = () => sql("select coalesce((select id::text from turmas where codigo_convite='TESTEFIM001'),'')");
+    const somar = (dias) => sql(`select to_char((now() at time zone 'America/Sao_Paulo')::date + ${dias}, 'YYYY-MM-DD')`);
+    await fetch(`${MAILPIT}/api/v1/messages`, { method: "DELETE" });
+    sql(`insert into turmas (nome,codigo_convite,criado_por)
+      select 'Fim E2E','TESTEFIM001',u.id from usuarios u where u.email='teste-sh@example.invalid' on conflict do nothing`);
+    sql(`insert into membros (turma_id,usuario_id,papel)
+      select t.id,u.id,case when u.email='teste-sh@example.invalid' then 'admin' else 'participante' end
+        from turmas t, usuarios u
+       where t.codigo_convite='TESTEFIM001' and u.email in ('teste-sh@example.invalid','teste-jl@example.invalid')
+      on conflict do nothing`);
+    // O aviso chega mesmo a quem desligou os emails da turma.
+    sql("update usuarios set receber_emails=false where email='teste-jl@example.invalid'");
+    const turma = id();
+    try {
+      await nav.abrir("/dashboard");
+      await nav.clicar("Fim E2E", { seletor: "button" });
+      await nav.assentar();
+
+      // Arquivar com 30 dias: data gravada, email para o participante e não para quem arquivou.
+      await nav.abrir("/admin/turma");
+      await nav.clicar("Arquivar turma", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #dias')", 10000, "campo do prazo");
+      await nav.preencher("#dias", "30");
+      await nav.esperarTexto(`excluída em ${somar(30).split("-").reverse().join("/")}`);
+      await nav.clicar("Arquivar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+      for (let i = 0; i < 20 && sql(`select coalesce(excluir_em::text,'') from turmas where id='${turma}'`) === ""; i++) await dormir(500);
+      igual(sql(`select excluir_em::text from turmas where id='${turma}'`), somar(30), "data de exclusão em 30 dias");
+      igual(await esperarEmail("teste-jl@example.invalid", "Turma Fim E2E arquivada: exclusão em"), 1, "aviso ao arquivar");
+      igual(await recebeu("teste-sh@example.invalid", "arquivada: exclusão"), 0, "quem arquivou não recebe");
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Tudo será excluído em");
+
+      // Mudar a data para 60 dias: auditoria e email "Nova data".
+      await nav.abrir("/admin/turma");
+      await nav.esperarTexto("faltam 30 dias");
+      await nav.clicar("Mudar a data de exclusão", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #dias')", 10000, "campo do prazo");
+      await nav.preencher("#dias", "60");
+      await nav.clicar("Mudar a data", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+      for (let i = 0; i < 20 && sql(`select excluir_em::text from turmas where id='${turma}'`) !== somar(60); i++) await dormir(500);
+      igual(sql(`select excluir_em::text from turmas where id='${turma}'`), somar(60), "data nova");
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='turma.prazo_exclusao'`), "1", "mudança na auditoria");
+      igual(await esperarEmail("teste-jl@example.invalid", "Nova data: a turma Fim E2E"), 1, "aviso da data nova");
+
+      // Data vencida sem o aviso de 7 dias: a rodada manda o aviso e NÃO exclui.
+      sql(`update turmas set excluir_em = current_date - 1 where id='${turma}'`);
+      const r1 = await cron();
+      verdade(r1.rodou, "rodada rodou");
+      igual(id(), turma, "sem aviso de 7 dias, a turma fica");
+      igual(await esperarEmail("teste-jl@example.invalid", "Prazo: a turma Fim E2E será excluída"), 1, "aviso de 7 dias");
+      await cron();
+      igual(await recebeu("teste-jl@example.invalid", "Prazo: a turma Fim E2E"), 1, "aviso não se repete");
+
+      // Aviso com mais de 7 dias: a rodada exclui e só sobra turma.excluida.
+      sql(`update lembretes_enviados set created_at = now() - interval '8 days' where tipo='exclusao' and turma_id='${turma}'`);
+      const r2 = await cron();
+      igual(r2.excluidas, 1, "uma turma excluída");
+      igual(id(), "", "turma excluída no prazo");
+      igual(
+        sql(`select string_agg(acao || ':' || coalesce(detalhe->>'por',''), ',') from auditoria where entidade_id='${turma}' or turma_id='${turma}'`),
+        "turma.excluida:prazo",
+        "só sobra a prova da exclusão",
+      );
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Sistemas de Informação 2026");
+    } finally {
+      sql("update usuarios set receber_emails=true where email='teste-jl@example.invalid'");
+      sql("delete from turmas where codigo_convite='TESTEFIM001'");
+      if (turma) sql(`delete from auditoria where entidade_id='${turma}'`);
+    }
+  });
   await passo("excluir turma pelo admin exige o nome e leva a outra turma", async () => {
     sql(`insert into turmas (nome,codigo_convite,criado_por)
       select 'Excluir E2E','TESTEDEL001',u.id from usuarios u where u.email='teste-sh@example.invalid'
