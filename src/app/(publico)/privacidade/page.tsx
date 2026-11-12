@@ -20,7 +20,7 @@ export default function PrivacidadePage() {
       <h1 className="mt-4 text-2xl font-semibold tracking-tight md:text-3xl">
         Política de Privacidade
       </h1>
-      <p className="mt-2 text-sm text-muted-foreground">Versão 1.0 — 10/10/2026</p>
+      <p className="mt-2 text-sm text-muted-foreground">Versão 1.1 — 12/11/2026</p>
 
       <div className="mt-6 flex flex-col gap-5 text-[15px] leading-relaxed">
         <section>
@@ -38,6 +38,15 @@ export default function PrivacidadePage() {
             formatura da sua turma. Base legal: seu consentimento no cadastro e o
             legítimo interesse na operação das turmas. Não coletamos dado
             sensível e não vendemos nem alugamos seus dados.
+          </p>
+        </section>
+        <section>
+          <h2 className="font-semibold">Menores de 18 anos</h2>
+          <p className="mt-1 text-muted-foreground">
+            O {EMPRESA.nomeFantasia} é para quem tem 18 anos ou mais. Não
+            coletamos dados de menores de propósito. Se soubermos de uma conta de
+            menor, ela é excluída. O responsável pode pedir a exclusão pelo
+            email do DPO acima.
           </p>
         </section>
         <section>

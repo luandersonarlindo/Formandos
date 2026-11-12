@@ -182,7 +182,7 @@ export function FormEmailSenha({
               aria-describedby="aceite-texto"
             />
             <Label htmlFor="aceite" id="aceite-texto" className="block text-xs leading-relaxed font-normal">
-              Li e aceito os{" "}
+              Tenho 18 anos ou mais e aceito os{" "}
               <Link href="/termos" className="underline underline-offset-4 hover:text-foreground">
                 Termos de Uso
               </Link>{" "}

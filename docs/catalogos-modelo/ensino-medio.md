@@ -1,6 +1,6 @@
 # Ensino Médio
 
-> Para turmas de escola: cerimônia de certificados, aula especial, festa e as tradições do último ano. Já considera que parte do público é menor de idade.
+> Para turmas de escola: cerimônia de certificados, aula especial, festa e as tradições do último ano. Já considera que parte do público é menor de idade: quem tem menos de 18 anos participa pelo responsável.
 
 ## 1. Cerimônia e Festa
 

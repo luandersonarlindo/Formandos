@@ -1,6 +1,6 @@
 # Educação Infantil e ABC
 
-> Para formaturas de pré-escola e alfabetização (ABC), organizadas por pais e professores: cerimônia curta, festa leve e cuidado com as crianças.
+> Para formaturas de pré-escola e alfabetização (ABC), organizadas por pais e professores: cerimônia curta, festa leve e cuidado com as crianças. Nesta turma, quem participa são os responsáveis.
 
 ## 1. Cerimônia
 

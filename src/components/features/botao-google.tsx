@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
@@ -48,6 +49,17 @@ export function BotaoGoogle({ destino = DESTINO_PADRAO }: { destino?: string }) 
         {carregando ? <LoaderCircle className="animate-spin" aria-hidden /> : <IconeGoogle />}
         {carregando ? "Redirecionando…" : "Continuar com o Google"}
       </Button>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        Ao entrar com o Google, você declara ter 18 anos ou mais e aceita os{" "}
+        <Link href="/termos" className="underline underline-offset-4 hover:text-foreground">
+          Termos de Uso
+        </Link>{" "}
+        e a{" "}
+        <Link href="/privacidade" className="underline underline-offset-4 hover:text-foreground">
+          Política de Privacidade
+        </Link>
+        .
+      </p>
       {erro && (
         <p role="alert" className="text-sm text-destructive">
           {erro}

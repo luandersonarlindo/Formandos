@@ -17,7 +17,7 @@ export default function TermosPage() {
         <ArrowLeft className="size-4" aria-hidden /> Início
       </Link>
       <h1 className="mt-4 text-2xl font-semibold tracking-tight md:text-3xl">Termos de Uso</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Versão 1.0 — 10/10/2026</p>
+      <p className="mt-2 text-sm text-muted-foreground">Versão 1.1 — 12/11/2026. Mudou nesta versão: a seção 2, “Quem pode usar”.</p>
 
       <div className="mt-6 flex flex-col gap-5 text-[15px] leading-relaxed">
         <section>
@@ -29,7 +29,18 @@ export default function TermosPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold">2. Conta e acesso</h2>
+          <h2 className="font-semibold">2. Quem pode usar</h2>
+          <p className="mt-1 text-muted-foreground">
+            A conta é para quem tem 18 anos ou mais. Em turmas de crianças e
+            adolescentes, quem cria conta, vota e confirma presença é o pai, a
+            mãe ou o responsável. Conta de menor de 18 anos é excluída quando
+            identificada. A comissão não deve escrever dados de crianças (nome
+            completo, foto, saúde) em avisos, dúvidas e observações além do
+            necessário para organizar o evento.
+          </p>
+        </section>
+        <section>
+          <h2 className="font-semibold">3. Conta e acesso</h2>
           <p className="mt-1 text-muted-foreground">
             Conta pessoal e intransferível, com email confirmado. Papéis:
             participante vota e envia dúvidas; administrador gerencia a turma;
@@ -39,7 +50,7 @@ export default function TermosPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold">3. Conteúdo da turma</h2>
+          <h2 className="font-semibold">4. Conteúdo da turma</h2>
           <p className="mt-1 text-muted-foreground">
             O autor pode editar/apagar a própria dúvida; o administrador modera
             (responde, destaca, apaga). Remoção de membro apaga o rastro dele na
@@ -48,7 +59,7 @@ export default function TermosPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold">4. Privacidade e dados</h2>
+          <h2 className="font-semibold">5. Privacidade e dados</h2>
           <p className="mt-1 text-muted-foreground">
             O tratamento de dados segue a{" "}
             <Link href="/privacidade" className="underline underline-offset-4 hover:text-foreground">
@@ -58,7 +69,7 @@ export default function TermosPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold">5. Disponibilidade e responsabilidade</h2>
+          <h2 className="font-semibold">6. Disponibilidade e responsabilidade</h2>
           <p className="mt-1 text-muted-foreground">
             Serviço prestado como está, sem garantia de disponibilidade
             ininterrupta. Em nenhuma hipótese respondemos por lucros cessantes;
@@ -67,7 +78,7 @@ export default function TermosPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold">6. Se o Formandos for encerrado</h2>
+          <h2 className="font-semibold">7. Se o Formandos for encerrado</h2>
           <p className="mt-1 text-muted-foreground">
             Avisamos todos os usuários por email e numa faixa no site com 60 dias
             de antecedência. Nesse prazo, não se cria turma nova, mas tudo continua
@@ -79,7 +90,7 @@ export default function TermosPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold">7. Mudanças e contato</h2>
+          <h2 className="font-semibold">8. Mudanças e contato</h2>
           <p className="mt-1 text-muted-foreground">
             Estes termos podem mudar com aviso na plataforma. Dúvidas: {DPO.email}.
             Foro: domicílio do usuário, nos termos do CDC.
