@@ -20,6 +20,7 @@ formatura (votos, presença, dúvidas, tarefas). Sem dado sensível (art. 11).
 | Portabilidade (V) | ✅ | Mesma exportação JSON do acesso |
 | Consentimento | ✅ | Checkbox obrigatório no cadastro email/senha + carimbo `usuarios.consentimento_em` (hook `auth.ts`); Google consente via OAuth |
 | Revogação do consentimento (IX) | ✅ | Excluir a conta = revogar; sem retenção além do necessário |
+| Crianças e adolescentes (art. 14) | ✅ | Conta só para maiores de 18 (ADR-0011): declaração no cadastro e na entrada pelo Google, seção 2 dos Termos e seção "Menores de 18 anos" da Política; sem data de nascimento (minimização, art. 6º, III); conta de menor identificada é excluída |
 | Oposição e revisão automatizada (art. 18, §2º; art. 20) | ✅ | Sem decisão automatizada no app; nada a revisar |
 
 Obrigações do controlador:

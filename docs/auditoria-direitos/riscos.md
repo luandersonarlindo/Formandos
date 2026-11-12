@@ -20,10 +20,11 @@ mitigar ou evitar. **Versão:** 1.0 — 2026-10-10. **Dono:** Direção.
 | R-10 | Dependência de terceiros (Vercel/Neon/Google/SMTP) | 2 | 2 | 4 médio | Aceitar | Sem alternativa viável p/ MEI; monitorado via E2E e erros de console | Médio |
 | R-11 | Sanção LGPD (direito não atendido, incidente não comunicado) | 1 | 3 | 3 médio | Mitigar | `docs/legislacao.md`; exclusão de conta pronta; canal DPO; N.04 da PSI | Baixo |
 | R-12 | Autorrevisão (dev audita o próprio código) | 3 | 2 | 6 **alto** | Mitigar | Testes automatizados como evidência objetiva + auditoria 2ª parte recomendada (`docs/auditoria.md`) | Médio |
+| R-13 | Dado de menor de idade sem consentimento do responsável (LGPD, art. 14) | 2 | 3 | 6 **alto** | Mitigar | ADR-0011: conta só para maiores de 18, declarada no cadastro e na entrada pelo Google; Termos v1.1 (seção 2) e Política; exclusão da conta de menor identificada. A idade não é conferida | Médio |
 
 ## Leituras da matriz
 
-- **Maiores escores:** R-04 (backup) e R-12 (autorrevisão) — únicos altos, ambos
+- **Maiores escores:** R-04 (backup), R-12 (autorrevisão) e R-13 (menor de idade) — únicos altos, todos
   com ação aberta e prazo.
 - **PDCA aplicado:** Planejar (esta matriz + PSI), Executar (controles no
   código), Checar (testes + auditoria), Agir (correção do sintoma + ação

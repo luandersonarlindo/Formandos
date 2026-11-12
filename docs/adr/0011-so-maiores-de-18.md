@@ -75,3 +75,13 @@
 
 **Teste de fluxo**
 - Conferir o texto novo da caixa no cadastro, a linha do Google e a seção nova em `/termos` e `/privacidade`.
+
+### Andamento (2026-11-12)
+
+Tudo feito. Diferenças em relação ao texto acima:
+
+- A frase nos modelos não ficou igual nos dois. Em `educacao-infantil.md`: "Nesta turma, quem participa são os responsáveis." Em `ensino-medio.md`: "quem tem menos de 18 anos participa pelo responsável", porque parte dos formandos do Ensino Médio já tem 18 anos e pode ter conta.
+- Os Termos ganharam a seção 2, "Quem pode usar"; as seções seguintes foram renumeradas (3 a 8). A linha da versão diz o que mudou.
+- A Política também passou à versão 1.1.
+- `docs/auditoria-direitos/`: linha do art. 14 em `legislacao.md` e risco R-13 em `riscos.md` (residual médio, porque a idade é declarada e não conferida).
+- Testes: `typecheck`; grupo `auth` de `fluxos.mjs` no Docker, 18 de 18, com o passo novo "ADR-0011" e o rótulo novo da caixa do cadastro.
