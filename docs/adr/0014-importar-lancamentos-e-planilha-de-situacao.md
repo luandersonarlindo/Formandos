@@ -118,3 +118,18 @@ email ; valor ; data ; forma ; quem pagou ; referência
 
 **Teste de fluxo**
 - Colar 3 linhas, uma com email de fora: prévia mostra o problema e nada entra. Corrigir, ver a prévia e importar: caixa e "Minha situação" batem. Colar de novo: "já estão lançadas" e nada muda. Baixar a planilha de situação e conferir o valor pago.
+
+### Andamento (2026-11-14)
+
+Tudo feito. Diferenças em relação ao texto acima:
+
+- **Prévia e erros em texto:** o resultado aparece numa frase abaixo do formulário, como no convite por lista. Com problema, a mensagem lista até 12 linhas ("Linha 4: email não é de um formando desta turma (…).") e diz quantas faltam.
+- **Formas aceitas além das quatro:** "espécie" vira dinheiro; "TED" e "DOC" viram transferência. Maiúsculas e acentos não importam.
+- **Data anterior a 2000 é recusada**, junto com data que não existe e data no futuro.
+- **Linha com menos de três colunas** vira problema ("faltam colunas"), inclusive quando a pessoa separou por vírgula.
+- **A comparação com o que já existe olha só lançamentos do tipo pagamento, confirmados.** Devolução, ajuste e informe aguardando não contam como repetidos.
+- **Trava no banco** (`importar:{turma}`): duas importações ao mesmo tempo esperam a vez, e a segunda já enxerga o que a primeira gravou.
+- **Planilhas só da tesouraria** viraram uma lista, `TIPOS_SO_TESOURARIA` em `exportacao.ts` ("pagamentos" e "situacao"), usada pela rota e pela tela `/admin/turma`.
+- `listarSituacoes` foi dividida: `todasSituacoes` calcula todos, e a tela e a planilha usam o mesmo resultado.
+- O card "Importar da planilha" traz o link para baixar a lista de membros com os emails e o botão da planilha de situação. Não aparece em turma arquivada.
+- Testes: `typecheck`, `npm test` (325; 12 novos em `importar-pagamentos.test.ts`). Passo "ADR-0014" no grupo `admin` de `fluxos.mjs`; bloco `participante,app,admin` no Docker, 65 de 65. `/admin/tesouraria` conferida em 360px.
