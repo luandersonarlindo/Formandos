@@ -413,31 +413,43 @@ await grupo("participante", async () => {
       await nav.clicar("Salvar resposta", { escopo: "@[role=dialog]", seletor: "button" });
       await nav.esperar("!document.querySelector('[role=dialog]')", 10000, "diálogo fecha ao salvar");
     };
+    // ADR-0013: cada acompanhante entra com nome e adulto/criança.
+    const nomes = () => sql("select coalesce(string_agg(a.nome || '/' || a.tipo, ',' order by a.ordem), '') from acompanhantes a join usuarios u on u.id=a.usuario_id where u.email='teste-jl@example.invalid'");
+    const acompanhante = async (posicao, nome, tipo = "adulto") => {
+      await nav.clicar("Adicionar acompanhante", { escopo: "@[role=dialog]", seletor: "button" });
+      await preencherEm("@[role=dialog]", `li[data-acompanhante]:nth-of-type(${posicao}) input`, nome);
+      await preencherEm("@[role=dialog]", `li[data-acompanhante]:nth-of-type(${posicao}) select`, tipo);
+    };
     await abrirResposta();
     await nav.clicar("Vou", { escopo: "@[role=dialog]", seletor: "label", contem: false });
-    await preencherEm("@[role=dialog]", "#acompanhantes", "2");
+    await acompanhante(1, "  Dona   Rita ");
+    await acompanhante(2, "Léo", "crianca");
     await preencherEm("@[role=dialog]", "#observacao", "Minha mãe e meu irmão");
     await salvarResposta();
     await dormir(800);
     igual(resposta(), "vou:2:Minha mãe e meu irmão", "vou com acompanhantes");
+    igual(nomes(), "Dona Rita/adulto,Léo/crianca", "nomes e tipos no banco");
     await abrirResposta();
     await nav.clicar("Talvez", { escopo: "@[role=dialog]", seletor: "label", contem: false });
-    verdade(!(await nav.ev("!!document.querySelector('[role=dialog] #acompanhantes')")), "campo de acompanhantes some com Talvez");
+    verdade(!(await nav.ev("!!document.querySelector('[role=dialog] [data-acompanhante]')")), "lista de acompanhantes some com Talvez");
     await salvarResposta();
     await dormir(1800);
     igual(resposta(), "talvez:0:Minha mãe e meu irmão", "talvez zera os acompanhantes");
-    // Deixa como "vou" com 2 acompanhantes para o painel do administrador conferir.
+    igual(nomes(), "", "talvez apaga os nomes");
+    // A tela não deixa passar do limite (5); uma linha posta na mão prova o do servidor.
     await abrirResposta();
     await nav.clicar("Vou", { escopo: "@[role=dialog]", seletor: "label", contem: false });
-    // O navegador já barra valores acima do máximo; tira o limite da tela para provar o do servidor.
-    await nav.ev("document.querySelector('[role=dialog] #acompanhantes').removeAttribute('max')");
-    await preencherEm("@[role=dialog]", "#acompanhantes", "99");
-    await salvarResposta();
-    await dormir(1800);
-    igual(sql("select acompanhantes from presencas p join usuarios u on u.id=p.usuario_id where u.email='teste-jl@example.invalid'"), "5", "limite de acompanhantes");
+    for (let n = 1; n <= 5; n++) await acompanhante(n, `Convidado ${n}`);
+    verdade(!(await nav.ev("[...document.querySelectorAll('[role=dialog] button')].some((b) => b.textContent.includes('Adicionar acompanhante'))")), "botão de adicionar some no limite");
+    await nav.ev(`(() => { const f = document.querySelector('[role=dialog] form'); const i = document.createElement('input'); i.type = 'hidden'; i.name = 'acompanhante-nome'; i.value = 'Sexto'; f.appendChild(i); })()`);
+    await nav.clicar("Salvar resposta", { escopo: "@[role=dialog]", seletor: "button" });
+    await nav.esperarTexto("Você pode levar até 5 acompanhantes.");
+    igual(resposta().split(":").slice(0, 2).join(":"), "talvez:0", "acima do limite não salva");
     // Recarrega para partir de um estado conhecido, sem depender do que sobrou na tela.
     await abrirResposta();
-    await preencherEm("@[role=dialog]", "#acompanhantes", "2");
+    await nav.clicar("Vou", { escopo: "@[role=dialog]", seletor: "label", contem: false });
+    await acompanhante(1, "Dona Rita");
+    await acompanhante(2, "Léo", "crianca");
     await salvarResposta();
     await dormir(1800);
     igual(resposta().split(":").slice(0, 2).join(":"), "vou:2", "vou de novo com 2");
@@ -1957,6 +1969,9 @@ await grupo("admin", async () => {
     await nav.abrir("/admin/presenca");
     await nav.esperarTexto("Pessoas esperadas");
     await nav.esperarTexto("1 membro confirmado + 2 acompanhantes");
+    // ADR-0013: total separado para o buffet e os nomes na linha da pessoa.
+    await nav.esperarTexto("2 adultos e 1 criança");
+    await nav.esperarTexto("Dona Rita, Léo (criança)");
     await nav.esperarTexto("Minha mãe e meu irmão");
     await nav.abrir("/admin/presenca?filtro=pendente");
     await nav.esperarTexto("Maria Souza");
@@ -1964,33 +1979,144 @@ await grupo("admin", async () => {
     await nav.abrir("/dashboard");
     await nav.esperarTexto("Presença confirmada");
   });
-  await passo("limite de acompanhantes escolhido pelo admin corta as respostas acima", async () => {
-    await nav.abrir("/admin/presenca");
-    await nav.esperarTexto("Limite de acompanhantes");
-    await nav.clicar("Editar limite de acompanhantes", { seletor: "button" });
-    await preencherEm("@[role=dialog]", "#maxAcompanhantes", "1");
-    await nav.clicar("Salvar limite", { escopo: "@[role=dialog]", seletor: "button" });
-    await dormir(2000);
-    igual(sql(`select max_acompanhantes from turmas where id='${turmaTeste()}'`), "1", "limite no banco");
-    igual(
-      sql(`select p.acompanhantes from presencas p join membros m on m.turma_id=p.turma_id and m.usuario_id=p.usuario_id
-            join usuarios u on u.id=p.usuario_id
-           where u.email='teste-jl@example.invalid' and p.turma_id='${turmaTeste()}'`),
-      "1",
-      "resposta cortada para o novo limite",
-    );
-    // O participante vê o limite novo na hora (dentro do diálogo de resposta).
-    await nav.cookie(lerCookie("cookie-participante.txt"));
-    await nav.abrir("/dashboard");
-    await nav.clicar("Mudar resposta", { seletor: "button" });
-    await nav.esperarTexto("De 0 a 1, sem contar você.");
-    await nav.cookie(lerCookie("cookie-admin.txt"));
-    await nav.abrir("/admin/presenca");
-    await nav.clicar("Editar limite de acompanhantes", { seletor: "button" });
-    await preencherEm("@[role=dialog]", "#maxAcompanhantes", "5");
-    await nav.clicar("Salvar limite", { escopo: "@[role=dialog]", seletor: "button" });
-    await dormir(2000);
-    igual(sql(`select max_acompanhantes from turmas where id='${turmaTeste()}'`), "5", "limite restaurado");
+  await passo("ADR-0013: baixar o limite não corta ninguém, lista da portaria e resposta antiga sem nomes", async () => {
+    const turma = turmaTeste();
+    const quantidade = () =>
+      sql(`select p.acompanhantes from presencas p join usuarios u on u.id=p.usuario_id
+            where u.email='teste-jl@example.invalid' and p.turma_id='${turma}'`);
+    const limite = async (n) => {
+      await nav.abrir("/admin/presenca");
+      await nav.esperarTexto("Limite de acompanhantes");
+      await nav.clicar("Editar limite de acompanhantes", { seletor: "button" });
+      await preencherEm("@[role=dialog]", "#maxAcompanhantes", String(n));
+      await nav.clicar("Salvar limite", { escopo: "@[role=dialog]", seletor: "button" });
+      await dormir(2000);
+      igual(sql(`select max_acompanhantes from turmas where id='${turma}'`), String(n), "limite no banco");
+    };
+    try {
+      await limite(1);
+      igual(quantidade(), "2", "ninguém foi cortado");
+      await nav.abrir("/admin/presenca");
+      await nav.esperarTexto("1 resposta acima do limite.");
+      await nav.esperarTexto("acima do limite");
+      // Quem ficou acima mantém a lista, mas não adiciona.
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/dashboard");
+      await nav.clicar("Mudar resposta", { seletor: "button" });
+      await nav.esperarTexto("A turma agora permite até 1.");
+      verdade(!(await nav.ev("[...document.querySelectorAll('[role=dialog] button')].some((b) => b.textContent.includes('Adicionar acompanhante'))")), "sem botão de adicionar acima do limite");
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+
+      // Lista da portaria: uma linha por pessoa, com o total por tipo.
+      await nav.abrir("/admin/presenca/lista");
+      await nav.esperarTexto("3 pessoas");
+      await nav.esperarTexto("2 adultos e 1 criança");
+      await nav.esperarTexto("Acompanhante (criança)");
+      igual(
+        await nav.ev("[...document.querySelectorAll('tbody tr td:nth-child(2)')].map((td) => td.textContent).join('|')"),
+        "Dona Rita|João Lima|Léo",
+        "ordem alfabética",
+      );
+      const base = process.env.BASE_URL ?? "http://localhost:3000";
+      const r = await fetch(`${base}/admin/turma/exportar?tipo=portaria`, {
+        headers: { cookie: `better-auth.session_token=${lerCookie("cookie-admin.txt")}` },
+        redirect: "manual",
+      });
+      igual(r.status, 200, "planilha da portaria");
+      const csv = await r.text();
+      verdade(csv.includes("Nome;Tipo;Convidado de"), `cabeçalho: ${csv.slice(0, 60)}`);
+      verdade(csv.includes("Léo;Acompanhante (criança);João Lima"), "linha da criança");
+
+      // Resposta de antes da mudança: quantidade sem nomes. Continua no total e pede os nomes.
+      sql(`delete from acompanhantes where turma_id='${turma}'`);
+      await nav.abrir("/admin/presenca");
+      await nav.esperarTexto("2 acompanhantes ainda sem nome informado");
+      await nav.esperarTexto("3 adultos e 0 crianças");
+      await nav.abrir("/admin/presenca/lista");
+      await nav.esperarTexto("Acompanhante de João Lima (sem nome)");
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Faltam os nomes de 2 acompanhantes");
+      verdade(await nav.tem("Informar nomes"), "botão para informar os nomes");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      await limite(5);
+    }
+  });
+  await passo("ADR-0013: prazo de presença trava a resposta e manda um lembrete só", async () => {
+    const turma = turmaTeste();
+    const joao = sql("select id from usuarios where email='teste-jl@example.invalid'");
+    const status = () => sql(`select status from presencas where turma_id='${turma}' and usuario_id='${joao}'`);
+    const prazo = (expressao) => sql(`update turmas set presenca_ate = ${expressao} where id='${turma}'`);
+    const segredo = fs.readFileSync(".env.local", "utf8").match(/^CRON_SECRET="?([^"\n]*)"?/m)?.[1];
+    try {
+      // A comissão marca o prazo; a mudança vai para o histórico e a turma vê a data.
+      await nav.abrir("/admin/presenca");
+      await nav.esperarTexto("Prazo para confirmar presença");
+      await nav.clicar("Marcar prazo", { seletor: "button" });
+      await preencherEm("@[role=dialog]", "#prazo-presenca", "2099-12-12T23:59");
+      await nav.clicar("Salvar prazo", { escopo: "@[role=dialog]", seletor: "button" });
+      await dormir(2000);
+      igual(
+        sql(`select to_char(presenca_ate at time zone 'America/Sao_Paulo', 'YYYY-MM-DD HH24:MI') from turmas where id='${turma}'`),
+        "2099-12-12 23:59",
+        "prazo no banco, no horário de Brasília",
+      );
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='presenca.prazo'`), "1", "prazo no histórico");
+      sql(`update presencas set status='talvez', acompanhantes=0 where turma_id='${turma}' and usuario_id='${joao}'`);
+      sql(`delete from acompanhantes where turma_id='${turma}'`);
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Responda até 12 de dezembro de 2099");
+
+      // Lembrete: duas rodadas, um email só, para quem está em "talvez".
+      if (segredo && usarMailpit) {
+        await fetch(`${MAILPIT}/api/v1/messages`, { method: "DELETE" });
+        prazo("now() + interval '20 hours'");
+        const base = process.env.BASE_URL ?? "http://localhost:3000";
+        for (let i = 0; i < 2; i++) {
+          const r = await fetch(`${base}/api/cron/lembretes`, { headers: { Authorization: `Bearer ${segredo}` } });
+          igual(r.status, 200, "rota de lembretes");
+        }
+        await dormir(1500);
+        const doJoao = (await emailsRecentes()).filter(
+          (e) => e.includes("teste-jl@example.invalid") && e.includes("Prazo: confirme sua presença"),
+        );
+        igual(doJoao.length, 1, "lembrete de presença uma vez só");
+        verdade(doJoao[0].includes("Talvez"), "o email diz que a resposta está como Talvez");
+      }
+
+      // Diálogo aberto antes do prazo, enviado depois: o servidor recusa.
+      prazo("now() + interval '20 hours'");
+      await nav.abrir("/dashboard");
+      await nav.clicar("Mudar resposta", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo de presença");
+      await nav.clicar("Vou", { escopo: "@[role=dialog]", seletor: "label", contem: false });
+      prazo("now() - interval '1 hour'");
+      await nav.clicar("Salvar resposta", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperarTexto("A lista de presença fechou em");
+      igual(status(), "talvez", "resposta não mudou depois do prazo");
+
+      // Depois do prazo, o card mostra a trava e não oferece o formulário.
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Para mudar, fale com a comissão.");
+      verdade(!(await nav.tem("Mudar resposta")), "sem botão de resposta depois do prazo");
+
+      // A comissão reabre apagando a data.
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      await nav.abrir("/admin/presenca");
+      await nav.esperarTexto("A lista fechou em");
+      await nav.clicar("Mudar o prazo", { seletor: "button" });
+      await preencherEm("@[role=dialog]", "#prazo-presenca", "");
+      await nav.clicar("Salvar prazo", { escopo: "@[role=dialog]", seletor: "button" });
+      await dormir(2000);
+      igual(sql(`select (presenca_ate is null)::int from turmas where id='${turma}'`), "1", "lista reaberta");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      prazo("null");
+      sql(`delete from lembretes_enviados where turma_id='${turma}' and tipo='presenca'`);
+      sql(`delete from auditoria where turma_id='${turma}' and acao='presenca.prazo'`);
+    }
   });
   await passo("ADR-0012: observador sai da conta da turma, não vota e confirma presença", async () => {
     const turma = turmaTeste();
