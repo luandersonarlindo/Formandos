@@ -1106,7 +1106,7 @@ await grupo("admin", async () => {
       // Comissão salva prazo e quórum pelo diálogo; a mudança vai para a auditoria.
       await nav.abrir(`/admin/votacoes/${idPadrao()}`);
       await nav.esperarTexto("Onde vai ser o nosso evento?");
-      await nav.clicar("Prazo e quórum", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.clicar("Regra da votação", { escopo: `@#enq-${enq}`, seletor: "button" });
       await nav.preencher(`#prazo-${enq}`, "2099-12-12T23:59");
       await nav.preencher(`#quorum-${enq}`, "90");
       await nav.clicar("Salvar regra", { escopo: "@[role=dialog]", seletor: "button" });
@@ -1475,6 +1475,96 @@ await grupo("admin", async () => {
       sql(`delete from decisoes where turma_id='${turma}'`);
       sql(`delete from regras_enquete where turma_id='${turma}'`);
       sql(`delete from lembretes_enviados where turma_id='${turma}'`);
+    }
+  });
+  await passo("ADR-0010: voto secreto esconde o nome por opção e trava depois do primeiro voto", async () => {
+    const turma = turmaTeste();
+    // Outra pergunta do catálogo padrão, para não mexer na dos passos vizinhos.
+    const enq = sql(`select e.id from enquetes e join categorias ca on ca.id=e.categoria_id
+      where ca.catalogo_id='${idPadrao()}' and e.id <> '${enqueteLocal()}'
+        and not exists (select 1 from enquetes_ocultas eo where eo.turma_id='${turma}' and eo.enquete_id=e.id)
+      order by ca.ordem desc, e.ordem desc limit 1`);
+    const titulo = sql(`select titulo from enquetes where id='${enq}'`);
+    const limpar = () => {
+      sql(`delete from votos where turma_id='${turma}' and opcao_id in (select id from opcoes where enquete_id='${enq}')`);
+      sql(`delete from regras_enquete where turma_id='${turma}' and enquete_id='${enq}'`);
+    };
+    limpar();
+    try {
+      // Sem voto, a comissão liga o segredo; a mudança vai para o histórico.
+      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      await nav.esperarTexto(titulo);
+      await nav.clicar("Regra da votação", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.esperar(`!!document.querySelector("#secreto-${enq}")`, 10000, "caixa do voto secreto");
+      await nav.ev(`document.querySelector("#secreto-${enq}").click()`);
+      await nav.clicar("Salvar regra", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperarTexto("Regra salva");
+      igual(sql(`select secreto from regras_enquete where turma_id='${turma}' and enquete_id='${enq}'`), "t", "secreto no banco");
+      igual(
+        sql(`select detalhe->'depois'->>'secreto' from auditoria where turma_id='${turma}' and acao='regra.alterada' and entidade_id='${enq}' order by created_at desc limit 1`),
+        "true",
+        "segredo no histórico",
+      );
+
+      // O formando lê o selo antes de votar.
+      await nav.abrir(`/votacoes/${idPadrao()}`);
+      await nav.esperarTexto("Ninguém vê sua escolha, nem a comissão.");
+
+      // Com um voto, a página da comissão mostra o total e quem votou, sem nome na opção.
+      sql(`insert into votos (turma_id,opcao_id,usuario_id)
+        select '${turma}', (select id from opcoes where enquete_id='${enq}' order by ordem limit 1), id
+          from usuarios where email='teste-jl@example.invalid'`);
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
+      await nav.esperarTexto("Os nomes não aparecem: voto secreto.");
+      await nav.esperarTexto("Já votaram");
+      igual(
+        await nav.ev("!!document.querySelector('[data-grupo] > :first-child ul')"),
+        false,
+        "a opção votada não lista nomes",
+      );
+      verdade(
+        await nav.ev("[...document.querySelectorAll('[data-grupo] li')].some((li) => li.textContent.includes('João Lima'))"),
+        "João aparece em Já votaram",
+      );
+
+      // A planilha de votos sai sem o nome e sem a hora.
+      const base = process.env.BASE_URL ?? "http://localhost:3000";
+      const r = await fetch(`${base}/admin/turma/exportar?tipo=votos`, {
+        headers: { cookie: `better-auth.session_token=${lerCookie("cookie-admin.txt")}` },
+        redirect: "manual",
+      });
+      igual(r.status, 200, "planilha de votos");
+      const linhas = (await r.text()).split(/\r?\n/).filter((l) => l.includes(titulo));
+      igual(linhas.length, 1, "uma linha da pergunta secreta");
+      verdade(linhas[0].includes("(voto secreto)"), `linha: ${linhas[0]}`);
+      verdade(!linhas[0].includes("João"), "sem o nome na planilha");
+      verdade(linhas[0].endsWith("(voto secreto);"), `sem a hora: ${linhas[0]}`);
+
+      // Com voto, a caixa trava; prazo e quórum continuam mudando sem perder o segredo.
+      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      await nav.esperarTexto(titulo);
+      await nav.clicar("Regra da votação", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.esperarTexto("Já existem votos. Esta opção não pode mais mudar.");
+      igual(await nav.ev(`document.querySelector("#secreto-${enq}").disabled`), true, "caixa travada");
+      await nav.preencher(`#quorum-${enq}`, "70");
+      await nav.clicar("Salvar regra", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperarTexto("Regra salva");
+      igual(sql(`select secreto::text || quorum_pct from regras_enquete where turma_id='${turma}' and enquete_id='${enq}'`), "true70", "segredo mantido");
+
+      // Quem força o envio sem o segredo recebe a recusa do servidor.
+      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      await nav.esperarTexto(titulo);
+      await nav.clicar("Regra da votação", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.esperarTexto("Já existem votos. Esta opção não pode mais mudar.");
+      await nav.ev(`document.querySelector("[role=dialog] input[type=hidden][name=secreto]").remove()`);
+      await nav.clicar("Salvar regra", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperarTexto("Já existem votos nesta pergunta.");
+      igual(sql(`select secreto from regras_enquete where turma_id='${turma}' and enquete_id='${enq}'`), "t", "segredo não desligou");
+    } finally {
+      limpar();
+      sql(`delete from auditoria where turma_id='${turma}' and acao='regra.alterada' and entidade_id='${enq}'`);
+      // O passo da ADR-0007 conta os downloads da turma a partir de zero.
+      sql(`delete from auditoria where turma_id='${turma}' and acao='turma.exportada'`);
     }
   });
   await passo("ADR-0007: planilha, registro da turma e convite por lista", async () => {
