@@ -36,6 +36,7 @@ const votacao = (parcial: Partial<DadosVotacao> = {}): DadosVotacao => ({
   enqueteId: "enq1",
   prazo: null,
   quorumPct: null,
+  secreto: false,
   opcoes: [
     { texto: "Buffet A", valorPessoa: 95 },
     { texto: "Buffet B", valorPessoa: null },

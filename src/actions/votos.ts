@@ -122,6 +122,11 @@ export async function salvarVotos(
         await db.query("select pg_advisory_xact_lock(hashtext($1))", [
           `${membro.usuarioId}:${enqueteId}`,
         ]);
+        // Mesma chave de `salvarRegraEnquete`, em modo compartilhado: votos não
+        // esperam uns aos outros, mas esperam a troca do voto secreto (ADR-0010).
+        await db.query("select pg_advisory_xact_lock_shared(hashtext($1))", [
+          `${membro.turmaId}:${enqueteId}`,
+        ]);
         const daEnquete = [...porOpcao.keys()].filter(
           (id) => porOpcao.get(id)!.enqueteId === enqueteId,
         );

@@ -32,6 +32,8 @@ export type EnqueteVotacao = {
   // Regra combinada (ADR-0003). `prazo` em ISO, porque vai para o cliente.
   prazo: string | null;
   quorumPct: number | null;
+  // Voto secreto (ADR-0010): a comissão não vê a escolha de cada pessoa.
+  secreto: boolean;
   // Prazo vencido: a pergunta não aceita mais voto (calculado na leitura).
   encerrada: boolean;
   // Quantos já votaram nesta pergunta, de quantos membros da turma.
@@ -110,7 +112,8 @@ export async function getCatalogoParaVotar(
       [catalogoId],
     ),
     pool.query(
-      `select e.id, e.categoria_id, e.titulo, e.tipo, r.prazo, r.quorum_pct as "quorumPct"
+      `select e.id, e.categoria_id, e.titulo, e.tipo, r.prazo, r.quorum_pct as "quorumPct",
+              coalesce(r.secreto, false) as secreto
          from enquetes e
          join categorias ca on ca.id = e.categoria_id
          left join regras_enquete r on r.turma_id = $2 and r.enquete_id = e.id
@@ -195,6 +198,7 @@ export async function getCatalogoParaVotar(
             justificativa: justificativas.get(e.id) ?? null,
             prazo: e.prazo ? new Date(e.prazo).toISOString() : null,
             quorumPct: e.quorumPct,
+            secreto: e.secreto,
             encerrada: votacaoEncerrada(e.prazo, agora),
             votantes: votantesPor.get(e.id) ?? 0,
             membros: membros.rows[0].n,

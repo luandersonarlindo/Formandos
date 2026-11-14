@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { ArrowLeft, CircleCheck, Gavel, History, Pencil, Pin, RotateCcw, Trophy } from "lucide-react";
+import { ArrowLeft, CircleCheck, EyeOff, Gavel, History, Pencil, Pin, RotateCcw, Trophy } from "lucide-react";
 import { fixarDecisao, reabrirVotacao } from "@/actions/decisoes";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { CamposFixarDecisao } from "@/components/features/campos-fixar-decisao";
@@ -49,14 +49,17 @@ export default async function VotosEnquetePage(
   ]);
   if (!dados) notFound();
 
-  const votantes = new Set(dados.opcoes.flatMap((o) => o.votantes.map((v) => v.id)));
-  const totalMembros = votantes.size + dados.naoVotaram.length;
-  const maisVotos = Math.max(0, ...dados.opcoes.map((o) => o.votantes.length));
+  // Em pergunta secreta (ADR-0010) não há nome por opção: os números vêm de
+  // `votos` e de `votaram`, que servem para os dois casos.
+  const secreto = dados.regra.secreto;
+  const jaVotaram = dados.votaram.length;
+  const totalMembros = jaVotaram + dados.naoVotaram.length;
+  const maisVotos = Math.max(0, ...dados.opcoes.map((o) => o.votos));
   const decidida = dados.decisao.length > 0;
   // Sem decisão, já marca a mais votada (ou as empatadas) como sugestão.
   const sugeridas = decidida
     ? dados.decisao
-    : dados.opcoes.filter((o) => maisVotos > 0 && o.votantes.length === maisVotos).map((o) => o.id);
+    : dados.opcoes.filter((o) => maisVotos > 0 && o.votos === maisVotos).map((o) => o.id);
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -68,22 +71,29 @@ export default async function VotosEnquetePage(
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight text-balance md:text-3xl">{dados.titulo}</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
-        {dados.tipo === "unica" ? "Escolha única" : "Escolha múltipla"}. Só os
-        administradores da turma veem quem votou em cada opção.
+        {dados.tipo === "unica" ? "Escolha única" : "Escolha múltipla"}.{" "}
+        {secreto
+          ? "Voto secreto: ninguém vê a escolha de cada pessoa, nem a comissão."
+          : "Só os administradores da turma veem quem votou em cada opção."}
       </p>
+      {secreto && (
+        <Badge variant="outline" className="mt-3">
+          <EyeOff aria-hidden /> Voto secreto
+        </Badge>
+      )}
 
       <Card className="vitrine-fundo-hero mt-6">
         <CardHeader>
           <CardDescription>Participação nesta pergunta</CardDescription>
           <CardTitle className="text-2xl tabular-nums">
-            <span data-contar={votantes.size}>{votantes.size}</span>{" "}
+            <span data-contar={jaVotaram}>{jaVotaram}</span>{" "}
             <span className="text-base font-normal text-muted-foreground">
               de {totalMembros} {totalMembros === 1 ? "membro votou" : "membros votaram"}
             </span>
           </CardTitle>
           <Progress
             className="mt-2 h-2"
-            value={totalMembros === 0 ? 0 : (votantes.size / totalMembros) * 100}
+            value={totalMembros === 0 ? 0 : (jaVotaram / totalMembros) * 100}
             aria-label="Participação nesta pergunta"
           />
         </CardHeader>
@@ -134,10 +144,10 @@ export default async function VotosEnquetePage(
               opcoes={dados.opcoes.map((o) => ({
                 id: o.id,
                 texto: o.texto,
-                votos: o.votantes.length,
+                votos: o.votos,
               }))}
               sugeridas={sugeridas}
-              votantes={votantes.size}
+              votantes={jaVotaram}
               membros={totalMembros}
               prazo={dados.regra.prazo ? dados.regra.prazo.toISOString() : null}
               quorumPct={dados.regra.quorumPct}
@@ -175,14 +185,14 @@ export default async function VotosEnquetePage(
 
       <div data-grupo className="mt-6 grid gap-4">
         {dados.opcoes.map((o) => {
-          const lider = maisVotos > 0 && o.votantes.length === maisVotos;
+          const lider = maisVotos > 0 && o.votos === maisVotos;
           return (
             <Card key={o.id}>
               <CardHeader>
                 <div className="flex flex-wrap items-center gap-2">
                   <CardTitle className="text-base">{o.texto}</CardTitle>
                   <Badge variant="secondary">
-                    {o.votantes.length} {o.votantes.length === 1 ? "voto" : "votos"}
+                    {o.votos} {o.votos === 1 ? "voto" : "votos"}
                   </Badge>
                   {lider && (
                     <Badge variant="outline" className="text-[var(--vitrine-a)]">
@@ -192,13 +202,15 @@ export default async function VotosEnquetePage(
                 </div>
                 <Progress
                   className="mt-2"
-                  value={votantes.size === 0 ? 0 : (o.votantes.length / votantes.size) * 100}
+                  value={jaVotaram === 0 ? 0 : (o.votos / jaVotaram) * 100}
                   aria-label={`Votos em ${o.texto}`}
                 />
               </CardHeader>
               <CardContent>
-                {o.votantes.length === 0 ? (
+                {o.votos === 0 ? (
                   <p className="text-sm text-muted-foreground">Ninguém votou nesta opção.</p>
+                ) : secreto ? (
+                  <p className="text-sm text-muted-foreground">Os nomes não aparecem: voto secreto.</p>
                 ) : (
                   <ul className="flex flex-wrap gap-2">
                     {o.votantes.map((v) => (
@@ -210,6 +222,29 @@ export default async function VotosEnquetePage(
             </Card>
           );
         })}
+
+        {secreto && (
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-base">Já votaram</CardTitle>
+                <Badge variant="outline">{dados.votaram.length}</Badge>
+              </div>
+              <CardDescription>Em ordem alfabética, sem a escolha de cada pessoa.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {dados.votaram.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Ninguém votou ainda.</p>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {dados.votaram.map((v) => (
+                    <Pessoa key={v.id} v={v} />
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border border-dashed bg-transparent ring-0">
           <CardHeader>

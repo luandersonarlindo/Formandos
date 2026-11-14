@@ -767,6 +767,8 @@ const esquemaRegra = z.object({
   enqueteId: z.uuid(),
   prazo: z.string().optional().default(""),
   quorum: z.string().optional().default(""),
+  // Caixa "Voto secreto" (ADR-0010): marcada chega "on"; desmarcada não chega.
+  secreto: z.string().optional().default(""),
 });
 
 export async function salvarRegraEnquete(
@@ -781,6 +783,7 @@ export async function salvarRegraEnquete(
   const quorum = lerQuorum(dados.data.quorum);
   if (quorum === "invalido") return { erro: "O quórum precisa ser um número inteiro de 1 a 100." };
   const { enqueteId } = dados.data;
+  const secreto = dados.data.secreto !== "";
 
   const resultado = await transacao(
     async (db) => {
@@ -799,29 +802,49 @@ export async function salvarRegraEnquete(
 
       const fmt = `coalesce(to_char(prazo at time zone 'America/Sao_Paulo', 'YYYY-MM-DD"T"HH24:MI'), '')`;
       const { rows: antes } = await db.query(
-        `select ${fmt} as prazo, quorum_pct as "quorumPct"
+        `select ${fmt} as prazo, quorum_pct as "quorumPct", secreto
            from regras_enquete where turma_id = $1 and enquete_id = $2`,
         [admin.turmaId, enqueteId],
       );
-      const anterior = { prazo: antes[0]?.prazo || null, quorumPct: antes[0]?.quorumPct ?? null };
-      const nova = { prazo, quorumPct: quorum };
-      if (anterior.prazo === nova.prazo && anterior.quorumPct === nova.quorumPct) {
+      const anterior = {
+        prazo: antes[0]?.prazo || null,
+        quorumPct: antes[0]?.quorumPct ?? null,
+        secreto: antes[0]?.secreto ?? false,
+      };
+      const nova = { prazo, quorumPct: quorum, secreto };
+      if (
+        anterior.prazo === nova.prazo &&
+        anterior.quorumPct === nova.quorumPct &&
+        anterior.secreto === nova.secreto
+      ) {
         return "igual" as const;
       }
+      // O segredo só muda enquanto ninguém votou (ADR-0010): desligar exporia
+      // quem votou confiando nele; ligar depois seria prometer o que a
+      // comissão já pode ter visto. O voto pega a mesma trava em modo
+      // compartilhado, então não entra voto entre esta conferência e o update.
+      if (anterior.secreto !== nova.secreto) {
+        const { rows: votos } = await db.query(
+          `select 1 from votos v join opcoes o on o.id = v.opcao_id
+            where v.turma_id = $1 and o.enquete_id = $2 limit 1`,
+          [admin.turmaId, enqueteId],
+        );
+        if (votos.length > 0) return "com_votos" as const;
+      }
 
-      if (prazo === null && quorum === null) {
+      if (prazo === null && quorum === null && !secreto) {
         await db.query("delete from regras_enquete where turma_id = $1 and enquete_id = $2", [
           admin.turmaId,
           enqueteId,
         ]);
       } else {
         await db.query(
-          `insert into regras_enquete (turma_id, enquete_id, prazo, quorum_pct)
-           values ($1, $2, $3::timestamp at time zone 'America/Sao_Paulo', $4)
+          `insert into regras_enquete (turma_id, enquete_id, prazo, quorum_pct, secreto)
+           values ($1, $2, $3::timestamp at time zone 'America/Sao_Paulo', $4, $5)
            on conflict (turma_id, enquete_id)
            do update set prazo = excluded.prazo, quorum_pct = excluded.quorum_pct,
-                         updated_at = now()`,
-          [admin.turmaId, enqueteId, prazo, quorum],
+                         secreto = excluded.secreto, updated_at = now()`,
+          [admin.turmaId, enqueteId, prazo, quorum, secreto],
         );
       }
       await registrarAuditoria(db, {
@@ -839,6 +862,9 @@ export async function salvarRegraEnquete(
 
   if (resultado === "inexistente") return { erro: "Pergunta não encontrada." };
   if (resultado === "igual") return { ok: "Nada mudou." };
+  if (resultado === "com_votos") {
+    return { erro: "Já existem votos nesta pergunta. O voto secreto não pode mais mudar." };
+  }
   revalidarCatalogo();
   revalidatePath("/admin/votacoes", "layout");
   revalidatePath("/votacoes", "layout");

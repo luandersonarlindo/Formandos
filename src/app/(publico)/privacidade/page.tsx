@@ -39,6 +39,13 @@ export default function PrivacidadePage() {
             legítimo interesse na operação das turmas. Não coletamos dado
             sensível e não vendemos nem alugamos seus dados.
           </p>
+          <p className="mt-2 text-muted-foreground">
+            Voto: a comissão da turma vê em qual opção você votou, menos nas
+            perguntas marcadas como voto secreto. Nessas, nenhuma tela e
+            nenhuma planilha mostra a sua escolha. O voto continua ligado à sua
+            conta no banco de dados, para você poder trocar de voto e para
+            valer um voto por pessoa.
+          </p>
         </section>
         <section>
           <h2 className="font-semibold">Menores de 18 anos</h2>

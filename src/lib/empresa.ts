@@ -22,4 +22,4 @@ export const AVISO_INSTITUCIONAL_CURTO = "Projeto de alunos. Não é um site ofi
 
 // Quem vê o voto (ADR-0001, item 0.3). Mesma frase na lista e na tela de votar.
 export const AVISO_VISIBILIDADE_VOTO =
-  "Os administradores da turma veem em qual opção você votou. A turma vê só os totais.";
+  "Os administradores da turma veem em qual opção você votou, menos nas perguntas com voto secreto. A turma vê só os totais.";

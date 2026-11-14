@@ -40,7 +40,13 @@ export type OpcaoAdmin = {
 };
 // Regra da pergunta para esta turma (regras_enquete). `prazoLocal` vem pronto
 // para <input type="datetime-local">, no horário de Brasília.
-export type RegraAdmin = { prazo: Date | null; prazoLocal: string; quorumPct: number | null };
+export type RegraAdmin = {
+  prazo: Date | null;
+  prazoLocal: string;
+  quorumPct: number | null;
+  // Voto secreto (ADR-0010): ninguém vê a escolha de cada pessoa.
+  secreto: boolean;
+};
 export type EnqueteAdmin = {
   id: string;
   titulo: string;
@@ -68,7 +74,11 @@ export type VotosEnquete = {
   titulo: string;
   tipo: "unica" | "multipla";
   catalogoId: string;
-  opcoes: { id: string; texto: string; votantes: Votante[] }[];
+  // Em pergunta secreta (ADR-0010) `votantes` vem sempre vazio: o nome por
+  // opção não sai do servidor. `votos` é o total da opção nos dois casos.
+  opcoes: { id: string; texto: string; votos: number; votantes: Votante[] }[];
+  // Quem já votou na pergunta, em ordem alfabética, sem dizer em quê.
+  votaram: Votante[];
   naoVotaram: Votante[];
   // Opções fixadas como decisão da turma (vazio se ainda não decidiu).
   decisao: string[];
@@ -77,7 +87,7 @@ export type VotosEnquete = {
   // Fotografia do dia em que a decisão foi fixada (nula em decisões antigas).
   decisaoVotantes: number | null;
   decisaoMembros: number | null;
-  regra: { prazo: Date | null; quorumPct: number | null };
+  regra: { prazo: Date | null; quorumPct: number | null; secreto: boolean };
 };
 
 export async function getEventoAdmin(turmaId: string): Promise<EventoAdmin> {
@@ -136,7 +146,7 @@ export async function getCatalogoAdmin(
                        where eo.turma_id = $2 and eo.enquete_id = e.id) as oculta,
               exists (select 1 from decisoes d
                        where d.turma_id = $2 and d.enquete_id = e.id) as decidida,
-              r.prazo, r.quorum_pct as "quorumPct",
+              r.prazo, r.quorum_pct as "quorumPct", coalesce(r.secreto, false) as secreto,
               coalesce(to_char(r.prazo at time zone 'America/Sao_Paulo',
                                'YYYY-MM-DD"T"HH24:MI'), '') as "prazoLocal"
          from enquetes e join categorias ca on ca.id = e.categoria_id
@@ -186,7 +196,7 @@ export async function getCatalogoAdmin(
           votantes: n.get(e.id) ?? 0,
           oculta: e.oculta,
           decidida: e.decidida,
-          regra: { prazo: e.prazo, prazoLocal: e.prazoLocal, quorumPct: e.quorumPct },
+          regra: { prazo: e.prazo, prazoLocal: e.prazoLocal, quorumPct: e.quorumPct, secreto: e.secreto },
           opcoes: opcoes.rows
             .filter((o) => o.enquete_id === e.id)
             .map((o) => ({
@@ -234,15 +244,50 @@ export async function getVotosEnquete(
   );
   if (enq.length === 0) return null;
 
-  const [linhas, ausentes, decisoes, regras] = await Promise.all([
+  // A regra vem antes: em pergunta secreta a consulta de votos nem busca o
+  // nome por opção.
+  const { rows: regraLinhas } = await pool.query(
+    `select prazo, quorum_pct as "quorumPct", secreto
+       from regras_enquete where turma_id = $1 and enquete_id = $2`,
+    [turmaId, enqueteId],
+  );
+  const regra: VotosEnquete["regra"] = regraLinhas[0] ?? {
+    prazo: null,
+    quorumPct: null,
+    secreto: false,
+  };
+
+  const [linhas, votaram, ausentes, decisoes] = await Promise.all([
+    regra.secreto
+      ? pool.query(
+          `select o.id as opcao_id, o.texto, count(v.usuario_id)::int as votos,
+                  null as uid, null as name, null as image
+             from opcoes o
+             left join votos v on v.opcao_id = o.id and v.turma_id = $2
+            where o.enquete_id = $1
+            group by o.id, o.texto, o.ordem
+            order by o.ordem`,
+          [enqueteId, turmaId],
+        )
+      : pool.query(
+          `select o.id as opcao_id, o.texto, u.id as uid, u.name, u.image,
+                  (v.usuario_id is not null)::int as votos
+             from opcoes o
+             left join votos v on v.opcao_id = o.id and v.turma_id = $2
+             left join usuarios u on u.id = v.usuario_id
+            where o.enquete_id = $1
+            order by o.ordem, u.name`,
+          [enqueteId, turmaId],
+        ),
     pool.query(
-      `select o.id as opcao_id, o.texto, u.id as uid, u.name, u.image
-         from opcoes o
-         left join votos v on v.opcao_id = o.id and v.turma_id = $2
-         left join usuarios u on u.id = v.usuario_id
-        where o.enquete_id = $1
-        order by o.ordem, u.name`,
-      [enqueteId, turmaId],
+      `select u.id, u.name as nome, u.image as imagem
+         from usuarios u
+        where exists (
+            select 1 from votos v
+              join opcoes o on o.id = v.opcao_id
+             where o.enquete_id = $2 and v.turma_id = $1 and v.usuario_id = u.id)
+        order by u.name`,
+      [turmaId, enqueteId],
     ),
     pool.query(
       `select u.id, u.name as nome, u.image as imagem
@@ -260,31 +305,28 @@ export async function getVotosEnquete(
       "select opcao_id, justificativa, votantes, membros from decisoes where turma_id = $1 and enquete_id = $2",
       [turmaId, enqueteId],
     ),
-    pool.query(
-      `select prazo, quorum_pct as "quorumPct"
-         from regras_enquete where turma_id = $1 and enquete_id = $2`,
-      [turmaId, enqueteId],
-    ),
   ]);
 
   const opcoes: VotosEnquete["opcoes"] = [];
   for (const l of linhas.rows) {
     let o = opcoes.find((x) => x.id === l.opcao_id);
     if (!o) {
-      o = { id: l.opcao_id, texto: l.texto, votantes: [] };
+      o = { id: l.opcao_id, texto: l.texto, votos: 0, votantes: [] };
       opcoes.push(o);
     }
+    o.votos += l.votos;
     if (l.uid) o.votantes.push({ id: l.uid, nome: l.name, imagem: l.image });
   }
   return {
     ...enq[0],
     opcoes,
+    votaram: votaram.rows,
     naoVotaram: ausentes.rows,
     decisao: decisoes.rows.map((d) => d.opcao_id),
     justificativa: decisoes.rows[0]?.justificativa ?? null,
     decisaoVotantes: decisoes.rows[0]?.votantes ?? null,
     decisaoMembros: decisoes.rows[0]?.membros ?? null,
-    regra: regras.rows[0] ?? { prazo: null, quorumPct: null },
+    regra,
   };
 }
 

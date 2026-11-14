@@ -344,6 +344,7 @@ export default async function CatalogoAdminPage(
                               enqueteId: e.id,
                               prazo: e.regra.prazo,
                               quorumPct: e.regra.quorumPct,
+                              secreto: e.regra.secreto,
                               opcoes: e.opcoes.map((o) => ({ texto: o.texto, valorPessoa: o.valorPessoa })),
                               votantes: e.votantes,
                               membros: catalogo.membros,
@@ -352,7 +353,7 @@ export default async function CatalogoAdminPage(
                         />
                       )}
                       <FormDialog
-                        rotulo="Prazo e quórum"
+                        rotulo="Regra da votação"
                         icone={<CalendarClock aria-hidden />}
                         titulo="Regra para fixar a decisão"
                         descricao="Combine antes com a turma. Depois do prazo a pergunta não aceita mais voto. Se a comissão fixar fora da regra, precisa escrever o motivo."
@@ -384,6 +385,33 @@ export default async function CatalogoAdminPage(
                             defaultValue={e.regra.quorumPct ?? ""}
                             className="w-28 tabular-nums"
                           />
+                        </div>
+                        <div className="flex items-start gap-2.5 rounded-lg border bg-muted/50 p-3">
+                          {/* Com voto, a caixa trava; o campo escondido mantém o valor atual no envio. */}
+                          {e.votantes > 0 && e.regra.secreto && (
+                            <input type="hidden" name="secreto" value="on" />
+                          )}
+                          <Input
+                            id={`secreto-${e.id}`}
+                            name={e.votantes > 0 ? undefined : "secreto"}
+                            type="checkbox"
+                            defaultChecked={e.regra.secreto}
+                            disabled={e.votantes > 0}
+                            className="mt-0.5 size-5 shrink-0 sm:size-4"
+                            aria-describedby={`secreto-ajuda-${e.id}`}
+                          />
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`secreto-${e.id}`} className="text-sm">
+                              Voto secreto
+                            </Label>
+                            <p id={`secreto-ajuda-${e.id}`} className="text-xs text-muted-foreground">
+                              Ninguém vê a escolha de cada pessoa, nem a comissão. Continua
+                              aparecendo quem já votou e quem falta.{" "}
+                              {e.votantes > 0
+                                ? "Já existem votos. Esta opção não pode mais mudar."
+                                : "Só dá para mudar enquanto ninguém votou."}
+                            </p>
+                          </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           Deixe em branco para não ter prazo ou quórum. Toda mudança aparece no histórico da turma.

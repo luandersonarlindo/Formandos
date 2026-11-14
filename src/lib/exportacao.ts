@@ -53,16 +53,21 @@ export async function montarPlanilha(tipo: TipoExportacao, turmaId: string): Pro
     }
     case "votos": {
       const { rows } = await pool.query(
-        `select c.nome as c1, ca.nome as c2, e.titulo as c3, o.texto as c4, u.name as c5,
-                ${quando("v.created_at")} as c6
+        // Pergunta com voto secreto (ADR-0010): sem nome e sem hora, que junto
+        // com a lista de quem votou ajudaria a descobrir a escolha.
+        `select c.nome as c1, ca.nome as c2, e.titulo as c3, o.texto as c4,
+                case when coalesce(r.secreto, false) then '(voto secreto)' else u.name end as c5,
+                case when coalesce(r.secreto, false) then null else ${quando("v.created_at")} end as c6
            from votos v
            join opcoes o on o.id = v.opcao_id
            join enquetes e on e.id = o.enquete_id
            join categorias ca on ca.id = e.categoria_id
            join catalogos c on c.id = ca.catalogo_id
            join usuarios u on u.id = v.usuario_id
+           left join regras_enquete r on r.turma_id = v.turma_id and r.enquete_id = e.id
           where v.turma_id = $1
-          order by c.nome, ca.ordem, e.ordem, o.ordem, u.name`,
+          order by c.nome, ca.ordem, e.ordem, o.ordem,
+                   case when coalesce(r.secreto, false) then null else u.name end`,
         [turmaId],
       );
       return {

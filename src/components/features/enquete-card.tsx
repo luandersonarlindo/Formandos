@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, CircleCheck, ExternalLink, Gavel, Lock } from "lucide-react";
+import { CalendarClock, CircleCheck, ExternalLink, EyeOff, Gavel, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -25,7 +25,7 @@ export function EnqueteCard({
   selecionadas,
   aoAlternar,
 }: EnqueteCardProps) {
-  const { id, titulo, tipo, opcoes, decisao, encerrada, prazo, quorumPct, votantes, membros } =
+  const { id, titulo, tipo, opcoes, decisao, encerrada, prazo, quorumPct, secreto, votantes, membros } =
     enquete;
   const decidida = decisao.length > 0;
   const fechada = decidida || encerrada;
@@ -68,6 +68,16 @@ export function EnqueteCard({
           {decidida && enquete.justificativa && (
             <p className="mt-1 text-sm text-pretty">
               Motivo da comissão: “{enquete.justificativa}”
+            </p>
+          )}
+          {/* Voto secreto (ADR-0010): a pessoa lê antes de votar. */}
+          {secreto && (
+            <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+              <EyeOff className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span>
+                <strong className="font-medium text-foreground">Voto secreto.</strong> Ninguém vê
+                sua escolha, nem a comissão. Aparece só que você votou.
+              </span>
             </p>
           )}
           {/* Regra combinada e participação (ADR-0003): a turma vê antes de

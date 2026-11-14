@@ -79,6 +79,8 @@ export function descreverAcao(
       const mud: string[] = [];
       if (a.prazo !== n.prazo) mud.push(`prazo de ${prazoTexto(a.prazo)} para ${prazoTexto(n.prazo)}`);
       if (a.quorumPct !== n.quorumPct) mud.push(`quórum de ${quorumTexto(a.quorumPct)} para ${quorumTexto(n.quorumPct)}`);
+      // Registros anteriores à ADR-0010 não têm o campo: contam como "não secreto".
+      if (Boolean(a.secreto) !== Boolean(n.secreto)) mud.push(n.secreto ? "voto secreto ligado" : "voto secreto desligado");
       return { frase: `mudou a regra de ${aspas(d.pergunta)}: ${mud.join("; ")}.`, detalhes: [] };
     }
     case "opcao.valor_alterado":

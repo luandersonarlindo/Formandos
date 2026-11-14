@@ -49,6 +49,8 @@ export type DadosVotacao = {
   enqueteId: string;
   prazo: Date | null;
   quorumPct: number | null;
+  // Voto secreto (ADR-0010).
+  secreto: boolean;
   opcoes: { texto: string; valorPessoa: number | null }[];
   votantes: number;
   membros: number;
@@ -58,6 +60,7 @@ export function textoVotacao(v: DadosVotacao, origem: string): string {
   const regra = [
     v.prazo && `Fecha em ${quando(v.prazo)}.`,
     v.quorumPct && `Precisa de ${v.quorumPct}% da turma votando.`,
+    v.secreto && "Voto secreto: ninguém vê sua escolha, nem a comissão.",
   ]
     .filter(Boolean)
     .join(" ");

@@ -435,3 +435,8 @@ update turmas
 alter table lembretes_enviados drop constraint if exists lembretes_enviados_tipo_check;
 alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
   check (tipo in ('votacao', 'parcela', 'exclusao'));
+
+-- Voto secreto por pergunta (ADR-0010): em pergunta secreta nenhuma tela e
+-- nenhuma planilha liga a pessoa à opção. O voto continua com `usuario_id`
+-- (um voto por pessoa, troca de voto). Só muda enquanto a pergunta não tem voto.
+alter table regras_enquete add column if not exists secreto boolean not null default false;
