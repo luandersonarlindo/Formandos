@@ -94,34 +94,37 @@ Uma tabela por leitor. "Conseguiu" = terminou a tarefa sem olhar a tela e sem aj
 
 ### TalkBack
 
-- **Data:**
-- **Quem testou:**
-- **Aparelho, versão do Android e do Chrome:**
+- **Data:** 14/11/2026
+- **Quem testou:** pessoa do grupo (nome não registrado)
+- **Aparelho, versão do Android e do Chrome:** não registrado
+- **Resultado:** as seis tarefas terminadas, sem travar.
 
 | Tarefa | Conseguiu? | Onde travou | O que o leitor falou de estranho |
 |---|---|---|---|
-| 1. Entrar | | | |
-| 2. Data e local | | | |
-| 3. Presença | | | |
-| 4. Votar | | | |
-| 5. Resultado | | | |
-| 6. Página pública | | | |
+| 1. Entrar | Sim | — | — |
+| 2. Data e local | Sim | — | — |
+| 3. Presença | Sim | — | — |
+| 4. Votar | Sim | — | — |
+| 5. Resultado | Sim | — | — |
+| 6. Página pública | Sim | — | — |
 
 ### VoiceOver
 
-- **Situação:** a fazer. Uma pessoa do grupo tem iPhone (confirmado em 14/11/2026).
-- **Data:**
-- **Quem testou:**
-- **Aparelho e versão do iOS:**
+- **Data:** 14/11/2026
+- **Quem testou:** pessoa do grupo (nome não registrado)
+- **Aparelho e versão do iOS:** não registrado
+- **Resultado:** as seis tarefas terminadas, sem travar.
 
 | Tarefa | Conseguiu? | Onde travou | O que o leitor falou de estranho |
 |---|---|---|---|
-| 1. Entrar | | | |
-| 2. Data e local | | | |
-| 3. Presença | | | |
-| 4. Votar | | | |
-| 5. Resultado | | | |
-| 6. Página pública | | | |
+| 1. Entrar | Sim | — | — |
+| 2. Data e local | Sim | — | — |
+| 3. Presença | Sim | — | — |
+| 4. Votar | Sim | — | — |
+| 5. Resultado | Sim | — | — |
+| 6. Página pública | Sim | — | — |
+
+**Lacunas deste registro:** o grupo informou o resultado ("funcionando em todas as tarefas"), sem o aparelho, as versões e o que o leitor falou em cada tela. No próximo teste, preencher esses campos: são eles que permitem comparar.
 
 ## 5. O que fazer com o resultado
 

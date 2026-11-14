@@ -146,3 +146,12 @@ Parte 1 feita. Parte 2: roteiro escrito (`docs/acessibilidade/roteiro-leitor-de-
 - **Ficou de fora, anotado no roteiro:** "Editar item" repetido na programação da comissão e os `CardTitle` sem nível (43 usos; 25 em telas da comissão).
 - **VoiceOver entra no teste:** há um iPhone no grupo.
 - Testes: `typecheck`, `npm test` (332; 7 novos em `contagem.test.ts`). Sonda `leitor.mjs` sem problemas em `/dashboard`, `/votacoes`, catálogo, relatório, `/duvidas`, `/tarefas`, `/terceiros`, `/avisos`, `/conta` e na página pública. Um passo "ADR-0015" no grupo `participante` de `fluxos.mjs` e a sonda dentro do passo da ADR-0008; bloco `participante,app,admin` no Docker, 66 de 66.
+
+### Concluída (2026-11-14)
+
+Parte 2 feita. O grupo rodou o roteiro no celular, com **TalkBack** (Android) e **VoiceOver** (iPhone): as seis tarefas terminaram nos dois, sem travar. Nenhuma correção nova saiu do teste. O registro está na seção 4 do roteiro.
+
+- O registro tem o resultado, mas não o aparelho, as versões nem a fala em cada tela. Fica anotado como lacuna para o próximo teste.
+- Quem testou estava aprendendo o leitor de tela. O teste com quem usa leitor de tela no dia a dia continua na lista do que validar com pessoas reais.
+- Depois da ADR-0016, todos os blocos de `fluxos.mjs` passaram no Docker: `participante,app,admin` 66 de 66, `auth,extras` 27 de 27, `master` 6 de 6.
+- Continuam abertas as pendências da seção 6 do roteiro: "Editar item" repetido e 43 `CardTitle` sem nível.
