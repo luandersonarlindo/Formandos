@@ -126,3 +126,17 @@ alter table turmas add column if not exists presenca_ate timestamptz;  -- nulo =
 **Teste de fluxo**
 - Parte 1: responder com dois acompanhantes (um adulto, uma criança), ver o total por tipo no painel, baixar o limite e conferir que ninguém foi cortado, abrir a lista e a planilha da portaria.
 - Parte 2: marcar o prazo, forçar a data para ontem, conferir a trava na tela e a recusa do servidor, e o lembrete no Mailpit.
+
+### Andamento (2026-11-14)
+
+As duas partes feitas. Diferenças em relação ao texto acima:
+
+- **Linha sem nome é erro, não some:** ao salvar, cada linha da lista precisa de nome ("Informe o nome de cada acompanhante ou remova a linha"). Quem tem resposta antiga e abre o formulário vê as linhas em branco já abertas, uma por acompanhante que tinha.
+- **O botão do card muda de nome** para "Informar nomes" enquanto faltar nome em resposta antiga.
+- **Acima do limite:** `vagasDeAcompanhante` (em `presenca-regras.ts`) dá o maior entre o limite da turma e o que a pessoa já tinha. A mesma função vale na tela e no servidor.
+- **Recusa depois do prazo sem recarregar a página:** quem abriu o formulário antes do prazo e enviou depois lê a mensagem no diálogo. Recarregando, o card travado tirava o formulário e a mensagem sumia junto.
+- **Mudar o prazo apaga as marcas do lembrete**, para o email sair de novo para a data nova. O observador também recebe o lembrete, porque também confirma presença.
+- **Lista da portaria:** coluna "Tipo" com "Formando", "Observador", "Acompanhante (adulto)" e "Acompanhante (criança)". Quem é da comissão aparece como "Formando". A página mostra quantos ficaram fora (em dúvida e sem resposta).
+- **Planilha "Presença"** (ADR-0007) continua igual, só com a quantidade. Os nomes saem na planilha nova, "Lista da portaria".
+- **Teste antigo trocado:** o passo "limite de acompanhantes escolhido pelo admin corta as respostas acima" testava o comportamento que esta ADR removeu. Virou o passo da Parte 1.
+- Testes: `typecheck`, `npm test` (313; 8 novos em `presenca-regras.test.ts`). Dois passos "ADR-0013" no grupo `admin` de `fluxos.mjs` e o passo de presença do grupo `participante` adaptado; bloco `participante,app,admin` no Docker, 64 de 64. Formulário de acompanhantes, `/admin/presenca` e `/admin/presenca/lista` conferidos em 360px.
