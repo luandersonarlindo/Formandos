@@ -99,3 +99,16 @@ alter table regras_enquete add column if not exists secreto boolean not null def
 
 **Teste de fluxo**
 - Passo novo: marcar secreto sem votos; votar; conferir que a página do admin e a planilha não trazem nome por opção; tentar desligar com votos e receber a recusa.
+
+### Andamento (2026-11-13)
+
+Tudo feito. Diferenças em relação ao texto acima:
+
+- O botão do diálogo deixou de se chamar "Prazo e quórum" e passou a "Regra da votação", porque agora guarda três coisas.
+- Com voto na pergunta, a caixa "Voto secreto" aparece travada e um campo escondido mantém o valor atual no envio. Assim prazo e quórum continuam mudando sem desligar o segredo. Quem força o envio sem o campo recebe a recusa do servidor.
+- O voto passou a pegar, em modo compartilhado, a mesma trava que `salvarRegraEnquete` pega em modo exclusivo (`turma:enquete`). Não entra voto entre a conferência "ninguém votou" e a troca do segredo.
+- `getVotosEnquete` lê a regra antes dos votos. Em pergunta secreta a consulta já agrupa por opção e não busca nome. O tipo `VotosEnquete` ganhou `votos` em cada opção e a lista `votaram`.
+- A página de votos da comissão mostra o card "Já votaram" só em pergunta secreta. Na pergunta normal os nomes já aparecem dentro de cada opção.
+- Texto em "Mandar para o grupo": "Voto secreto: ninguém vê sua escolha, nem a comissão."
+- Histórico: "voto secreto ligado" ou "voto secreto desligado" na frase de `regra.alterada`.
+- Testes: `typecheck`, `npm test` (301). Passo "ADR-0010" no grupo `admin` de `fluxos.mjs`; bloco `participante,app,admin` no Docker, 62 de 62. Diálogo, página de votos e card do formando conferidos em 360px.
