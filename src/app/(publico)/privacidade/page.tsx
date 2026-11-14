@@ -46,6 +46,12 @@ export default function PrivacidadePage() {
             conta no banco de dados, para você poder trocar de voto e para
             valer um voto por pessoa.
           </p>
+          <p className="mt-2 text-muted-foreground">
+            Acompanhantes: para a lista de entrada do evento, guardamos o nome
+            dos acompanhantes que você informar e se cada um é adulto ou
+            criança. Só você e a comissão veem. Os nomes são apagados junto com
+            a sua resposta de presença.
+          </p>
         </section>
         <section>
           <h2 className="font-semibold">Menores de 18 anos</h2>
@@ -68,8 +74,8 @@ export default function PrivacidadePage() {
           <h2 className="font-semibold">Emails da turma</h2>
           <p className="mt-1 text-muted-foreground">
             Mandamos email só quando a comissão fixa uma decisão, quando muda a data,
-            o horário ou o local da festa, e dois dias antes de uma votação fechar ou
-            de uma parcela sua vencer. Você desliga quando quiser em Minha conta.
+            o horário ou o local da festa, e dois dias antes de uma votação fechar,
+            de uma parcela sua vencer ou de a lista de presença fechar. Você desliga quando quiser em Minha conta.
             Chegam sempre os emails da conta (confirmação e senha) e os avisos de
             exclusão da turma, porque são sobre os seus dados.
           </p>

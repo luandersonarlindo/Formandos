@@ -9,6 +9,7 @@ describe("ACOES_VISIVEIS_TURMA", () => {
       "evento.alterado",
       "opcao.valor_alterado",
       "plano.alterado",
+      "presenca.prazo",
       "regra.alterada",
       "turma.arquivada",
       "turma.desarquivada",

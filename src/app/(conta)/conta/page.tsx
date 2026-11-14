@@ -73,7 +73,7 @@ export default async function ContaPage() {
           <CardTitle className="text-lg">Emails da turma</CardTitle>
           <CardDescription className="text-pretty">
             {recebeEmails
-              ? "Você recebe email quando a comissão fixa uma decisão, quando muda a data, o horário ou o local da festa, e dois dias antes de uma votação fechar (se ainda não votou) ou de uma parcela sua vencer."
+              ? "Você recebe email quando a comissão fixa uma decisão, quando muda a data, o horário ou o local da festa, e dois dias antes de uma votação fechar (se ainda não votou), de uma parcela sua vencer ou de a lista de presença fechar (se ainda não confirmou)."
               : "Você não recebe emails da turma. Decisões, mudanças no evento e prazos continuam no site e no grupo."}{" "}
             Emails da conta (confirmação e senha) chegam sempre.
           </CardDescription>

@@ -100,7 +100,10 @@ export async function getMeusDados(usuarioId: string) {
     [usuarioId],
   );
   const { rows: presencas } = await pool.query(
-    `select t.nome as turma, p.status, p.acompanhantes, p.observacao
+    `select t.nome as turma, p.status, p.acompanhantes, p.observacao,
+            coalesce((select json_agg(json_build_object('nome', a.nome, 'tipo', a.tipo) order by a.ordem)
+                        from acompanhantes a
+                       where a.turma_id = p.turma_id and a.usuario_id = p.usuario_id), '[]'::json) as "nomesDosAcompanhantes"
        from presencas p join turmas t on t.id = p.turma_id
       where p.usuario_id = $1 order by t.nome`,
     [usuarioId],

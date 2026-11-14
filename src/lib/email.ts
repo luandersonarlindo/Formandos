@@ -517,6 +517,42 @@ export function emailPrazoVotacao(d: {
   };
 }
 
+// Lembrete do prazo de presença (ADR-0013): vai a quem não respondeu ou
+// marcou "talvez".
+export function emailPrazoPresenca(d: {
+  nome: string;
+  turma: string;
+  prazo: Date;
+  talvez: boolean;
+  url: string;
+}): Omit<Email, "para"> {
+  const quando = dataHoraBr(d.prazo);
+  const situacao = d.talvez
+    ? "Sua resposta está como “Talvez”."
+    : "Você ainda não disse se vai ao evento.";
+  return {
+    assunto: `Prazo: confirme sua presença até ${quando}`,
+    texto: [
+      `Olá, ${d.nome}! ${situacao}`,
+      `A lista de presença da turma ${d.turma} fecha em ${quando}. Depois disso, a comissão fecha o número de pessoas e a lista de entrada.`,
+      `Se for levar alguém, informe o nome de cada acompanhante.`,
+      `Responder: ${d.url}`,
+      rodapeTexto(d.turma),
+    ].join("\n\n"),
+    html: caixaEmail({
+      preheader: `A lista fecha em ${quando}.`,
+      titulo: `Confirme sua presença até ${quando}`,
+      motivo: motivoTurma(d.turma),
+      corpo:
+        p(escapar(situacao)) +
+        p("Depois do prazo, a comissão fecha o número de pessoas e a lista de entrada.") +
+        p("Se for levar alguém, informe o nome de cada acompanhante.") +
+        botao(d.url, "Responder agora") +
+        linkCru(d.url),
+    }),
+  };
+}
+
 export function emailPrazoParcela(d: {
   nome: string;
   turma: string;

@@ -41,7 +41,7 @@ import { getDadosEvento, getResumosDashboard, listarDecisoes, listarProgramacao 
 import { listarUltimosAvisos } from "@/lib/avisos";
 import { linkComoChegar } from "@/lib/evento";
 import { getMinhaPresenca } from "@/lib/presenca";
-import { ROTULO_PRESENCA } from "@/lib/presenca-regras";
+import { presencaFechada, ROTULO_PRESENCA } from "@/lib/presenca-regras";
 import {
   formatarDataHora,
   formatarDiaCurto,
@@ -97,6 +97,7 @@ function Indicador({
 
 export default async function DashboardPage() {
   const membro = await exigirMembro();
+  const presencaTravada = presencaFechada(membro.presencaAte, new Date());
   // Uma única leva de queries (programacao uma vez, resumos e evento em 1
   // roundtrip cada): antes, o EventoAdmin buscava programacao de novo +
   // exigirAdmin, os resumos eram 2 queries e os dados do evento outras 2.
@@ -246,13 +247,30 @@ export default async function DashboardPage() {
                   presenca.status === "vou" && presenca.acompanhantes > 0
                     ? `, com ${presenca.acompanhantes} ${presenca.acompanhantes === 1 ? "acompanhante" : "acompanhantes"}`
                     : ""
-                }. Você pode mudar quando quiser.`
+                }. ${
+                  presenca.status === "vou" && presenca.acompanhantes > presenca.lista.length
+                    ? `Faltam os nomes de ${presenca.acompanhantes - presenca.lista.length} ${
+                        presenca.acompanhantes - presenca.lista.length === 1 ? "acompanhante" : "acompanhantes"
+                      }, para a lista de entrada.`
+                    : "Você pode mudar quando quiser."
+                }`
               : "A comissão precisa saber quantas pessoas vêm para fechar o espaço e a comida."}
           </CardDescription>
+          {/* Prazo da lista (ADR-0013): a pessoa vê a data antes e a trava depois. */}
+          {membro.presencaAte && (
+            <p className="flex items-start gap-1.5 text-sm">
+              <CalendarClock className="mt-0.5 size-4 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
+              {presencaTravada
+                ? `A lista fechou em ${formatarDataHora.format(membro.presencaAte)}. Para mudar, fale com a comissão.`
+                : `Responda até ${formatarDataHora.format(membro.presencaAte)}. Depois disso a resposta trava.`}
+            </p>
+          )}
         </CardHeader>
-        <CardContent>
-          <FormPresenca inicial={presenca} limite={membro.maxAcompanhantes} />
-        </CardContent>
+        {!presencaTravada && (
+          <CardContent>
+            <FormPresenca inicial={presenca} limite={membro.maxAcompanhantes} />
+          </CardContent>
+        )}
       </Card>
 
       <div data-grupo className="mt-4 grid gap-4 md:grid-cols-3">

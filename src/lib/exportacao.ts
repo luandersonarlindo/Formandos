@@ -1,6 +1,7 @@
 import "server-only";
 import { pool } from "./db";
 import type { Celula } from "./csv";
+import { listarPortaria } from "./presenca";
 
 // Planilhas da turma (ADR-0007). Cada tipo devolve cabeçalho e linhas para
 // `paraCsv`. Quem pode baixar cada uma é decidido na rota: tudo é da
@@ -11,6 +12,7 @@ export const TIPOS_EXPORTACAO = [
   "votos",
   "decisoes",
   "presenca",
+  "portaria",
   "fornecedores",
   "pagamentos",
 ] as const;
@@ -21,6 +23,7 @@ export const ROTULO_EXPORTACAO: Record<TipoExportacao, string> = {
   votos: "Votos (quem votou em quê)",
   decisoes: "Decisões",
   presenca: "Presença",
+  portaria: "Lista da portaria",
   fornecedores: "Fornecedores",
   pagamentos: "Pagamentos",
 };
@@ -73,6 +76,14 @@ export async function montarPlanilha(tipo: TipoExportacao, turmaId: string): Pro
       return {
         cabecalho: ["Catálogo", "Categoria", "Pergunta", "Opção", "Quem votou", "Votou em"],
         linhas: rows.map((r) => Object.values(r) as Celula[]),
+      };
+    }
+    case "portaria": {
+      // Uma linha por pessoa que vai, com nome (ADR-0013).
+      const linhas = await listarPortaria(turmaId);
+      return {
+        cabecalho: ["Nome", "Tipo", "Convidado de"],
+        linhas: linhas.map((l) => [l.nome, l.tipo, l.convidadoDe]),
       };
     }
     case "decisoes": {

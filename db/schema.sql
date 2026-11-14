@@ -447,3 +447,26 @@ alter table regras_enquete add column if not exists secreto boolean not null def
 alter table membros drop constraint if exists membros_papel_check;
 alter table membros add constraint membros_papel_check
   check (papel in ('admin', 'participante', 'observador'));
+
+-- Acompanhantes com nome (ADR-0013): a portaria trabalha com nomes e o buffet
+-- separa adulto de criança. `presencas.acompanhantes` continua guardando a
+-- quantidade, gravada na mesma transação; respostas antigas têm quantidade e
+-- nenhuma linha aqui ("sem nome"). Some junto com a resposta de presença.
+create table if not exists acompanhantes (
+  id         uuid primary key default gen_random_uuid(),
+  turma_id   uuid not null,
+  usuario_id uuid not null,
+  nome       varchar(80) not null,
+  tipo       varchar(10) not null default 'adulto' check (tipo in ('adulto', 'crianca')),
+  ordem      smallint not null default 0,
+  foreign key (turma_id, usuario_id) references presencas (turma_id, usuario_id) on delete cascade
+);
+create index if not exists idx_acompanhantes_resposta on acompanhantes (turma_id, usuario_id);
+
+-- Prazo para confirmar presença (ADR-0013): depois dele a resposta trava e a
+-- comissão fecha o número. Nulo = sem prazo. O lembrete de 2 dias antes fica
+-- marcado em `lembretes_enviados` com o tipo `presenca` (referência = turma).
+alter table turmas add column if not exists presenca_ate timestamptz;
+alter table lembretes_enviados drop constraint if exists lembretes_enviados_tipo_check;
+alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
+  check (tipo in ('votacao', 'parcela', 'exclusao', 'presenca'));

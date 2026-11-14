@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   ACOMPANHANTES_PADRAO,
+  lerAcompanhantes,
   limitarAcompanhantes,
   normalizarPresenca,
   pessoasEsperadas,
+  presencaFechada,
   TETO_ACOMPANHANTES,
+  totaisPorTipo,
+  vagasDeAcompanhante,
 } from "./presenca-regras";
 
 describe("normalizarPresenca", () => {
@@ -42,5 +46,53 @@ describe("pessoasEsperadas", () => {
   it("soma quem vai e os acompanhantes", () => {
     expect(pessoasEsperadas(0, 0)).toBe(0);
     expect(pessoasEsperadas(3, 4)).toBe(7);
+  });
+});
+
+describe("acompanhantes com nome (ADR-0013)", () => {
+  const regra = { limite: 2, atuais: 0 };
+  it("só quem vai leva acompanhantes", () => {
+    expect(lerAcompanhantes("talvez", ["Ana"], ["adulto"], regra)).toEqual({ lista: [] });
+    expect(lerAcompanhantes("nao", ["Ana"], ["adulto"], regra)).toEqual({ lista: [] });
+  });
+  it("limpa o nome e aceita adulto ou criança", () => {
+    expect(lerAcompanhantes("vou", ["  Ana   Lima ", "Léo"], ["adulto", "crianca"], regra)).toEqual({
+      lista: [
+        { nome: "Ana Lima", tipo: "adulto" },
+        { nome: "Léo", tipo: "crianca" },
+      ],
+    });
+    expect(lerAcompanhantes("vou", ["Ana"], ["bebê"], regra)).toEqual({ lista: [{ nome: "Ana", tipo: "adulto" }] });
+  });
+  it("linha sem nome é erro, não some sozinha", () => {
+    expect(lerAcompanhantes("vou", ["Ana", "  "], ["adulto", "adulto"], regra)).toHaveProperty("erro");
+  });
+  it("respeita o limite da turma", () => {
+    expect(lerAcompanhantes("vou", ["A", "B", "C"], [], regra)).toHaveProperty("erro");
+    expect(lerAcompanhantes("vou", ["A"], [], { limite: 0, atuais: 0 })).toEqual({
+      erro: "A turma não permite acompanhantes.",
+    });
+  });
+  it("quem já estava acima do limite mantém, mas não aumenta", () => {
+    expect(vagasDeAcompanhante(2, 4)).toBe(4);
+    expect(vagasDeAcompanhante(2, 1)).toBe(2);
+    const acima = { limite: 2, atuais: 4 };
+    expect(lerAcompanhantes("vou", ["A", "B", "C", "D"], [], acima)).toHaveProperty("lista");
+    expect(lerAcompanhantes("vou", ["A", "B", "C", "D", "E"], [], acima)).toHaveProperty("erro");
+  });
+  it("separa adultos e crianças para o buffet", () => {
+    expect(totaisPorTipo(10, 6, 2)).toEqual({ pessoas: 16, adultos: 14, criancas: 2 });
+  });
+});
+
+describe("prazo de presença (ADR-0013)", () => {
+  const prazo = new Date("2026-12-01T21:00:00Z");
+  it("sem prazo nunca fecha", () => {
+    expect(presencaFechada(null, new Date())).toBe(false);
+  });
+  it("fecha na hora marcada", () => {
+    expect(presencaFechada(prazo, new Date("2026-12-01T20:59:59Z"))).toBe(false);
+    expect(presencaFechada(prazo, new Date("2026-12-01T21:00:00Z"))).toBe(true);
+    expect(presencaFechada(prazo, new Date("2026-12-02T00:00:00Z"))).toBe(true);
   });
 });

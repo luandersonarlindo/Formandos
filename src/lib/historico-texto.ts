@@ -149,6 +149,11 @@ export function descreverAcao(
         frase: "arquivou a turma.",
         detalhes: typeof d.excluirEm === "string" ? [`Tudo será excluído em ${dataBr(d.excluirEm)}.`] : [],
       };
+    case "presenca.prazo":
+      return {
+        frase: `mudou o prazo para confirmar presença: de ${prazoTexto(d.antes)} para ${prazoTexto(d.depois)}.`,
+        detalhes: [],
+      };
     case "turma.prazo_exclusao":
       return {
         frase: "mudou a data de exclusão da turma.",

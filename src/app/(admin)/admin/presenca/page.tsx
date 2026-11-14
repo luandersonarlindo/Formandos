@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Settings2, SlidersHorizontal, UsersRound } from "lucide-react";
-import { salvarLimiteAcompanhantes } from "@/actions/presenca";
+import { CalendarClock, FileDown, ListChecks, Settings2, SlidersHorizontal, UsersRound } from "lucide-react";
+import { salvarLimiteAcompanhantes, salvarPrazoPresenca } from "@/actions/presenca";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormDialog } from "@/components/features/form-dialog";
 import { Paginacao } from "@/components/features/paginacao";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exigirAdmin } from "@/lib/dal";
 import { lerPagina } from "@/lib/paginacao";
 import { getResumoPresenca, listarPresencas, type FiltroPresenca } from "@/lib/presenca";
-import { ROTULO_PRESENCA, TETO_ACOMPANHANTES } from "@/lib/presenca-regras";
+import { formatarDataHora, paraDatetimeLocal } from "@/lib/datas";
+import { presencaFechada, ROTULO_PRESENCA, TETO_ACOMPANHANTES } from "@/lib/presenca-regras";
 
 export const metadata: Metadata = { title: "Presença" };
 
@@ -32,6 +34,7 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
   const filtro = FILTROS.find((f) => f.valor === filtroParametro)?.valor ?? "todos";
 
   const resumo = await getResumoPresenca(admin.turmaId);
+  const fechada = presencaFechada(admin.presencaAte, new Date());
   const contagem: Record<FiltroPresenca, number> = {
     todos: resumo.membros,
     vou: resumo.vou,
@@ -67,7 +70,26 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
             {resumo.talvez > 0 && `${resumo.talvez} ainda em dúvida. `}
             {resumo.pendente > 0 && `${resumo.pendente} sem resposta.`}
           </p>
+          {/* Para o buffet (ADR-0013): o preço de criança costuma ser outro. */}
+          <p className="text-sm">
+            {resumo.adultos} {resumo.adultos === 1 ? "adulto" : "adultos"} e {resumo.criancas}{" "}
+            {resumo.criancas === 1 ? "criança" : "crianças"}.
+            {resumo.semNome > 0 &&
+              ` ${resumo.semNome} ${resumo.semNome === 1 ? "acompanhante ainda sem nome informado (conta" : "acompanhantes ainda sem nome informado (contam"} como adulto).`}
+          </p>
         </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild size="sm">
+            <Link href="/admin/presenca/lista">
+              <ListChecks aria-hidden /> Lista da portaria
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <a href="/admin/turma/exportar?tipo=portaria">
+              <FileDown aria-hidden /> Baixar planilha
+            </a>
+          </Button>
+        </CardContent>
       </Card>
 
       <Card className="mt-4">
@@ -81,7 +103,14 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
             {admin.maxAcompanhantes === 0
               ? "hoje ninguém pode levar acompanhante."
               : `hoje cada membro pode levar até ${admin.maxAcompanhantes}.`}{" "}
-            Baixar o limite corta as respostas que ficaram acima dele.
+            Baixar o limite não corta ninguém: quem já estava acima mantém a lista e aparece marcado abaixo.
+            {resumo.acimaDoLimite > 0 && (
+              <strong className="mt-1 block font-medium text-amber-700 dark:text-amber-400">
+                {resumo.acimaDoLimite}{" "}
+                {resumo.acimaDoLimite === 1 ? "resposta acima do limite." : "respostas acima do limite."} Converse
+                com {resumo.acimaDoLimite === 1 ? "a pessoa" : "as pessoas"}.
+              </strong>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,7 +118,7 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
             rotulo="Editar limite de acompanhantes"
             icone={<Settings2 aria-hidden />}
             titulo="Acompanhantes por pessoa"
-            descricao="Baixar o limite corta as respostas que ficaram acima dele."
+            descricao="Baixar o limite não corta ninguém. Quem já tinha mais acompanhantes mantém a lista e só pode remover nomes."
             acao={salvarLimiteAcompanhantes}
             rotuloSubmit="Salvar limite"
             rotuloPendente="Salvando…"
@@ -110,6 +139,46 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
               <p className="text-xs text-muted-foreground">
                 De 0 (sem acompanhantes) a {TETO_ACOMPANHANTES}.
               </p>
+            </div>
+          </FormDialog>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1.5 text-lg">
+            <CalendarClock className="size-5 text-[var(--vitrine-a)]" aria-hidden />
+            Prazo para confirmar presença
+          </CardTitle>
+          <CardDescription className="text-pretty">
+            {admin.presencaAte
+              ? fechada
+                ? `A lista fechou em ${formatarDataHora.format(admin.presencaAte)}. Ninguém consegue mais responder nem mudar a resposta. Para reabrir, mude ou apague a data.`
+                : `A turma responde até ${formatarDataHora.format(admin.presencaAte)}. Depois disso a resposta trava. Quem não respondeu recebe um email 2 dias antes.`
+              : "Sem prazo: cada pessoa responde e muda a resposta quando quiser. Marque uma data para fechar o número com o buffet."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormDialog
+            rotulo={admin.presencaAte ? "Mudar o prazo" : "Marcar prazo"}
+            icone={<CalendarClock aria-hidden />}
+            titulo="Prazo para confirmar presença"
+            descricao="Depois do prazo, ninguém responde nem muda a resposta. A turma vê a data no dashboard e a mudança aparece no histórico."
+            acao={salvarPrazoPresenca}
+            rotuloSubmit="Salvar prazo"
+            rotuloPendente="Salvando…"
+            dialogClassName="sm:max-w-md"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="prazo-presenca">Responder até</Label>
+              <Input
+                id="prazo-presenca"
+                name="prazo"
+                type="datetime-local"
+                defaultValue={admin.presencaAte ? paraDatetimeLocal(admin.presencaAte) : ""}
+                className="h-10"
+              />
+              <p className="text-xs text-muted-foreground">Deixe em branco para não ter prazo.</p>
             </div>
           </FormDialog>
         </CardContent>
@@ -170,7 +239,22 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
                         + {m.acompanhantes} {m.acompanhantes === 1 ? "acompanhante" : "acompanhantes"}
                       </Badge>
                     )}
+                    {m.status === "vou" && m.acompanhantes > admin.maxAcompanhantes && (
+                      <Badge variant="outline" className="text-amber-700 dark:text-amber-400">
+                        acima do limite
+                      </Badge>
+                    )}
                   </div>
+                  {m.status === "vou" && m.acompanhantes > 0 && (
+                    <p className="basis-full text-sm">
+                      {[
+                        ...m.lista.map((a) => (a.tipo === "crianca" ? `${a.nome} (criança)` : a.nome)),
+                        ...(m.acompanhantes > m.lista.length
+                          ? [`${m.acompanhantes - m.lista.length} sem nome`]
+                          : []),
+                      ].join(", ")}
+                    </p>
+                  )}
                   {m.observacao && (
                     <p className="basis-full text-sm text-muted-foreground wrap-break-word">{m.observacao}</p>
                   )}

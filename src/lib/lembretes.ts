@@ -1,10 +1,11 @@
-import { contaComoFormandoSql } from "./papeis";
 import "server-only";
 import { pool } from "./db";
-import { emailPrazoParcela, emailPrazoVotacao, urlDoSite } from "./email";
+import { emailPrazoParcela, emailPrazoPresenca, emailPrazoVotacao, urlDoSite } from "./email";
 import { enviarParaTurma, type Destinatario } from "./email-turma";
 import { avisarExclusoesProximas, excluirTurmasNoPrazo } from "./fim-da-turma";
 import { HORAS_JANELA_VOTACAO, parcelasParaLembrar } from "./lembretes-regras";
+import { contaComoFormandoSql } from "./papeis";
+import { HORAS_JANELA_PRESENCA } from "./presenca-regras";
 import { hojeBrasil, type TipoLancamento } from "./situacao-regras";
 
 // Lembretes de prazo (ADR-0006), chamados por /api/cron/lembretes de hora em
@@ -12,7 +13,7 @@ import { hojeBrasil, type TipoLancamento } from "./situacao-regras";
 // não repete email. Turma arquivada não recebe lembrete de prazo, só o aviso
 // de exclusão do plano de fim (ADR-0009, em fim-da-turma.ts).
 
-async function marcar(tipo: "votacao" | "parcela", referencia: string, turmaId: string, usuarioId: string) {
+async function marcar(tipo: "votacao" | "parcela" | "presenca", referencia: string, turmaId: string, usuarioId: string) {
   await pool.query(
     `insert into lembretes_enviados (tipo, referencia, turma_id, usuario_id)
      values ($1, $2, $3, $4) on conflict do nothing`,
@@ -119,19 +120,68 @@ async function lembrarParcelas(hoje: string): Promise<number> {
   return total;
 }
 
+// Prazo de presença nas próximas 48 horas (ADR-0013): lembra quem ainda não
+// respondeu ou marcou "talvez". Observador também recebe: ele vai à festa.
+async function lembrarPresencas(): Promise<number> {
+  const { rows: turmas } = await pool.query(
+    `select id, nome, presenca_ate as prazo from turmas
+      where arquivada_em is null
+        and presenca_ate > now() and presenca_ate <= now() + make_interval(hours => $1)`,
+    [HORAS_JANELA_PRESENCA],
+  );
+  let total = 0;
+  for (const t of turmas) {
+    const { rows: pessoas } = await pool.query<Destinatario & { talvez: boolean }>(
+      `select u.id as "usuarioId", u.name as nome, u.email, coalesce(p.status = 'talvez', false) as talvez
+         from membros m
+         join usuarios u on u.id = m.usuario_id
+         left join presencas p on p.turma_id = m.turma_id and p.usuario_id = m.usuario_id
+        where m.turma_id = $1 and u.receber_emails and u."emailVerified"
+          and (p.status is null or p.status = 'talvez')
+          and not exists (
+            select 1 from lembretes_enviados l
+             where l.tipo = 'presenca' and l.referencia = $1 and l.turma_id = $1 and l.usuario_id = m.usuario_id)`,
+      [t.id],
+    );
+    for (const pessoa of pessoas) {
+      const { enviados } = await enviarParaTurma([pessoa], (d) =>
+        emailPrazoPresenca({
+          nome: d.nome,
+          turma: t.nome,
+          prazo: t.prazo,
+          talvez: pessoa.talvez,
+          url: urlDoSite("/dashboard"),
+        }),
+      );
+      if (enviados === 0) return total; // teto diário: tenta na próxima hora
+      await marcar("presenca", t.id, t.id, pessoa.usuarioId);
+      total++;
+    }
+  }
+  return total;
+}
+
 // Roda as duas listas com uma trava: duas chamadas ao mesmo tempo (agendador
 // atrasado + chamada manual) não mandam o mesmo email duas vezes.
-type Rodada = { rodou: boolean; votacao: number; parcela: number; exclusao: number; excluidas: number };
+type Rodada = {
+  rodou: boolean;
+  votacao: number;
+  parcela: number;
+  presenca: number;
+  exclusao: number;
+  excluidas: number;
+};
 
 export async function rodarLembretes(): Promise<Rodada> {
   const cliente = await pool.connect();
   try {
     const { rows } = await cliente.query("select pg_try_advisory_lock(hashtext('cron:lembretes')) as ok");
-    if (!rows[0].ok) return { rodou: false, votacao: 0, parcela: 0, exclusao: 0, excluidas: 0 };
+    if (!rows[0].ok) return { rodou: false, votacao: 0, parcela: 0, presenca: 0, exclusao: 0, excluidas: 0 };
     try {
       const hoje = hojeBrasil();
       const votacao = await lembrarVotacoes();
       const parcela = await lembrarParcelas(hoje);
+      const presenca = await lembrarPresencas();
       // Plano de fim (ADR-0009): aviso de 7 dias e exclusão no prazo, nesta
       // ordem (quem recebe o aviso hoje só é excluído daqui a 7 dias).
       const exclusao = await avisarExclusoesProximas(hoje);
@@ -142,9 +192,9 @@ export async function rodarLembretes(): Promise<Rodada> {
       await pool.query(
         `insert into cron_execucoes (nome, ultima, detalhe) values ('lembretes', now(), $1)
          on conflict (nome) do update set ultima = excluded.ultima, detalhe = excluded.detalhe`,
-        [JSON.stringify({ votacao, parcela, exclusao, excluidas })],
+        [JSON.stringify({ votacao, parcela, presenca, exclusao, excluidas })],
       );
-      return { rodou: true, votacao, parcela, exclusao, excluidas };
+      return { rodou: true, votacao, parcela, presenca, exclusao, excluidas };
     } finally {
       await cliente.query("select pg_advisory_unlock(hashtext('cron:lembretes'))");
     }

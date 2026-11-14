@@ -30,6 +30,8 @@ export const ACOES_AUDITORIA = [
   "fornecedor.alterado",
   // ADR-0009: data de exclusão da turma arquivada mudou.
   "turma.prazo_exclusao",
+  // ADR-0013: prazo para confirmar presença mudou.
+  "presenca.prazo",
 ] as const;
 export type AcaoAuditoria = (typeof ACOES_AUDITORIA)[number];
 
@@ -51,6 +53,7 @@ export const ACOES_VISIVEIS_TURMA = [
   "turma.arquivada",
   "turma.desarquivada",
   "turma.prazo_exclusao",
+  "presenca.prazo",
 ] as const satisfies readonly AcaoAuditoria[];
 
 // Pagamentos individuais: só a tesouraria vê no histórico (ADR-0005). Os

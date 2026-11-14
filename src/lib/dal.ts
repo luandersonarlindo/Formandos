@@ -38,6 +38,8 @@ export type Membro = {
   localEvento: string | null;
   // Quantos acompanhantes cada membro pode levar (escolha do admin da turma).
   maxAcompanhantes: number;
+  // Prazo para confirmar presença (ADR-0013); depois dele a resposta trava.
+  presencaAte: Date | null;
   // Se a turma usa o catálogo padrão global nas votações.
   usarCatalogoPadrao: boolean;
   // Turma arquivada é só leitura: veja exigirMembroEditavel.
@@ -65,7 +67,7 @@ export const getVinculos = cache(async (): Promise<Membro[]> => {
   const sessao = await exigirSessao();
   const { rows } = await pool.query(
     `select m.turma_id, m.papel, m.tesouraria, t.nome, t.data_evento, t.local_evento,
-            t.max_acompanhantes, t.usar_catalogo_padrao, t.arquivada_em,
+            t.max_acompanhantes, t.presenca_ate, t.usar_catalogo_padrao, t.arquivada_em,
             to_char(t.excluir_em, 'YYYY-MM-DD') as excluir_em
        from membros m
        join turmas t on t.id = m.turma_id
@@ -82,6 +84,7 @@ export const getVinculos = cache(async (): Promise<Membro[]> => {
     dataEvento: r.data_evento,
     localEvento: r.local_evento,
     maxAcompanhantes: r.max_acompanhantes,
+    presencaAte: r.presenca_ate,
     usarCatalogoPadrao: r.usar_catalogo_padrao,
     arquivadaEm: r.arquivada_em,
     excluirEm: r.excluir_em,
