@@ -83,7 +83,7 @@ Documento novo `docs/acessibilidade/roteiro-leitor-de-tela.md`:
 - **seis tarefas**, cada uma com o que se espera ouvir: entrar com email e senha; achar a data e o local do evento; confirmar presença com um acompanhante e remover; votar em duas perguntas e salvar; ouvir o resultado de uma pergunta no relatório; abrir a página pública do evento;
 - uma tabela para anotar, por tarefa: conseguiu ou não, onde travou, o que o leitor falou.
 
-Quem faz: uma pessoa do grupo no TalkBack. O VoiceOver entra se alguém do grupo tiver iPhone; se não tiver, fica registrado como **não testado**. O resultado é anotado no próprio roteiro e o que aparecer vira correção nesta ADR ou pendência com dono.
+Quem faz: uma pessoa do grupo no TalkBack e outra no VoiceOver (há um iPhone no grupo, confirmado em 14/11/2026). O resultado é anotado no próprio roteiro e o que aparecer vira correção nesta ADR ou pendência com dono.
 
 O mesmo documento guarda a lista dos usos de `CardTitle` que ficaram sem nível.
 
@@ -118,7 +118,6 @@ O mesmo documento guarda a lista dos usos de `CardTitle` que ficaram sem nível.
 - Quem criar card novo precisa escolher o nível do título. Esquecer não quebra nada, e a sonda só pega nas telas que ela lê.
 - A sonda soma tempo ao grupo `participante`, que já é o bloco mais demorado.
 - O teste real depende de uma pessoa do grupo aprender o TalkBack; o resultado é de iniciante.
-- Sem iPhone no grupo, o VoiceOver continua sem teste.
 
 **Arquivos**
 - `src/components/ui/card.tsx`; `enquete-card.tsx`, `form-votacao-catalogo.tsx`, `form-presenca.tsx`, `contagem-regressiva.tsx`, `grafico-enquete.tsx`; `src/app/(app)/dashboard/page.tsx`, `src/app/(app)/votacoes/relatorio/page.tsx`; `scripts/teste/leitor.mjs` (novo), `scripts/teste/fluxos.mjs`, `scripts/teste/README.md`; `docs/acessibilidade/roteiro-leitor-de-tela.md` (novo).
@@ -130,4 +129,20 @@ O mesmo documento guarda a lista dos usos de `CardTitle` que ficaram sem nível.
 
 **Teste de fluxo**
 - Parte 1: a sonda passa no dashboard, no catálogo e no relatório; o foco vai para o campo novo ao adicionar e para o botão certo ao remover; o bloco `participante,app,admin` continua passando.
-- Parte 2: roteiro preenchido para o TalkBack, com as seis tarefas.
+- Parte 2: roteiro preenchido para o TalkBack e para o VoiceOver, com as seis tarefas.
+
+### Andamento (2026-11-14)
+
+Parte 1 feita. Parte 2: roteiro escrito (`docs/acessibilidade/roteiro-leitor-de-tela.md`); o teste no celular ainda não foi feito. Diferenças em relação ao texto acima:
+
+- **Décimo achado, pela própria sonda:** em `/duvidas`, todo botão de apoio se chamava "Votar nesta dúvida". O nome agora leva o começo da dúvida ("Votar nesta dúvida: Qual é o prazo…", até 60 caracteres).
+- **Regra de nome repetido mais simples:** a sonda acusa dois **botões** com o mesmo nome na **página inteira**, e não "dois controles no mesmo formulário ou lista". Os 23 "Ver como tabela" não estavam em formulário nem em lista, e a regra escrita não os pegaria. Opções de voto com o mesmo texto em perguntas diferentes ("Sem preferência") não contam: o grupo da pergunta dá o contexto.
+- **"Contagem regressiva" e "Sua participação"** não eram `CardTitle`, eram parágrafos. Viraram `h2`.
+- **Bloco do evento da comissão** (`evento-admin.tsx`, "Dados do evento" e "Programação da festa") também ganhou `h2`: fica no mesmo dashboard e, sem isso, a comissão ouvia a página com títulos faltando no meio.
+- **Barra dos cartões do dashboard:** a propriedade `rotulo` saiu do indicador, porque a barra deixou de ser lida. O nome do cartão ganhou o espaço que faltava ("1de 3" virou "1 de 3").
+- **Frase da contagem** em função pura, `src/lib/contagem.ts`: singular e plural, some com os dias na véspera e com as horas na última hora.
+- **Foco sem ter para onde ir:** se a lista de acompanhantes esvazia e a turma não tem vagas (sem botão "Adicionar"), o foco volta para a resposta marcada.
+- **Passo no `fluxos.mjs`:** além do dashboard, catálogo, relatório e `/duvidas`, confere os títulos do dashboard, a frase da contagem, um `h3` por pergunta e o foco ao adicionar e remover. A página pública entra no passo da ADR-0008, que é onde o link existe.
+- **Ficou de fora, anotado no roteiro:** "Editar item" repetido na programação da comissão e os `CardTitle` sem nível (43 usos; 25 em telas da comissão).
+- **VoiceOver entra no teste:** há um iPhone no grupo.
+- Testes: `typecheck`, `npm test` (332; 7 novos em `contagem.test.ts`). Sonda `leitor.mjs` sem problemas em `/dashboard`, `/votacoes`, catálogo, relatório, `/duvidas`, `/tarefas`, `/terceiros`, `/avisos`, `/conta` e na página pública. Um passo "ADR-0015" no grupo `participante` de `fluxos.mjs` e a sonda dentro do passo da ADR-0008; bloco `participante,app,admin` no Docker, 66 de 66.
