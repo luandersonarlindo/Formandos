@@ -1413,6 +1413,96 @@ await grupo("admin", async () => {
       sql("delete from usuarios where email='teste-tmp@example.invalid'");
     }
   });
+  await passo("ADR-0014: importar pagamentos da planilha, sem duplicar, e planilha de situação", async () => {
+    const turma = turmaTeste();
+    const joao = sql("select id from usuarios where email='teste-jl@example.invalid'");
+    sql(`delete from pagamentos where turma_id='${turma}'`);
+    sql(`delete from parcelas where turma_id='${turma}'`);
+    sql(`update membros set tesouraria=true where turma_id='${turma}' and usuario_id=(select id from usuarios where email='teste-sh@example.invalid')`);
+    for (let i = 1; i <= 3; i++) {
+      sql(`insert into parcelas (turma_id,numero,valor,vencimento) values ('${turma}',${i},100,date '2026-10-10' + ${i - 1} * interval '1 month')`);
+    }
+    const total = () => sql(`select count(*) || ':' || coalesce(sum(valor), 0) from pagamentos where turma_id='${turma}' and status='confirmado'`);
+    const colar = async (texto, botao) => {
+      await nav.abrir("/admin/tesouraria");
+      await nav.esperarTexto("Importar da planilha");
+      await nav.preencher("#planilha-pagamentos", texto);
+      await nav.clicar(botao, { escopo: "@form:has(#planilha-pagamentos)", seletor: "button" });
+    };
+    // Cabeçalho, uma linha com ponto e vírgula e outra com tabulação (como sai da planilha).
+    const boa = [
+      "Email;Valor;Data;Forma;Quem pagou;Referência",
+      "teste-jl@example.invalid; 150,50; 10/10/2026; pix; Pai do João; Parcela 1 e parte da 2",
+      "TESTE-SH@example.invalid\tR$ 100,00\t2026-10-12\tDinheiro",
+    ].join("\n");
+    try {
+      // Uma linha de fora da turma segura tudo: nada entra, e o erro diz a linha.
+      await colar(`${boa}\nninguem@example.invalid; 50; 10/10/2026\nteste-jl@example.invalid; abc; 10/10/2026`, "Importar");
+      await nav.esperarTexto("Nada foi importado. 2 linhas com problema:");
+      await nav.esperarTexto("Linha 4: email não é de um formando desta turma (ninguem@example.invalid).");
+      await nav.esperarTexto("Linha 5: valor inválido (abc).");
+      igual(total(), "0:0", "nada entrou com linha errada");
+
+      // A prévia conta e soma, sem gravar.
+      await colar(boa, "Ver prévia");
+      await nav.esperarTexto("Prévia: 2 lançamentos novos, somando R$\u00a0250,50, de 2 pessoas.");
+      igual(total(), "0:0", "a prévia não grava");
+
+      // Importar grava confirmado, com quem pagou, e deixa uma entrada só no histórico.
+      await colar(boa, "Importar");
+      await nav.esperarTexto("Importado: 2 lançamentos novos, somando R$\u00a0250,50, de 2 pessoas.");
+      igual(total(), "2:250.50", "dois lançamentos confirmados");
+      igual(
+        sql(`select forma || '|' || pago_por || '|' || referencia || '|' || to_char(pago_em, 'YYYY-MM-DD') from pagamentos where turma_id='${turma}' and usuario_id='${joao}'`),
+        "pix|Pai do João|Parcela 1 e parte da 2|2026-10-10",
+        "colunas opcionais gravadas",
+      );
+      igual(
+        sql(`select forma || '|' || referencia from pagamentos where turma_id='${turma}' and usuario_id<>'${joao}'`),
+        "dinheiro|Importado da planilha",
+        "linha com tabulação e referência padrão",
+      );
+      igual(
+        sql(`select detalhe->>'linhas' || ':' || (detalhe->>'valor') from auditoria where turma_id='${turma}' and acao='pagamento.importado'`),
+        "2:250.5",
+        "uma entrada de auditoria para a importação",
+      );
+
+      // Colar a mesma planilha com uma linha a mais: só a nova entra.
+      await colar(`${boa}\nteste-jl@example.invalid; 49,50; 11/11/2026`, "Importar");
+      await nav.esperarTexto("Importado: 1 lançamento novo, somando R$\u00a049,50, de 1 pessoa. 2 linhas já estão lançadas e ficam de fora.");
+      igual(total(), "3:300.00", "colar de novo não duplica");
+      await colar(boa, "Importar");
+      await nav.esperarTexto("Nada para importar. 2 linhas já estão lançadas e ficam de fora.");
+      igual(total(), "3:300.00", "nada muda na terceira vez");
+
+      // Pagamento parcial: 200 do João cobrem as parcelas 1 e 2 de 100.
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/minha-situacao");
+      await nav.esperarTexto("R$\u00a0200,00");
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+
+      // Planilha de situação: o mesmo número da tela, só para a tesouraria.
+      const base = process.env.BASE_URL ?? "http://localhost:3000";
+      const baixar = (cookie) =>
+        fetch(`${base}/admin/turma/exportar?tipo=situacao`, {
+          headers: { cookie: `better-auth.session_token=${lerCookie(cookie)}` },
+          redirect: "manual",
+        });
+      const r = await baixar("cookie-admin.txt");
+      igual(r.status, 200, "planilha de situação");
+      const csv = await r.text();
+      verdade(csv.includes("Nome;Email;Plano (R$);Pago (R$);Falta (R$);Situação"), `cabeçalho: ${csv.slice(0, 80)}`);
+      verdade(/João Lima;teste-jl@example\.invalid;300;200;100;/.test(csv), `linha do João: ${csv}`);
+      verdade((await baixar("cookie-participante.txt")).status !== 200, "participante não baixa a situação");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`delete from pagamentos where turma_id='${turma}'`);
+      sql(`delete from parcelas where turma_id='${turma}'`);
+      sql(`delete from auditoria where turma_id='${turma}' and acao in ('pagamento.importado', 'turma.exportada')`);
+      sql(`update membros set tesouraria=false where turma_id='${turma}'`);
+    }
+  });
   await passo("ADR-0006: emails de decisão, mudança no evento e prazo, sem repetir", async () => {
     // Os emails do Docker caem no Mailpit. Fora do Docker (sem Mailpit), o passo não se aplica.
     const MAILPIT = process.env.MAILPIT_URL ?? "http://localhost:8025";
