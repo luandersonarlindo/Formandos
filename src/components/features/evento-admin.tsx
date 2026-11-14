@@ -53,7 +53,7 @@ export function EventoAdmin({
     <>
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle nivel={2} className="flex items-center gap-2 text-lg">
             <Settings2 className="size-4.5 text-[var(--vitrine-a)]" aria-hidden /> Dados do evento
           </CardTitle>
           <CardDescription>
@@ -169,7 +169,7 @@ export function EventoAdmin({
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="text-lg">Programação da festa</CardTitle>
+          <CardTitle nivel={2} className="text-lg">Programação da festa</CardTitle>
           <CardDescription>
             {programacao.length === 0
               ? "Nenhum item ainda. Horários no fuso de Brasília."

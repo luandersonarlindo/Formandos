@@ -56,14 +56,12 @@ function Indicador({
   valor,
   total,
   href,
-  rotulo,
   icone: Icone,
 }: {
   titulo: string;
   valor: number;
   total?: number;
   href: string;
-  rotulo?: string;
   icone: LucideIcon;
 }) {
   return (
@@ -78,6 +76,8 @@ function Indicador({
           </div>
           <CardTitle className="mt-1 text-3xl tabular-nums">
             <span data-contar={valor}>{valor}</span>
+            {/* O espaço separa "1" de "de 3" no nome lido pelo leitor de tela. */}
+            {total !== undefined && " "}
             {total !== undefined && (
               <span className="ml-1.5 text-base font-normal text-muted-foreground">de {total}</span>
             )}
@@ -86,7 +86,9 @@ function Indicador({
             <Progress
               className="mt-2"
               value={total === 0 ? 0 : (valor / total) * 100}
-              aria-label={rotulo}
+              // O número ao lado ("1 de 3") já diz o mesmo: a barra fica fora
+              // da leitura para a informação não sair duas vezes (ADR-0015).
+              aria-hidden
             />
           )}
         </CardHeader>
@@ -141,7 +143,7 @@ export default async function DashboardPage() {
         </p>
 
         <div className="mt-6">
-          <p className="mb-2 text-sm font-medium text-muted-foreground">Contagem regressiva</p>
+          <h2 className="mb-2 text-sm font-medium text-muted-foreground">Contagem regressiva</h2>
           {membro.dataEvento ? (
             <ContagemRegressiva dataIso={membro.dataEvento.toISOString()} />
           ) : (
@@ -238,7 +240,7 @@ export default async function DashboardPage() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle nivel={2} className="flex items-center gap-2 text-lg">
             <UserCheck className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Você vai ao evento?
           </CardTitle>
           <CardDescription>
@@ -287,7 +289,6 @@ export default async function DashboardPage() {
               valor={resumoAdmin.votantes}
               total={resumoAdmin.formandos}
               href="/admin/votacoes"
-              rotulo="Membros que já votaram"
               icone={Vote}
             />
             <Indicador
@@ -307,7 +308,6 @@ export default async function DashboardPage() {
               valor={resumoAdmin.confirmados}
               total={resumoAdmin.membros}
               href="/admin/presenca"
-              rotulo="Membros que confirmaram"
               icone={UserCheck}
             />
             <Indicador
@@ -324,7 +324,6 @@ export default async function DashboardPage() {
               valor={resumo.tarefasConcluidas}
               total={resumo.tarefasTotal}
               href="/tarefas"
-              rotulo="Progresso das tarefas"
               icone={ClipboardCheck}
             />
             <Indicador
@@ -332,7 +331,6 @@ export default async function DashboardPage() {
               valor={resumo.enquetesRespondidas}
               total={resumo.enquetesTotal}
               href="/votacoes"
-              rotulo="Seu progresso nas votações"
               icone={Vote}
             />
             <Indicador
@@ -349,7 +347,7 @@ export default async function DashboardPage() {
         <Card className="mt-4">
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle className="flex items-center gap-2 text-lg">
+              <CardTitle nivel={2} className="flex items-center gap-2 text-lg">
                 <Megaphone className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Mural da turma
               </CardTitle>
               <Link href="/avisos" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
@@ -372,7 +370,7 @@ export default async function DashboardPage() {
       {(decisoes.length > 0 || historico.length > 0) && (
         <Card className="mt-4">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle nivel={2} className="flex items-center gap-2 text-lg">
               <Gavel className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Decisões da turma
             </CardTitle>
             <CardDescription>O que a comissão já fixou depois das votações.</CardDescription>
@@ -429,7 +427,7 @@ export default async function DashboardPage() {
       ) : (
         <Card className="mt-4">
           <CardHeader>
-            <CardTitle className="text-lg">Programação da festa</CardTitle>
+            <CardTitle nivel={2} className="text-lg">Programação da festa</CardTitle>
             <CardDescription>
               {programacao.length === 0
                 ? "A programação ainda não foi divulgada pelo administrador."
@@ -468,7 +466,7 @@ export default async function DashboardPage() {
       <Card className="mt-4 border-dashed bg-transparent ring-0 border">
         <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-medium">Sua participação</p>
+            <h2 className="font-medium">Sua participação</h2>
             <p className="text-sm text-muted-foreground">
               Se você for o único membro, a turma será apagada ao sair.
             </p>

@@ -40,7 +40,7 @@ export function EnqueteCard({
       <fieldset aria-labelledby={`enquete-${id}`}>
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
-            <CardTitle id={`enquete-${id}`} className="text-base">
+            <CardTitle nivel={3} id={`enquete-${id}`} className="text-base">
               {titulo}
             </CardTitle>
             {decidida ? (
@@ -53,7 +53,7 @@ export function EnqueteCard({
               </Badge>
             ) : (
               respondida && (
-                <Badge variant="secondary" role="status" className="shrink-0 text-emerald-700 dark:text-emerald-400">
+                <Badge variant="secondary" className="shrink-0 text-emerald-700 dark:text-emerald-400">
                   <CircleCheck aria-hidden /> Respondida
                 </Badge>
               )
@@ -101,7 +101,9 @@ export function EnqueteCard({
             <Progress
               className="h-1.5 flex-1"
               value={membros === 0 ? 0 : (votantes / membros) * 100}
-              aria-label={`${votantes} de ${membros} votaram nesta pergunta`}
+              // O texto ao lado diz o mesmo; a barra fica fora da leitura
+              // para não repetir em cada pergunta (ADR-0015).
+              aria-hidden
             />
             <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
               {votantes} de {membros} votaram

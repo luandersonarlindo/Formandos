@@ -8,10 +8,18 @@ type Estado = { votos: number; votei: boolean };
 
 export function BotaoUpvote({
   duvidaId,
+  duvida,
   votos,
   votei,
   somenteLeitura = false,
-}: { duvidaId: string; somenteLeitura?: boolean } & Estado) {
+}: {
+  duvidaId: string;
+  // Texto da dúvida: entra no nome do botão. O leitor de tela lista os botões
+  // fora do contexto, e "Votar nesta dúvida" repetido não diz qual (ADR-0015).
+  duvida: string;
+  somenteLeitura?: boolean;
+} & Estado) {
+  const trecho = duvida.length > 60 ? `${duvida.slice(0, 60).trimEnd()}…` : duvida;
   // Mostra o resultado na hora; o servidor confirma e reordena a lista depois.
   const [otimista, setOtimista] = useOptimistic<Estado>({ votos, votei });
 
@@ -32,7 +40,7 @@ export function BotaoUpvote({
       disabled={somenteLeitura}
       onClick={alternar}
       aria-pressed={otimista.votei}
-      aria-label={otimista.votei ? "Remover meu voto" : "Votar nesta dúvida"}
+      aria-label={`${otimista.votei ? "Remover meu voto" : "Votar nesta dúvida"}: ${trecho}`}
       className={
         otimista.votei
           ? "flex w-12 shrink-0 flex-col items-center gap-0.5 self-start rounded-xl border border-[var(--vitrine-a)]/40 bg-[color-mix(in_oklch,var(--vitrine-a)_12%,transparent)] py-2 text-[var(--vitrine-a)] transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"

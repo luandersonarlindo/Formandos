@@ -124,7 +124,7 @@ export default async function RelatorioPage(
               return (
                 <Card key={enquete.id}>
                   <CardHeader>
-                    <CardTitle className="text-base">{enquete.titulo}</CardTitle>
+                    <CardTitle nivel={3} className="text-base">{enquete.titulo}</CardTitle>
                     <CardDescription>
                       {enquete.votantes} de {relatorio.totalMembros}{" "}
                       {relatorio.totalMembros === 1 ? "membro" : "membros"}{" "}
@@ -160,6 +160,7 @@ export default async function RelatorioPage(
                       <summary className="flex cursor-pointer list-none items-center gap-1.5 text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
                         <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden />
                         Ver como tabela
+                        <span className="sr-only">: {enquete.titulo}</span>
                       </summary>
                       <div className="overflow-x-auto">
                       <table className="mt-2 w-full border-collapse text-left">

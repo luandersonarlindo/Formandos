@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserCheck, UserPlus, X } from "lucide-react";
 import { responderPresenca } from "@/actions/presenca";
 import { FormDialog } from "@/components/features/form-dialog";
@@ -79,14 +79,38 @@ function CamposPresenca({ inicial, limite }: { inicial: Inicial; limite: number 
   function mudar(chave: number, parte: Partial<Acompanhante>) {
     setLinhas((atual) => atual.map((l) => (l.chave === chave ? { ...l, ...parte } : l)));
   }
+  // Para onde o foco vai depois de mexer na lista (ADR-0015). Sem isto, ao
+  // remover uma linha o botão focado some e o leitor de tela volta para o
+  // começo do diálogo; ao adicionar, o campo novo nasce ANTES do botão e a
+  // pessoa teria de voltar para achar.
+  const [focar, setFocar] = useState<string | null>(null);
+  const caixa = useRef<HTMLFieldSetElement>(null);
+  useEffect(() => {
+    if (!focar) return;
+    const alvo =
+      document.getElementById(focar) ??
+      // Lista vazia e sem "Adicionar" (turma sem vagas): volta para a resposta.
+      caixa.current?.querySelector<HTMLElement>("input[name=status]:checked");
+    alvo?.focus();
+    setFocar(null);
+  }, [focar]);
+
   function adicionar() {
     setLinhas((atual) => [...atual, { chave: proxima, nome: "", tipo: "adulto" }]);
+    setFocar(`acompanhante-nome-${proxima}`);
     setProxima((n) => n + 1);
+  }
+  function remover(chave: number) {
+    const i = linhas.findIndex((l) => l.chave === chave);
+    // Linha seguinte; se era a última, a anterior; se acabou, "Adicionar".
+    const vizinha = linhas[i + 1] ?? linhas[i - 1];
+    setLinhas((atual) => atual.filter((l) => l.chave !== chave));
+    setFocar(vizinha ? `acompanhante-remover-${vizinha.chave}` : "acompanhante-adicionar");
   }
 
   return (
     <>
-      <fieldset className="grid gap-2 sm:grid-cols-3">
+      <fieldset ref={caixa} className="grid gap-2 sm:grid-cols-3">
         <legend className="sr-only">Você vai ao evento?</legend>
         {STATUS_PRESENCA.map((s) => (
           <label
@@ -158,8 +182,9 @@ function CamposPresenca({ inicial, limite }: { inicial: Inicial; limite: number 
                     variant="outline"
                     size="sm"
                     className="h-10"
+                    id={`acompanhante-remover-${l.chave}`}
                     aria-label={`Remover o acompanhante ${i + 1}${l.nome ? `, ${l.nome}` : ""}`}
-                    onClick={() => setLinhas((atual) => atual.filter((x) => x.chave !== l.chave))}
+                    onClick={() => remover(l.chave)}
                   >
                     <X aria-hidden /> Remover
                   </Button>
@@ -168,7 +193,7 @@ function CamposPresenca({ inicial, limite }: { inicial: Inicial; limite: number 
             </ul>
           )}
           {linhas.length < vagas && !acima && (
-            <Button type="button" variant="outline" size="sm" className="self-start" onClick={adicionar}>
+            <Button id="acompanhante-adicionar" type="button" variant="outline" size="sm" className="self-start" onClick={adicionar}>
               <UserPlus aria-hidden /> Adicionar acompanhante
             </Button>
           )}

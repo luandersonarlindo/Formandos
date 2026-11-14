@@ -32,9 +32,18 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+// `nivel` transforma o título do card em título de verdade (h2, h3 ou h4), com
+// a mesma aparência. É o que o leitor de tela usa para pular de bloco em bloco
+// (ADR-0015). Sem `nivel` continua um <div>: escolha o nível em cada uso, logo
+// abaixo do título que vem antes na página.
+function CardTitle({
+  className,
+  nivel,
+  ...props
+}: React.ComponentProps<"div"> & { nivel?: 2 | 3 | 4 }) {
+  const Marca = nivel ? (`h${nivel}` as "h2" | "h3" | "h4") : "div";
   return (
-    <div
+    <Marca
       data-slot="card-title"
       className={cn(
         "text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",

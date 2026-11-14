@@ -132,7 +132,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                 }
               >
                 <CardContent className="flex gap-4">
-                  <BotaoUpvote duvidaId={d.id} votos={d.votos} votei={d.votei} somenteLeitura={observador} />
+                  <BotaoUpvote duvidaId={d.id} duvida={d.conteudo} votos={d.votos} votei={d.votei} somenteLeitura={observador} />
                   <div className="min-w-0 flex-1">
                     {(d.destaque || d.respondida) && (
                       <div className="mb-1.5 flex flex-wrap items-center gap-2">

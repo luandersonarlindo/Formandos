@@ -137,6 +137,9 @@ export function GraficoEnquete({ opcoes }: { opcoes: OpcaoRelatorio[] }) {
       aria-label={`Resultados da enquete. ${resumo}`}
     >
       {largura > 0 && (
+        // O resumo acima já é o que o leitor de tela lê; sem isto o texto de
+        // dentro do SVG saía de novo, depois do resumo (ADR-0015).
+        <div aria-hidden>
         <BarChart
           width={largura}
           height={altura}
@@ -176,6 +179,7 @@ export function GraficoEnquete({ opcoes }: { opcoes: OpcaoRelatorio[] }) {
             )}
           />
         </BarChart>
+        </div>
       )}
     </div>
   );

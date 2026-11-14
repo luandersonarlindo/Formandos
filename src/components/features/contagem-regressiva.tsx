@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fraseDaContagem, partesDaContagem } from "@/lib/contagem";
 
 // Só calcula depois de montar, para o HTML do servidor e o do navegador
 // não divergirem (o "agora" é diferente nos dois).
@@ -27,23 +28,29 @@ export function ContagemRegressiva({ dataIso }: { dataIso: string }) {
     );
   }
 
-  const segundos = Math.floor(falta / 1000);
+  const { dias, horas, minutos } = partesDaContagem(falta);
   const partes = [
-    { valor: Math.floor(segundos / 86400), rotulo: "dias" },
-    { valor: Math.floor((segundos % 86400) / 3600), rotulo: "horas" },
-    { valor: Math.floor((segundos % 3600) / 60), rotulo: "min" },
+    { valor: dias, rotulo: "dias" },
+    { valor: horas, rotulo: "horas" },
+    { valor: minutos, rotulo: "min" },
   ];
 
   return (
-    <div className="grid max-w-xs grid-cols-3 gap-2 sm:gap-3">
-      {partes.map(({ valor, rotulo }) => (
-        <div key={rotulo} className="rounded-xl border bg-background/80 px-2 py-2.5 text-center">
-          <p className="vitrine-texto-gradiente text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
-            {String(valor).padStart(2, "0")}
-          </p>
-          <p className="text-xs text-muted-foreground">{rotulo}</p>
-        </div>
-      ))}
-    </div>
+    <>
+      {/* Uma frase só para o leitor de tela; as caixas ficam fora da leitura.
+          Sem região viva: a contagem muda a cada minuto e não deve falar
+          sozinha (ADR-0015). */}
+      <p className="sr-only">{fraseDaContagem(falta)}</p>
+      <div className="grid max-w-xs grid-cols-3 gap-2 sm:gap-3" aria-hidden>
+        {partes.map(({ valor, rotulo }) => (
+          <div key={rotulo} className="rounded-xl border bg-background/80 px-2 py-2.5 text-center">
+            <p className="vitrine-texto-gradiente text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+              {String(valor).padStart(2, "0")}
+            </p>
+            <p className="text-xs text-muted-foreground">{rotulo}</p>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
