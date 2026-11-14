@@ -6,7 +6,9 @@ import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { emailRemovidoDaTurma, enviarEmailSilencioso, urlDoSite } from "@/lib/email";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { PAPEIS } from "@/lib/papeis";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
+import { ERRO_TROCA, trocarPapel } from "@/lib/troca-papel";
 import { dadosParaEmail } from "@/lib/usuarios";
 import type { EstadoForm } from "./tipos";
 import { gerarCodigoConvite } from "@/lib/convite";
@@ -16,7 +18,7 @@ import { gerarCodigoConvite } from "@/lib/convite";
 
 const esquemaMembro = z.object({ usuarioId: z.uuid() });
 const esquemaPapel = esquemaMembro.extend({
-  papel: z.enum(["admin", "participante"]),
+  papel: z.enum(PAPEIS),
 });
 
 export async function regenerarConvite(): Promise<EstadoForm> {
@@ -45,36 +47,22 @@ export async function alterarPapel(
   if (!dados.success) return { erro: "Dados inválidos." };
   const { usuarioId, papel } = dados.data;
 
-  let alterado = false;
-  await transacao(async (db) => {
-    const { rows } = await db.query(
-      "select usuario_id, papel from membros where turma_id = $1 for update",
-      [admin.turmaId],
-    );
-    const alvo = rows.find((r) => r.usuario_id === usuarioId);
-    if (!alvo) return;
-    const admins = rows.filter((r) => r.papel === "admin").length;
-    // A turma nunca fica sem administrador.
-    if (alvo.papel === "admin" && papel === "participante" && admins === 1) {
-      return;
-    }
-    await db.query(
-      // Quem deixa de ser admin deixa de ser tesouraria (ADR-0005).
-      "update membros set papel = $1::varchar, tesouraria = (tesouraria and $1::varchar = 'admin') where turma_id = $2 and usuario_id = $3",
-      [papel, admin.turmaId, usuarioId],
-    );
+  const resultado = await transacao(async (db) => {
+    const r = await trocarPapel(db, { turmaId: admin.turmaId, usuarioId, papel });
+    if (r.tipo !== "ok") return r;
     await registrarAuditoria(db, {
       usuarioId: admin.usuarioId,
       turmaId: admin.turmaId,
       acao: "papel.trocado",
       entidade: "membro",
       entidadeId: usuarioId,
-      detalhe: { de: alvo.papel, para: papel },
+      detalhe: { de: r.de, para: r.para, votosApagados: r.votosApagados },
     });
-    alterado = true;
+    return r;
   });
-  revalidatePath("/admin/membros");
-  if (!alterado) return { erro: "A turma não pode ficar sem administrador." };
+  if (resultado.tipo !== "ok") return { erro: ERRO_TROCA[resultado.tipo] };
+  // O papel muda o menu, o quórum e as contas de quase toda tela.
+  revalidatePath("/", "layout");
   return { ok: "Papel atualizado." };
 }
 

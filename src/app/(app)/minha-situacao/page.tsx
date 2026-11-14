@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { HandCoins, History, Info, Landmark, Lock, ScrollText, Wallet, X } from "lucide-react";
 import { cancelarInforme, informarPagamento } from "@/actions/tesouraria";
 import { CamposLancamento } from "@/components/features/campos-lancamento";
@@ -38,6 +39,8 @@ const ROTULO_STATUS = {
 // parcela. Só a própria pessoa e a tesouraria veem estes valores.
 export default async function MinhaSituacaoPage() {
   const membro = await exigirMembro();
+  // Observador não tem parcelas nem pagamentos (ADR-0012).
+  if (membro.papel === "observador") redirect("/dashboard");
   const hoje = hojeBrasil();
   const [{ situacao: s, lancamentos, ultimaAtualizacao, tesouraria }, caixa, mudancas] = await Promise.all([
     getMinhaSituacao(membro.turmaId, membro.usuarioId, hoje),

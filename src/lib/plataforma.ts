@@ -2,6 +2,7 @@ import "server-only";
 import { pool } from "./db";
 import { padraoBusca, sqlNormalizado } from "./busca";
 import { calcularPaginas, deslocamento, limitarPagina } from "./paginacao";
+import type { Papel } from "./papeis";
 
 // Consultas da área master: enxergam TODAS as turmas (sem filtro de turma).
 // Só chame depois de exigirMaster().
@@ -79,7 +80,7 @@ export type MembroTurma = {
   name: string;
   email: string;
   image: string | null;
-  papel: "admin" | "participante";
+  papel: Papel;
 };
 
 export type TurmaDetalhe = {
@@ -153,7 +154,7 @@ export type UsuarioPlataforma = {
   image: string | null;
   emailVerificado: boolean;
   criadoEm: Date;
-  turmas: { id: string; nome: string; papel: "admin" | "participante" }[];
+  turmas: { id: string; nome: string; papel: Papel }[];
 };
 
 export async function listarUsuarios(

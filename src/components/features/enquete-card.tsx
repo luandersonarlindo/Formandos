@@ -18,12 +18,15 @@ type EnqueteCardProps = {
   enquete: EnqueteVotacao;
   selecionadas: string[];
   aoAlternar: (enqueteId: string, opcaoId: string) => void;
+  // Observador (ADR-0012): vê a pergunta, mas as opções ficam travadas.
+  somenteLeitura?: boolean;
 };
 
 export function EnqueteCard({
   enquete,
   selecionadas,
   aoAlternar,
+  somenteLeitura = false,
 }: EnqueteCardProps) {
   const { id, titulo, tipo, opcoes, decisao, encerrada, prazo, quorumPct, secreto, votantes, membros } =
     enquete;
@@ -123,7 +126,7 @@ export function EnqueteCard({
                 value={o.id}
                 checked={selecionadas.includes(o.id)}
                 onChange={() => aoAlternar(id, o.id)}
-                disabled={fechada}
+                disabled={fechada || somenteLeitura}
                 className="size-4 accent-[var(--vitrine-a)]"
               />
               <span className="flex min-w-0 flex-col">

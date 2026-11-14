@@ -32,6 +32,7 @@ export default async function CatalogoPage(
   if (!z.uuid().safeParse(catalogoId).success) notFound();
 
   const catalogo = await getCatalogoParaVotar(catalogoId, membro);
+  const observador = membro.papel === "observador";
   if (!catalogo) notFound();
 
   const enquetes = catalogo.categorias.flatMap((c) => c.enquetes);
@@ -55,28 +56,38 @@ export default async function CatalogoPage(
         </Badge>
       </div>
 
-      <Card className="vitrine-fundo-hero mt-4">
-        <CardHeader>
-          <CardDescription>Seu progresso neste catálogo</CardDescription>
-          <CardTitle role="status" className="text-2xl tabular-nums">
-            <span data-contar={respondidas}>{respondidas}</span>{" "}
-            <span className="text-base font-normal text-muted-foreground">
-              de {enquetes.length} respondidas
-            </span>
-          </CardTitle>
-          <Progress
-            className="mt-2 h-2"
-            value={enquetes.length === 0 ? 0 : (respondidas / enquetes.length) * 100}
-            aria-label="Seu progresso neste catálogo"
-          />
-        </CardHeader>
-      </Card>
+      {observador ? (
+        <p role="status" className="mt-4 flex items-start gap-2 rounded-xl border bg-muted/50 p-3 text-sm">
+          <Eye className="mt-0.5 size-4 shrink-0" aria-hidden />
+          Você acompanha esta turma como observador e não vota. As perguntas e a
+          participação aparecem abaixo.
+        </p>
+      ) : (
+        <>
+        <Card className="vitrine-fundo-hero mt-4">
+          <CardHeader>
+            <CardDescription>Seu progresso neste catálogo</CardDescription>
+            <CardTitle role="status" className="text-2xl tabular-nums">
+              <span data-contar={respondidas}>{respondidas}</span>{" "}
+              <span className="text-base font-normal text-muted-foreground">
+                de {enquetes.length} respondidas
+              </span>
+            </CardTitle>
+            <Progress
+              className="mt-2 h-2"
+              value={enquetes.length === 0 ? 0 : (respondidas / enquetes.length) * 100}
+              aria-label="Seu progresso neste catálogo"
+            />
+          </CardHeader>
+        </Card>
 
-      {/* Repetido aqui, onde a pessoa vota, e não só na lista (ADR-0001). */}
-      <p className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
-        <Eye className="mt-0.5 size-4 shrink-0" aria-hidden />
-        {AVISO_VISIBILIDADE_VOTO}
-      </p>
+        {/* Repetido aqui, onde a pessoa vota, e não só na lista (ADR-0001). */}
+        <p className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+          <Eye className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {AVISO_VISIBILIDADE_VOTO}
+        </p>
+        </>
+      )}
 
       {/* top-14, e nao top-0: o cabecalho do painel (app-shell.tsx) e
           sticky em top-0 e tem a mesma altura. Com top-0 as duas barras
@@ -99,7 +110,7 @@ export default async function CatalogoPage(
         </nav>
       )}
 
-      <FormVotacaoCatalogo catalogo={catalogo} />
+      <FormVotacaoCatalogo catalogo={catalogo} somenteLeitura={observador} />
 
       {enquetes.length === 0 && (
         <EstadoVazio

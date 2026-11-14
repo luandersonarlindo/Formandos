@@ -1,3 +1,4 @@
+import { contaComoFormandoSql, type Papel } from "./papeis";
 import "server-only";
 import { pool } from "./db";
 import { catalogoVisivelSql } from "./catalogo-visibilidade";
@@ -177,7 +178,10 @@ export async function getCatalogoAdmin(
         group by o.enquete_id`,
       [catalogoId, turmaId],
     ),
-    pool.query("select count(*)::int as n from membros where turma_id = $1", [turmaId]),
+    pool.query(
+      `select count(*)::int as n from membros where turma_id = $1 and ${contaComoFormandoSql()}`,
+      [turmaId],
+    ),
   ]);
   const n = new Map<string, number>(votantes.rows.map((r) => [r.enquete_id, r.n]));
 
@@ -293,7 +297,7 @@ export async function getVotosEnquete(
       `select u.id, u.name as nome, u.image as imagem
          from membros m
          join usuarios u on u.id = m.usuario_id
-        where m.turma_id = $1
+        where m.turma_id = $1 and ${contaComoFormandoSql("m")}
           and not exists (
             select 1 from votos v
               join opcoes o on o.id = v.opcao_id
@@ -334,6 +338,7 @@ export async function getResumoAdmin(turmaId: string) {
   const { rows } = await pool.query(
     `select
        (select count(*) from membros where turma_id = $1)::int as membros,
+       (select count(*) from membros where turma_id = $1 and ${contaComoFormandoSql()})::int as formandos,
        (select count(distinct usuario_id) from votos where turma_id = $1)::int as votantes,
        (select count(*) from tarefas where turma_id = $1 and status <> 'concluida')::int as "tarefasAbertas",
        (select count(*) from duvidas where turma_id = $1 and not respondida)::int as "duvidasAbertas",
@@ -345,6 +350,8 @@ export async function getResumoAdmin(turmaId: string) {
   );
   return rows[0] as {
     membros: number;
+    // Quem vota e paga: a turma sem os observadores (ADR-0012).
+    formandos: number;
     votantes: number;
     tarefasAbertas: number;
     duvidasAbertas: number;
@@ -367,7 +374,7 @@ export type LinhaMembro = {
   name: string;
   email: string;
   image: string | null;
-  papel: "admin" | "participante";
+  papel: Papel;
   // Cuida do dinheiro da turma (ADR-0005). Só admin pode ser.
   tesouraria: boolean;
   // Total confirmado que a pessoa pagou. A página só mostra o valor para a
@@ -382,7 +389,7 @@ export type PaginaMembros = {
   pagina: number;
   totalPaginas: number;
   // Turma inteira, sem a busca: "último administrador" depende disso.
-  totais: { membros: number; admins: number };
+  totais: { membros: number; admins: number; observadores: number };
   // Quantos membros batem com a busca (igual a `totais.membros` sem busca).
   encontrados: number;
 };
@@ -398,7 +405,8 @@ export async function listarMembrosAdmin(
     rows: [totais],
   } = await pool.query(
     `select count(*)::int as membros,
-            (count(*) filter (where papel = 'admin'))::int as admins
+            (count(*) filter (where papel = 'admin'))::int as admins,
+            (count(*) filter (where papel = 'observador'))::int as observadores
        from membros where turma_id = $1`,
     [turmaId],
   );

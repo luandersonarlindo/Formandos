@@ -30,8 +30,12 @@ function EnqueteDoCatalogo(
 // uma vez. Enquete que ficou sem marcação simplesmente não entra no save.
 export function FormVotacaoCatalogo({
   catalogo,
+  somenteLeitura = false,
 }: {
   catalogo: CatalogoVotacao;
+  // Observador (ADR-0012): vê as perguntas e os totais, mas não vota. É só a
+  // parte visível; quem recusa o voto é a action (exigirFormandoEditavel).
+  somenteLeitura?: boolean;
 }) {
   const [selecionadas, setSelecionadas] = useState<Record<string, string[]>>(
     () => {
@@ -124,13 +128,14 @@ export function FormVotacaoCatalogo({
                 enquete={enquete}
                 selecionadas={selecionadas[enquete.id] ?? []}
                 aoAlternar={alternar}
+                somenteLeitura={somenteLeitura}
               />
             ))}
           </div>
         </section>
       ))}
 
-      {enquetes.length > 0 && (
+      {enquetes.length > 0 && !somenteLeitura && (
         <div className="sticky bottom-3 z-20 mt-6">
           <Card className="mx-auto max-w-3xl border bg-background/90 backdrop-blur">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">

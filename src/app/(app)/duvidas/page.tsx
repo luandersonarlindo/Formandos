@@ -48,6 +48,7 @@ const FILTROS = [
 export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas">) {
   const membro = await exigirMembro();
   const ehAdmin = membro.papel === "admin";
+  const observador = membro.papel === "observador";
   const { filtro: parametro, pagina: paginaParametro } = await searchParams;
   const filtro = FILTROS.find((f) => f.valor === parametro)?.valor ?? "todas";
   const { itens: visiveis, pagina, totalPaginas, contagens } = await listarDuvidas(membro, {
@@ -71,11 +72,18 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
         </p>
       )}
 
-      <Card className="mt-6">
-        <CardContent>
-          <FormNovaDuvida />
-        </CardContent>
-      </Card>
+      {observador ? (
+        <p role="status" className="mt-6 rounded-xl border bg-muted/50 p-3 text-sm text-muted-foreground">
+          Você acompanha esta turma como observador: vê as dúvidas e as
+          respostas, mas não envia nem apoia.
+        </p>
+      ) : (
+        <Card className="mt-6">
+          <CardContent>
+            <FormNovaDuvida />
+          </CardContent>
+        </Card>
+      )}
 
       <nav
         aria-label="Filtrar dúvidas"
@@ -124,7 +132,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                 }
               >
                 <CardContent className="flex gap-4">
-                  <BotaoUpvote duvidaId={d.id} votos={d.votos} votei={d.votei} />
+                  <BotaoUpvote duvidaId={d.id} votos={d.votos} votei={d.votei} somenteLeitura={observador} />
                   <div className="min-w-0 flex-1">
                     {(d.destaque || d.respondida) && (
                       <div className="mb-1.5 flex flex-wrap items-center gap-2">
@@ -157,7 +165,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                       {d.autor} · {formatarData.format(d.criadaEm)}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {d.autorId === membro.usuarioId && (
+                      {!observador && d.autorId === membro.usuarioId && (
                         <FormDialog
                           rotulo="Editar dúvida"
                           icone={<Pencil className="size-3.5" aria-hidden />}
@@ -178,7 +186,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                           />
                         </FormDialog>
                       )}
-                      {!ehAdmin && d.autorId === membro.usuarioId && (
+                      {!ehAdmin && !observador && d.autorId === membro.usuarioId && (
                         <ConfirmarExclusao
                           acao={excluirDuvida}
                           campos={{ duvidaId: d.id }}

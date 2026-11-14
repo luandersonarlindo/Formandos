@@ -28,6 +28,7 @@ import { BotaoSair } from "./botao-sair";
 import { ConteudoTurma } from "./conteudo-turma";
 import { SidebarAutoClose } from "./sidebar-auto-close";
 import { SidebarNavLink } from "./sidebar-nav-link";
+import type { Papel } from "@/lib/papeis";
 
 export type ItemMenu = {
   href: string;
@@ -40,7 +41,7 @@ type Rodape = { href: string; rotulo: string };
 
 export type SeletorTurmas = {
   ativaId: string;
-  lista: { id: string; nome: string; papel: "admin" | "participante"; arquivada: boolean }[];
+  lista: { id: string; nome: string; papel: Papel; arquivada: boolean }[];
   podeAdicionar: boolean;
 };
 

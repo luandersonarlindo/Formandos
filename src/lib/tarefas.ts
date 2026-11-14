@@ -1,3 +1,4 @@
+import { contaComoFormandoSql } from "./papeis";
 import "server-only";
 import { pool } from "./db";
 import { calcularPaginas, deslocamento, limitarPagina } from "./paginacao";
@@ -84,7 +85,7 @@ export async function listarMembros(membro: Membro): Promise<MembroSimples[]> {
     `select u.id, u.name as nome
        from membros m
        join usuarios u on u.id = m.usuario_id
-      where m.turma_id = $1
+      where m.turma_id = $1 and ${contaComoFormandoSql("m")}
       order by u.name`,
     [membro.turmaId],
   );

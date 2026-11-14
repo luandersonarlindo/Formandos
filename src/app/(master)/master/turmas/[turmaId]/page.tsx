@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { lerBusca } from "@/lib/busca";
 import { exigirMaster } from "@/lib/dal";
 import { getTurma } from "@/lib/plataforma";
+import { ROTULO_PAPEL } from "@/lib/papeis";
 
 export const metadata: Metadata = { title: "Turma" };
 
@@ -131,7 +132,7 @@ export default async function TurmaMasterPage(
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                     <Badge variant={m.papel === "admin" ? "default" : "secondary"}>
-                      {m.papel === "admin" ? "Administrador" : "Participante"}
+                      {ROTULO_PAPEL[m.papel]}
                     </Badge>
                     {!ultimoAdmin && (
                       <>

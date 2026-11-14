@@ -1,3 +1,4 @@
+import { contaComoFormandoSql } from "./papeis";
 import "server-only";
 import { pool } from "./db";
 import type { EventoAdmin } from "./admin";
@@ -43,6 +44,8 @@ export type ResumoTurma = {
 
 export type ResumoAdmin = {
   membros: number;
+  // Quem vota: a turma sem os observadores (ADR-0012).
+  formandos: number;
   votantes: number;
   tarefasAbertas: number;
   duvidasAbertas: number;
@@ -77,6 +80,7 @@ export async function getResumosDashboard(
   const { rows } = await pool.query(
     `select
        (select count(*) from membros where turma_id = $1)::int as membros,
+       (select count(*) from membros where turma_id = $1 and ${contaComoFormandoSql()})::int as formandos,
        (select count(*) from tarefas where turma_id = $1)::int as "tarefasTotal",
        (select count(*) from tarefas
          where turma_id = $1 and status = 'concluida')::int as "tarefasConcluidas",
@@ -119,6 +123,7 @@ export async function getResumosDashboard(
     admin: ehAdmin
       ? {
           membros: r.membros,
+          formandos: r.formandos,
           votantes: r.votantes,
           tarefasAbertas: r.tarefasAbertas,
           duvidasAbertas: r.duvidasAbertas,

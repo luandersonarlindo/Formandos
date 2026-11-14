@@ -1,3 +1,4 @@
+import { contaComoFormandoSql } from "./papeis";
 import "server-only";
 import { pool } from "./db";
 import { normalizar } from "./busca";
@@ -131,7 +132,7 @@ export async function listarSituacoes(
     pool.query(
       `select u.id, u.name as nome, u.email, u.image as imagem
          from membros m join usuarios u on u.id = m.usuario_id
-        where m.turma_id = $1 order by u.name`,
+        where m.turma_id = $1 and ${contaComoFormandoSql("m")} order by u.name`,
       [turmaId],
     ),
     pool.query(
@@ -206,7 +207,7 @@ export async function getPessoaTesouraria(turmaId: string, usuarioId: string, ho
   const { rows } = await pool.query(
     `select u.id, u.name as nome, u.email, u.image as imagem
        from membros m join usuarios u on u.id = m.usuario_id
-      where m.turma_id = $1 and m.usuario_id = $2`,
+      where m.turma_id = $1 and m.usuario_id = $2 and ${contaComoFormandoSql("m")}`,
     [turmaId, usuarioId],
   );
   if (rows.length === 0) return null;
@@ -259,7 +260,7 @@ export async function getCaixa(turmaId: string) {
        coalesce((select sum(case when tipo = 'devolucao' then -valor else valor end)
                    from pagamentos where turma_id = $1 and status = 'confirmado'), 0)::float8 as arrecadado,
        coalesce((select sum(valor) from parcelas where turma_id = $1), 0)::float8 as "planoPorPessoa",
-       (select count(*) from membros where turma_id = $1)::int as membros,
+       (select count(*) from membros where turma_id = $1 and ${contaComoFormandoSql()})::int as membros,
        (select regras_dinheiro from turmas where id = $1) as "regrasDinheiro"`,
     [turmaId],
   );

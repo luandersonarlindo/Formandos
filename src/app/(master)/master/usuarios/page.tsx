@@ -118,7 +118,7 @@ export default async function UsuariosMasterPage({ searchParams }: PageProps<"/m
                           href={`/master/turmas/${t.id}`}
                           className="rounded-full border px-2.5 py-0.5 text-xs transition-colors hover:bg-muted"
                         >
-                          {t.nome} · {t.papel === "admin" ? "admin" : "participante"}
+                          {t.nome} · {t.papel}
                         </Link>
                       ))
                     ) : (

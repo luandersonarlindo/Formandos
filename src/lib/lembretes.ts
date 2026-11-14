@@ -1,3 +1,4 @@
+import { contaComoFormandoSql } from "./papeis";
 import "server-only";
 import { pool } from "./db";
 import { emailPrazoParcela, emailPrazoVotacao, urlDoSite } from "./email";
@@ -38,7 +39,7 @@ async function lembrarVotacoes(): Promise<number> {
     const { rows: pessoas } = await pool.query<Destinatario>(
       `select u.id as "usuarioId", u.name as nome, u.email
          from membros m join usuarios u on u.id = m.usuario_id
-        where m.turma_id = $1 and u.receber_emails and u."emailVerified"
+        where m.turma_id = $1 and ${contaComoFormandoSql("m")} and u.receber_emails and u."emailVerified"
           and not exists (
             select 1 from votos vo join opcoes o on o.id = vo.opcao_id
              where o.enquete_id = $2 and vo.turma_id = $1 and vo.usuario_id = m.usuario_id)
@@ -78,7 +79,7 @@ async function lembrarParcelas(hoje: string): Promise<number> {
       pool.query<Destinatario>(
         `select u.id as "usuarioId", u.name as nome, u.email
            from membros m join usuarios u on u.id = m.usuario_id
-          where m.turma_id = $1 and u.receber_emails and u."emailVerified"`,
+          where m.turma_id = $1 and ${contaComoFormandoSql("m")} and u.receber_emails and u."emailVerified"`,
         [turma.id],
       ),
       pool.query(

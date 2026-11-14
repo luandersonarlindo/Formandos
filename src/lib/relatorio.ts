@@ -1,3 +1,4 @@
+import { contaComoFormandoSql } from "./papeis";
 import "server-only";
 import { pool } from "./db";
 import { catalogoVisivelSql, enqueteVisivelSql } from "./catalogo-visibilidade";
@@ -65,9 +66,10 @@ export async function getRelatorio(
         group by o.enquete_id`,
       [catalogoId, membro.turmaId],
     ),
-    pool.query("select count(*)::int as total from membros where turma_id = $1", [
-      membro.turmaId,
-    ]),
+    pool.query(
+      `select count(*)::int as total from membros where turma_id = $1 and ${contaComoFormandoSql()}`,
+      [membro.turmaId],
+    ),
   ]);
 
   const votantesPorEnquete = new Map<string, number>(

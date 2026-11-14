@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirMembroEditavel } from "@/lib/dal";
+import { exigirFormandoEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { consumirLimite } from "@/lib/throttle";
 import type { EstadoForm } from "./tipos";
@@ -19,7 +19,7 @@ export async function enviarDuvida(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const membro = await exigirMembroEditavel();
+  const membro = await exigirFormandoEditavel();
   const texto = String(formData.get("conteudo") ?? "");
 
   const dados = esquemaDuvida.safeParse({ conteudo: texto });
@@ -49,7 +49,7 @@ export async function editarDuvida(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const membro = await exigirMembroEditavel();
+  const membro = await exigirFormandoEditavel();
   const dados = esquemaDuvida
     .extend({ duvidaId: z.uuid() })
     .safeParse(Object.fromEntries(formData));
@@ -67,7 +67,7 @@ export async function editarDuvida(
 // O autor pode apagar a própria dúvida. O administrador apaga a de qualquer
 // membro da turma direto na mesma página.
 export async function excluirDuvida(formData: FormData): Promise<EstadoForm> {
-  const membro = await exigirMembroEditavel();
+  const membro = await exigirFormandoEditavel();
   const dados = z.object({ duvidaId: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dúvida não encontrada." };
 
@@ -82,7 +82,7 @@ export async function excluirDuvida(formData: FormData): Promise<EstadoForm> {
 
 // Liga ou desliga o upvote do usuário. Só vale para dúvidas da própria turma.
 export async function alternarUpvote(duvidaId: string) {
-  const membro = await exigirMembroEditavel();
+  const membro = await exigirFormandoEditavel();
   if (!z.uuid().safeParse(duvidaId).success) return;
 
   await transacao(

@@ -1,3 +1,4 @@
+import { contaComoFormandoSql } from "./papeis";
 import "server-only";
 import { pool } from "./db";
 import { catalogoVisivelSql, enqueteVisivelSql } from "./catalogo-visibilidade";
@@ -158,7 +159,11 @@ export async function getCatalogoParaVotar(
         group by o.enquete_id`,
       [catalogoId, membro.turmaId],
     ),
-    pool.query("select count(*)::int as n from membros where turma_id = $1", [membro.turmaId]),
+    // Observador não entra na conta da turma (ADR-0012).
+    pool.query(
+      `select count(*)::int as n from membros where turma_id = $1 and ${contaComoFormandoSql()}`,
+      [membro.turmaId],
+    ),
   ]);
   const votantesPor = new Map<string, number>(contagem.rows.map((r) => [r.enquete_id, r.n]));
   const justificativas = new Map<string, string | null>(

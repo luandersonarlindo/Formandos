@@ -1,9 +1,10 @@
 "use server";
 
+import { contaComoFormandoSql } from "@/lib/papeis";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { exigirAdminEditavel, exigirMembroEditavel, exigirTesourariaEditavel } from "@/lib/dal";
+import { exigirAdminEditavel, exigirFormandoEditavel, exigirTesourariaEditavel } from "@/lib/dal";
 import { consumirLimite } from "@/lib/throttle";
 import { transacao } from "@/lib/db";
 import { lerValorPessoa } from "@/lib/opcao-detalhe";
@@ -213,7 +214,8 @@ export async function lancarPagamento(_estado: EstadoForm, formData: FormData): 
   const resultado = await transacao(
     async (db) => {
       const { rowCount } = await db.query(
-        "select 1 from membros where turma_id = $1 and usuario_id = $2",
+        // Observador não tem parcelas nem pagamentos (ADR-0012).
+        `select 1 from membros where turma_id = $1 and usuario_id = $2 and ${contaComoFormandoSql()}`,
         [tesouraria.turmaId, usuarioId],
       );
       if (!rowCount) return "inexistente" as const;
@@ -319,7 +321,7 @@ const MAX_INFORMES_POR_DIA = 10;
 // O formando informa um pagamento que fez. Entra como "informado" e só conta
 // na situação depois que a tesouraria confirma. Tipo é sempre pagamento.
 export async function informarPagamento(_estado: EstadoForm, formData: FormData): Promise<EstadoForm> {
-  const membro = await exigirMembroEditavel();
+  const membro = await exigirFormandoEditavel();
   formData.set("usuarioId", membro.usuarioId);
   formData.set("tipo", "pagamento");
   const lido = lerLancamento(formData);
@@ -363,7 +365,7 @@ export async function informarPagamento(_estado: EstadoForm, formData: FormData)
 
 // O próprio formando desiste de um informe que ainda não foi conferido.
 export async function cancelarInforme(formData: FormData) {
-  const membro = await exigirMembroEditavel();
+  const membro = await exigirFormandoEditavel();
   const dados = z.object({ id: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
   await transacao(async (db) => {

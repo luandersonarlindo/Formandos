@@ -1,8 +1,9 @@
 "use server";
 
+import { contaComoFormandoSql } from "@/lib/papeis";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirAdminEditavel, exigirMembroEditavel } from "@/lib/dal";
+import { exigirAdminEditavel, exigirFormandoEditavel, exigirMembroEditavel } from "@/lib/dal";
 import { pool } from "@/lib/db";
 import { STATUS_TAREFA } from "@/lib/tarefas";
 import type { EstadoForm } from "./tipos";
@@ -54,7 +55,8 @@ const esquemaId = z.object({ tarefaId: z.uuid() });
 async function responsavelValido(turmaId: string, usuarioId: string | null) {
   if (!usuarioId) return true;
   const { rowCount } = await pool.query(
-    "select 1 from membros where turma_id = $1 and usuario_id = $2",
+    // Observador não assume tarefa (ADR-0012).
+    `select 1 from membros where turma_id = $1 and usuario_id = $2 and ${contaComoFormandoSql()}`,
     [turmaId, usuarioId],
   );
   return !!rowCount;
@@ -111,7 +113,7 @@ export async function atualizarStatusTarefa(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const membro = await exigirMembroEditavel();
+  const membro = await exigirFormandoEditavel();
   const dados = esquemaStatus.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dados inválidos." };
 

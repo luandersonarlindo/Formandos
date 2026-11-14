@@ -47,6 +47,7 @@ import {
   formatarDiaCurto,
   formatarHora,
 } from "@/lib/datas";
+import { ROTULO_PAPEL } from "@/lib/papeis";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -124,7 +125,7 @@ export default async function DashboardPage() {
             {membro.turmaNome}
           </h1>
           <Badge variant={membro.papel === "admin" ? "default" : "secondary"}>
-            {membro.papel === "admin" ? "Administrador" : "Participante"}
+            {ROTULO_PAPEL[membro.papel]}
           </Badge>
         </div>
         {detalhes.descricao && (
@@ -266,7 +267,7 @@ export default async function DashboardPage() {
             <Indicador
               titulo="Participação nas votações"
               valor={resumoAdmin.votantes}
-              total={resumoAdmin.membros}
+              total={resumoAdmin.formandos}
               href="/admin/votacoes"
               rotulo="Membros que já votaram"
               icone={Vote}

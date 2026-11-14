@@ -14,7 +14,9 @@ import {
 import { registrarAuditoria } from "@/lib/auditoria";
 import { apagarTurma } from "@/lib/fim-da-turma";
 import { emailsMaster } from "@/lib/master";
+import { PAPEIS } from "@/lib/papeis";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
+import { ERRO_TROCA, trocarPapel } from "@/lib/troca-papel";
 import { apagarUsuario, dadosParaEmail } from "@/lib/usuarios";
 import type { EstadoForm } from "./tipos";
 
@@ -24,7 +26,7 @@ import type { EstadoForm } from "./tipos";
 
 const esquemaMembro = z.object({ turmaId: z.uuid(), usuarioId: z.uuid() });
 const esquemaPapel = esquemaMembro.extend({
-  papel: z.enum(["admin", "participante"]),
+  papel: z.enum(PAPEIS),
 });
 
 function revalidarTurma(turmaId: string) {
@@ -43,35 +45,21 @@ export async function alterarPapelMaster(
   if (!dados.success) return { erro: "Dados inválidos." };
   const { turmaId, usuarioId, papel } = dados.data;
 
-  let alterado = false;
-  await transacao(async (db) => {
-    const { rows } = await db.query(
-      "select usuario_id, papel from membros where turma_id = $1 for update",
-      [turmaId],
-    );
-    const alvo = rows.find((r) => r.usuario_id === usuarioId);
-    if (!alvo) return;
-    const admins = rows.filter((r) => r.papel === "admin").length;
-    // A turma nunca fica sem administrador.
-    if (alvo.papel === "admin" && papel === "participante" && admins === 1) {
-      return;
-    }
-    await db.query(
-      "update membros set papel = $1 where turma_id = $2 and usuario_id = $3",
-      [papel, turmaId, usuarioId],
-    );
+  const resultado = await transacao(async (db) => {
+    const r = await trocarPapel(db, { turmaId, usuarioId, papel });
+    if (r.tipo !== "ok") return r;
     await registrarAuditoria(db, {
       usuarioId: master.id,
       turmaId,
       acao: "papel.trocado",
       entidade: "membro",
       entidadeId: usuarioId,
-      detalhe: { de: alvo.papel, para: papel, por: "master" },
+      detalhe: { de: r.de, para: r.para, votosApagados: r.votosApagados, por: "master" },
     });
-    alterado = true;
+    return r;
   });
+  if (resultado.tipo !== "ok") return { erro: ERRO_TROCA[resultado.tipo] };
   revalidarTurma(turmaId);
-  if (!alterado) return { erro: "A turma não pode ficar sem administrador." };
   return { ok: "Papel atualizado." };
 }
 

@@ -46,7 +46,7 @@ create table if not exists membros (
   turma_id   uuid not null references turmas(id) on delete cascade,
   usuario_id uuid not null references usuarios(id) on delete cascade,
   papel      varchar(20) not null default 'participante'
-             check (papel in ('admin', 'participante')),
+             check (papel in ('admin', 'participante', 'observador')),
   created_at timestamptz not null default now(),
   primary key (turma_id, usuario_id)
 );
@@ -440,3 +440,10 @@ alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
 -- nenhuma planilha liga a pessoa à opção. O voto continua com `usuario_id`
 -- (um voto por pessoa, troca de voto). Só muda enquanto a pergunta não tem voto.
 alter table regras_enquete add column if not exists secreto boolean not null default false;
+
+-- Papel de observador (ADR-0012): professor, orientador ou coordenador. Só lê,
+-- confirma a própria presença e não entra na conta da turma (quórum, parcelas,
+-- lembretes de prazo). Bancos antigos têm o `check` com dois valores.
+alter table membros drop constraint if exists membros_papel_check;
+alter table membros add constraint membros_papel_check
+  check (papel in ('admin', 'participante', 'observador'));

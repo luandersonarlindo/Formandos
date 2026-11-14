@@ -34,7 +34,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <AppShell
       titulo={membro.turmaNome}
       turmas={await getSeletorTurmas(membro.turmaId)}
-      itens={itens}
+      // Observador não tem parcelas (ADR-0012): o item some do menu.
+      itens={membro.papel === "observador" ? itens.filter((i) => i.href !== "/minha-situacao") : itens}
       arquivadaEm={membro.arquivadaEm?.toISOString() ?? null}
       excluirEm={membro.excluirEm}
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}

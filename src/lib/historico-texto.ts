@@ -126,8 +126,19 @@ export function descreverAcao(
     }
     case "papel.trocado":
       return {
-        frase: d.para === "admin" ? `pôs ${pessoa} na comissão.` : `tirou ${pessoa} da comissão.`,
-        detalhes: d.por === "master" ? ["Feito pela gestão da plataforma."] : [],
+        // Observador (ADR-0012): entra e sai sem passar pela comissão.
+        frase:
+          d.para === "admin"
+            ? `pôs ${pessoa} na comissão.`
+            : d.para === "observador"
+              ? `tornou ${pessoa} observador da turma.`
+              : d.de === "observador"
+                ? `tornou ${pessoa} participante da turma.`
+                : `tirou ${pessoa} da comissão.`,
+        detalhes: [
+          ...(d.votosApagados ? [`Votos apagados em perguntas abertas: ${d.votosApagados}.`] : []),
+          ...(d.por === "master" ? ["Feito pela gestão da plataforma."] : []),
+        ],
       };
     case "papel.tesouraria":
       return { frase: d.tesouraria ? `pôs ${pessoa} na tesouraria.` : `tirou ${pessoa} da tesouraria.`, detalhes: [] };

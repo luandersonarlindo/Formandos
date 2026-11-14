@@ -1,5 +1,6 @@
 "use server";
 
+import { contaComoFormandoSql } from "@/lib/papeis";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
@@ -95,7 +96,7 @@ export async function fixarDecisao(
            (select count(distinct v.usuario_id)::int
               from votos v join opcoes o on o.id = v.opcao_id
              where o.enquete_id = $1 and v.turma_id = $2) as votantes,
-           (select count(*)::int from membros where turma_id = $2) as membros`,
+           (select count(*)::int from membros where turma_id = $2 and ${contaComoFormandoSql()}) as membros`,
         [enqueteId, admin.turmaId],
       ),
       db.query(

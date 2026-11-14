@@ -39,7 +39,7 @@ export async function montarPlanilha(tipo: TipoExportacao, turmaId: string): Pro
     case "membros": {
       const { rows } = await pool.query(
         `select u.name as c1, u.email as c2,
-                case when m.papel = 'admin' then 'comissão' else 'participante' end as c3,
+                case m.papel when 'admin' then 'comissão' when 'observador' then 'observador' else 'participante' end as c3,
                 case when m.papel = 'admin' and m.tesouraria then 'sim' else '' end as c4,
                 ${quando("m.created_at")} as c5
            from membros m join usuarios u on u.id = m.usuario_id

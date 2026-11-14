@@ -1,12 +1,15 @@
 // Regras de quem pode ter várias turmas e de qual turma está ativa.
 // São funções puras (sem banco nem cookies) para poderem ser testadas.
 
-export type Papel = "admin" | "participante";
+import type { Papel } from "./papeis";
 
-// Só quem é administrador em alguma turma pode entrar ou criar outra.
-// Quem ainda não tem turma pode entrar na primeira.
+export type { Papel };
+
+// Só quem é administrador ou observador em alguma turma pode entrar ou criar
+// outra (ADR-0012: um professor acompanha várias turmas). Quem ainda não tem
+// turma pode entrar na primeira.
 export function podeEntrarEmOutraTurma(papeis: Papel[]): boolean {
-  return papeis.length === 0 || papeis.includes("admin");
+  return papeis.length === 0 || papeis.some((p) => p === "admin" || p === "observador");
 }
 
 // A turma ativa é a preferida (vinda do cookie), mas só se o usuário for mesmo

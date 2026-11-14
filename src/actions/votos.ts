@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { exigirMembroEditavel } from "@/lib/dal";
+import { exigirFormandoEditavel } from "@/lib/dal";
 import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
 import { pool, transacao } from "@/lib/db";
 import { validarSelecao, votacaoEncerrada } from "@/lib/votos-regras";
@@ -22,7 +22,7 @@ export async function salvarVotos(
   _estado: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
-  const membro = await exigirMembroEditavel();
+  const membro = await exigirFormandoEditavel();
 
   // Freio de pico: com VOTACAO_CONGELADA=1, a votação pausa sem deploy.
   // Decisões do admin (fixar/reabrir) seguem funcionando: é a comissão que

@@ -10,7 +10,8 @@ export function BotaoUpvote({
   duvidaId,
   votos,
   votei,
-}: { duvidaId: string } & Estado) {
+  somenteLeitura = false,
+}: { duvidaId: string; somenteLeitura?: boolean } & Estado) {
   // Mostra o resultado na hora; o servidor confirma e reordena a lista depois.
   const [otimista, setOtimista] = useOptimistic<Estado>({ votos, votei });
 
@@ -27,6 +28,8 @@ export function BotaoUpvote({
   return (
     <button
       type="button"
+      // Observador (ADR-0012) vê a contagem, mas não apoia.
+      disabled={somenteLeitura}
       onClick={alternar}
       aria-pressed={otimista.votei}
       aria-label={otimista.votei ? "Remover meu voto" : "Votar nesta dúvida"}

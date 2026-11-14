@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Crown, Landmark, ListPlus, MailCheck, RefreshCw, RotateCw, X, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users } from "lucide-react";
+import { Crown, Eye, Landmark, ListPlus, MailCheck, RefreshCw, RotateCw, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users, X } from "lucide-react";
 import { alterarPapel, regenerarConvite, removerMembro } from "@/actions/admin";
 import { alternarTesouraria } from "@/actions/tesouraria";
+import { ROTULO_PAPEL } from "@/lib/papeis";
 import { removerConvite, reenviarConvite } from "@/actions/convites";
 import { FormConvitesLista } from "@/components/features/form-convites-lista";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
@@ -49,7 +50,8 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
     ]);
   const codigo: string = membros[0].codigo_convite;
   const totalAdmins = totais.admins;
-  const participantes = totais.membros - totalAdmins;
+  const observadores = totais.observadores;
+  const participantes = totais.membros - totalAdmins - observadores;
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
@@ -66,6 +68,12 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
           <Users className="size-4 text-[var(--vitrine-a)]" aria-hidden />
           {participantes} {participantes === 1 ? "participante" : "participantes"}
         </span>
+        {observadores > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-sm">
+            <Eye className="size-4 text-[var(--vitrine-a)]" aria-hidden />
+            {observadores} {observadores === 1 ? "observador" : "observadores"}
+          </span>
+        )}
       </p>
 
       <Card className="vitrine-fundo-hero mt-6">
@@ -231,7 +239,7 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
                     </div>
                     <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                       <Badge variant={m.papel === "admin" ? "default" : "secondary"}>
-                        {m.papel === "admin" ? "Administrador" : "Participante"}
+                        {ROTULO_PAPEL[m.papel]}
                       </Badge>
                       {m.tesouraria && (
                         <Badge variant="outline">
@@ -273,6 +281,29 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
                             papel: m.papel === "admin" ? "participante" : "admin",
                           }}
                           rotuloSubmit="Trocar papel"
+                          rotuloPendente="Salvando…"
+                        />
+                      )}
+                      {/* Observador (ADR-0012): professor ou orientador que acompanha
+                          sem votar e sem pagar. A troca passa por participante. */}
+                      {/* Um diálogo só para os dois sentidos: assim ele continua
+                          na tela depois da troca e mostra a confirmação. */}
+                      {m.papel !== "admin" && (
+                        <FormDialog
+                          rotulo={m.papel === "observador" ? "Voltar a participante" : "Tornar observador"}
+                          icone={m.papel === "observador" ? <Users aria-hidden /> : <Eye aria-hidden />}
+                          titulo={m.papel === "observador" ? "Voltar a participante" : "Tornar observador"}
+                          descricao={
+                            m.papel === "observador"
+                              ? `${m.name} volta a votar, a contar no quórum e a ter parcelas.`
+                              : `${m.name} passa a acompanhar a turma sem votar e sem pagar: sai do quórum, das parcelas e dos lembretes de prazo. Continua vendo tudo e confirmando a própria presença. Os votos de ${m.name} em perguntas ainda abertas serão apagados. Para professor, orientador ou coordenador.`
+                          }
+                          acao={alterarPapel}
+                          campos={{
+                            usuarioId: m.id,
+                            papel: m.papel === "observador" ? "participante" : "observador",
+                          }}
+                          rotuloSubmit={m.papel === "observador" ? "Voltar a participante" : "Tornar observador"}
                           rotuloPendente="Salvando…"
                         />
                       )}

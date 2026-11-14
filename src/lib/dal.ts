@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "./auth";
 import { pool } from "./db";
 import { ehMaster } from "./master";
+import type { Papel } from "./papeis";
 import { escolherTurmaAtiva, podeEntrarEmOutraTurma } from "./vinculos";
 
 // Data Access Layer: ponto único de checagem de sessão.
@@ -30,7 +31,7 @@ export type Membro = {
   usuarioId: string;
   turmaId: string;
   turmaNome: string;
-  papel: "admin" | "participante";
+  papel: Papel;
   // Admin marcado como tesouraria (ADR-0005): vê e lança o dinheiro de cada um.
   tesouraria: boolean;
   dataEvento: Date | null;
@@ -132,6 +133,15 @@ export async function exigirAdmin() {
 export async function exigirMembroEditavel() {
   const membro = await exigirMembro();
   if (membro.arquivadaEm) redirect("/dashboard");
+  return membro;
+}
+
+// Para o que só formando e comissão fazem (ADR-0012): votar, dúvidas, assumir
+// tarefa, "Já paguei". O observador só lê, então volta ao dashboard. A presença
+// fica de fora: o observador confirma a própria.
+export async function exigirFormandoEditavel() {
+  const membro = await exigirMembroEditavel();
+  if (membro.papel === "observador") redirect("/dashboard");
   return membro;
 }
 

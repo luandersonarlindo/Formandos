@@ -13,6 +13,10 @@ describe("podeEntrarEmOutraTurma", () => {
     expect(podeEntrarEmOutraTurma(["participante"])).toBe(false);
     expect(podeEntrarEmOutraTurma(["participante", "participante"])).toBe(false);
   });
+  it("observador pode acompanhar outra turma (ADR-0012)", () => {
+    expect(podeEntrarEmOutraTurma(["observador"])).toBe(true);
+    expect(podeEntrarEmOutraTurma(["participante", "observador"])).toBe(true);
+  });
 });
 
 describe("escolherTurmaAtiva", () => {
