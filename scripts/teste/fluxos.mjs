@@ -14,6 +14,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { dormir, iniciar } from "./lib/navegador.mjs";
+import { problemasDeFocoNaPresenca, problemasDeLeitura } from "./leitor.mjs";
 
 const TMP = "scripts/teste/.tmp";
 const LOG = process.env.LOG_SERVIDOR ?? `${TMP}/dev.log`;
@@ -453,6 +454,37 @@ await grupo("participante", async () => {
     await salvarResposta();
     await dormir(1800);
     igual(resposta().split(":").slice(0, 2).join(":"), "vou:2", "vou de novo com 2");
+  });
+  await passo("ADR-0015: leitor de tela acha nome, títulos e foco nas telas do formando", async () => {
+    // A sonda lê a árvore de acessibilidade (o que o TalkBack recebe) a 360 px.
+    await nav.tamanho(360, 800, true);
+    try {
+      for (const caminho of ["/dashboard", "/votacoes", `/votacoes/${idPadrao()}`, "/votacoes/relatorio", "/duvidas"]) {
+        await nav.abrir(caminho);
+        const problemas = await problemasDeLeitura(nav);
+        igual(problemas.length, 0, `leitura de ${caminho}: ${problemas.join("; ")}`);
+      }
+      // Navegar por títulos: os blocos do dashboard e cada pergunta.
+      await nav.abrir("/dashboard");
+      const titulos = await nav.ev("[...document.querySelectorAll('main h2')].map((h) => h.textContent.trim())");
+      for (const t of ["Contagem regressiva", "Você vai ao evento?", "Programação da festa", "Sua participação"]) {
+        verdade(titulos.includes(t), `"${t}" é título no dashboard (veio: ${titulos.join(" | ")})`);
+      }
+      // A contagem sai numa frase só; as caixas ficam fora da leitura.
+      const frase = await nav.ev("document.querySelector('main p.sr-only')?.textContent ?? ''");
+      verdade(/^Faltam? .+ para o evento\.$/.test(frase), `frase da contagem: ${frase}`);
+      verdade(await nav.ev("!!document.querySelector('main p.vitrine-texto-gradiente')?.closest('[aria-hidden]')"), "caixas da contagem fora da leitura");
+      await nav.abrir(`/votacoes/${idPadrao()}`);
+      igual(
+        await nav.ev("document.querySelectorAll('main fieldset h3').length === document.querySelectorAll('main fieldset').length"),
+        true,
+        "cada pergunta tem título h3",
+      );
+      const foco = await problemasDeFocoNaPresenca(nav);
+      igual(foco.length, 0, `foco na lista de acompanhantes: ${foco.join("; ")}`);
+    } finally {
+      await nav.tamanho(1280, 900);
+    }
   });
   await passo("participante responsável atualiza o andamento da própria tarefa", async () => {
     await nav.abrir("/tarefas");
@@ -1744,6 +1776,9 @@ await grupo("admin", async () => {
         "noindex, nofollow",
         "fora da busca",
       );
+      // ADR-0015: a página que a família abre também passa na sonda de leitor de tela.
+      const leitura = await problemasDeLeitura(nav);
+      igual(leitura.length, 0, `leitura da página pública: ${leitura.join("; ")}`);
 
       // Mudança de horário: fica no histórico e aparece na página pública.
       const alterado = () => sql(`select count(*) from auditoria where turma_id='${turma}' and acao='evento.alterado'`);

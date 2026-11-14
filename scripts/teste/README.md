@@ -87,6 +87,17 @@ temporariamente `src/app/(app)/teste-erro/` para provocar a tela de erro.
 - `auditoria.mjs`: para cada página e largura, mede estouro horizontal, alvos de
   toque pequenos e erros de console. Abaixo de 1100px liga a emulação de toque.
   Passe uma pasta como 4º argumento para salvar os screenshots.
+- `leitor.mjs`: sonda de leitor de tela (ADR-0015). Lê a árvore de
+  acessibilidade do Chrome a 360px, a mesma que o TalkBack recebe, e falha com
+  controle sem nome, página sem `h1`, nível de título pulado ou dois botões com
+  o mesmo nome. `--ler` imprime a tela na ordem em que o leitor lê; `--presenca`
+  confere o foco ao adicionar e remover acompanhante, sem salvar nada.
+  ```bash
+  node scripts/teste/leitor.mjs scripts/teste/.tmp/cookie-participante.txt /dashboard,/votacoes/relatorio --ler --presenca
+  node scripts/teste/leitor.mjs - /evento/<token>     # página pública, sem login
+  ```
+  Não substitui o teste com TalkBack ou VoiceOver no celular: a árvore prova
+  estrutura, nome e foco, não a ordem dos gestos nem a fala.
 
 ## Dicas
 
