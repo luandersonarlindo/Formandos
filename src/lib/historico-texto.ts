@@ -173,6 +173,14 @@ export function descreverAcao(
       return { frase: `baixou a planilha de ${PLANILHA[d.tipo] ?? d.tipo}.`, detalhes: [] };
     case "pagamento.lancado":
       return { frase: `lançou ${TIPO_PAGAMENTO[d.tipo] ?? "pagamento"} de ${reais(d.valor)} para ${pessoa}.`, detalhes: [] };
+    case "pagamento.importado":
+      return {
+        frase: `importou ${d.linhas} ${d.linhas === 1 ? "pagamento" : "pagamentos"} da planilha, somando ${reais(d.valor)}.`,
+        detalhes: [
+          `De ${d.pessoas} ${d.pessoas === 1 ? "pessoa" : "pessoas"}.`,
+          ...(d.repetidas ? [`${d.repetidas} já estavam lançados e ficaram de fora.`] : []),
+        ],
+      };
     case "pagamento.informado":
       return { frase: `informou um pagamento de ${reais(d.valor)}.`, detalhes: [] };
     case "pagamento.confirmado":

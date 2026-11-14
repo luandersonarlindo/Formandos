@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Archive, ArchiveRestore, CalendarClock, FileDown, FileText, History, TriangleAlert } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { ROTULO_EXPORTACAO, TIPOS_EXPORTACAO } from "@/lib/exportacao";
+import { ROTULO_EXPORTACAO, TIPOS_EXPORTACAO, TIPOS_SO_TESOURARIA } from "@/lib/exportacao";
 import { arquivarTurma, desarquivarTurma, excluirTurmaDoAdmin, mudarPrazoExclusao } from "@/actions/gestao-turma";
 import { CampoPrazoExclusao } from "@/components/features/campo-prazo-exclusao";
 import { FormAcao } from "@/components/features/form-acao";
@@ -57,7 +57,7 @@ export default async function GestaoTurmaPage() {
             </Link>
           </div>
           <div className="flex flex-wrap gap-2">
-            {TIPOS_EXPORTACAO.filter((t) => t !== "pagamentos" || admin.tesouraria).map((t) => (
+            {TIPOS_EXPORTACAO.filter((t) => !TIPOS_SO_TESOURARIA.includes(t) || admin.tesouraria).map((t) => (
               <a
                 key={t}
                 href={`/admin/turma/exportar?tipo=${t}`}

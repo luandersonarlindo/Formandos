@@ -122,11 +122,7 @@ export const POR_PAGINA_TESOURARIA = 20;
 
 // Todos os membros com a situação calculada. Cabe em memória: a turma tem
 // dezenas ou poucas centenas de pessoas, e a situação depende do plano inteiro.
-export async function listarSituacoes(
-  turmaId: string,
-  hoje: string,
-  opcoes: { filtro: FiltroTesouraria; busca: string; pagina: number },
-) {
+export async function todasSituacoes(turmaId: string, hoje: string) {
   const [plano, membros, lancamentos] = await Promise.all([
     getPlano(turmaId),
     pool.query(
@@ -164,6 +160,15 @@ export async function listarSituacoes(
       aguardando: dela.filter((l) => l.status === "informado").length,
     };
   });
+  return { plano, todas };
+}
+
+export async function listarSituacoes(
+  turmaId: string,
+  hoje: string,
+  opcoes: { filtro: FiltroTesouraria; busca: string; pagina: number },
+) {
+  const { plano, todas } = await todasSituacoes(turmaId, hoje);
 
   const contagem: Record<FiltroTesouraria, number> = {
     todos: todas.length,

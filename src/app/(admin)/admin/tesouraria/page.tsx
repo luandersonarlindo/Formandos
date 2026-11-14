@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarRange, HandCoins, Lock, Pencil, Plus, ScrollText, Search } from "lucide-react";
+import { CalendarRange, FileDown, FileUp, HandCoins, Lock, Pencil, Plus, ScrollText, Search } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { AcoesInforme } from "@/components/features/acoes-informe";
 import { atualizarParcela, lancarPagamento, salvarPlano, salvarRegrasDinheiro } from "@/actions/tesouraria";
@@ -8,10 +8,11 @@ import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { CamposLancamento } from "@/components/features/campos-lancamento";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormDialog } from "@/components/features/form-dialog";
+import { FormImportarPagamentos } from "@/components/features/form-importar-pagamentos";
 import { Paginacao } from "@/components/features/paginacao";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -184,6 +185,34 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
           )}
         </CardContent>
       </Card>
+
+      {editavel && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileUp className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Importar da planilha
+            </CardTitle>
+            <CardDescription className="text-pretty">
+              Traga de uma vez os pagamentos que já estão na sua planilha. Entram como confirmados. Com
+              qualquer linha com problema, nada é importado.{" "}
+              <a href="/admin/turma/exportar?tipo=membros" download className="underline underline-offset-4">
+                Baixar a lista de membros com os emails
+              </a>
+              .
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <FormImportarPagamentos />
+            <a
+              href="/admin/turma/exportar?tipo=situacao"
+              download
+              className={buttonVariants({ variant: "outline", size: "sm", className: "self-start" })}
+            >
+              <FileDown aria-hidden /> Situação por pessoa (planilha)
+            </a>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-4">
         <CardHeader>

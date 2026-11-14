@@ -1,14 +1,22 @@
 "use server";
 
-import { contaComoFormandoSql } from "@/lib/papeis";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { exigirAdminEditavel, exigirFormandoEditavel, exigirTesourariaEditavel } from "@/lib/dal";
 import { consumirLimite } from "@/lib/throttle";
 import { transacao } from "@/lib/db";
+import {
+  MAX_LINHAS_IMPORTACAO,
+  REFERENCIA_PADRAO,
+  chavePagamento,
+  descontarExistentes,
+  lerPlanilhaPagamentos,
+} from "@/lib/importar-pagamentos";
 import { lerValorPessoa } from "@/lib/opcao-detalhe";
-import { MAX_PARCELAS, gerarPlano } from "@/lib/situacao-regras";
+import { formatarReal } from "@/lib/orcamento";
+import { contaComoFormandoSql } from "@/lib/papeis";
+import { MAX_PARCELAS, gerarPlano, hojeBrasil } from "@/lib/situacao-regras";
 import type { EstadoForm } from "./tipos";
 
 // Dinheiro que entra (ADR-0005). Toda action confere a turma da sessão; os ids
@@ -470,4 +478,133 @@ export async function salvarRegrasDinheiro(_estado: EstadoForm, formData: FormDa
   });
   revalidarDinheiro();
   return { ok: "Regras salvas. A turma vê em “Minha situação”." };
+}
+
+// ---- Importar da planilha (ADR-0014) ---------------------------------------
+
+const esquemaImportacao = z.object({
+  planilha: z.string().max(120000, "O texto está grande demais. Cole até 500 linhas por vez."),
+  etapa: z.enum(["previa", "importar"]).default("previa"),
+});
+
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+
+// Um formulário, dois botões: "Ver prévia" conta e mostra os problemas;
+// "Importar" grava. Com qualquer linha com problema nada é importado, e linha
+// igual a um lançamento confirmado que já existe fica de fora (colar a
+// planilha de novo não dobra o caixa).
+export async function importarPagamentos(_estado: EstadoForm, formData: FormData): Promise<EstadoForm> {
+  const tesouraria = await exigirTesourariaEditavel();
+  const dados = esquemaImportacao.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: dados.error.issues[0].message };
+  const { planilha: texto, etapa } = dados.data;
+  const valores = { planilha: texto };
+  const lida = lerPlanilhaPagamentos(texto, hojeBrasil());
+
+  const resultado = await transacao(
+    async (db) => {
+      // Duas importações ao mesmo tempo esperam a vez: a segunda já enxerga o
+      // que a primeira gravou e não duplica.
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [`importar:${tesouraria.turmaId}`]);
+      const { rows: formandos } = await db.query<{ id: string; email: string }>(
+        `select u.id, lower(u.email) as email
+           from membros m join usuarios u on u.id = m.usuario_id
+          where m.turma_id = $1 and ${contaComoFormandoSql("m")}`,
+        [tesouraria.turmaId],
+      );
+      const idPorEmail = new Map(formandos.map((f) => [f.email, f.id]));
+      const problemas = [...lida.problemas];
+      const comPessoa = [];
+      for (const l of lida.linhas) {
+        const usuarioId = idPorEmail.get(l.email);
+        if (!usuarioId) {
+          problemas.push({ linha: l.linha, motivo: `email não é de um formando desta turma (${l.email})` });
+          continue;
+        }
+        comPessoa.push({ ...l, usuarioId, chave: chavePagamento(usuarioId, l.valor, l.data) });
+      }
+      if (problemas.length > 0 || lida.excedeu) return { tipo: "problemas" as const, problemas };
+
+      const { rows: existentes } = await db.query<{ usuario_id: string; valor: number; data: string; n: number }>(
+        `select usuario_id, valor::float8 as valor, to_char(pago_em, 'YYYY-MM-DD') as data, count(*)::int as n
+           from pagamentos
+          where turma_id = $1 and usuario_id is not null and tipo = 'pagamento' and status = 'confirmado'
+          group by usuario_id, valor, pago_em`,
+        [tesouraria.turmaId],
+      );
+      const { novas, repetidas } = descontarExistentes(
+        comPessoa,
+        new Map(existentes.map((e) => [chavePagamento(e.usuario_id, e.valor, e.data), e.n])),
+      );
+      const soma = Math.round(novas.reduce((s, l) => s + l.valor * 100, 0)) / 100;
+      const pessoas = new Set(novas.map((l) => l.usuarioId)).size;
+      if (etapa === "previa" || novas.length === 0) {
+        return { tipo: "previa" as const, novas: novas.length, repetidas, soma, pessoas };
+      }
+
+      await db.query(
+        `insert into pagamentos
+           (turma_id, usuario_id, tipo, valor, pago_em, forma, pago_por, referencia,
+            status, lancado_por, confirmado_por)
+         select $1, x.usuario_id, 'pagamento', x.valor, x.pago_em, x.forma, x.pago_por, x.referencia,
+                'confirmado', $2, $2
+           from unnest($3::uuid[], $4::numeric[], $5::date[], $6::text[], $7::text[], $8::text[])
+                as x(usuario_id, valor, pago_em, forma, pago_por, referencia)`,
+        [
+          tesouraria.turmaId,
+          tesouraria.usuarioId,
+          novas.map((l) => l.usuarioId),
+          novas.map((l) => l.valor),
+          novas.map((l) => l.data),
+          novas.map((l) => l.forma),
+          novas.map((l) => l.pagoPor),
+          novas.map((l) => l.referencia ?? REFERENCIA_PADRAO),
+        ],
+      );
+      await registrarAuditoria(db, {
+        usuarioId: tesouraria.usuarioId,
+        turmaId: tesouraria.turmaId,
+        acao: "pagamento.importado",
+        entidade: "turma",
+        entidadeId: tesouraria.turmaId,
+        detalhe: { linhas: novas.length, valor: soma, pessoas, repetidas },
+      });
+      return { tipo: "importado" as const, novas: novas.length, repetidas, soma, pessoas };
+    },
+    { acao: "tesouraria.importar" },
+  );
+
+  if (resultado.tipo === "problemas") {
+    const lista = [...resultado.problemas].sort((a, b) => a.linha - b.linha);
+    const mostradas = lista.slice(0, 12).map((p) => `Linha ${p.linha}: ${p.motivo}.`);
+    return {
+      erro: [
+        lista.length > 0
+          ? `Nada foi importado. ${plural(lista.length, "linha com problema", "linhas com problema")}:`
+          : "Nada foi importado.",
+        ...mostradas,
+        lista.length > 12 && `E mais ${lista.length - 12}.`,
+        lida.excedeu && `Passou de ${MAX_LINHAS_IMPORTACAO} linhas: cole em partes.`,
+        "Corrija na planilha e cole de novo.",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      valores,
+    };
+  }
+
+  const jaLancadas =
+    resultado.repetidas > 0
+      ? ` ${plural(resultado.repetidas, "linha já está lançada e fica", "linhas já estão lançadas e ficam")} de fora.`
+      : "";
+  if (resultado.novas === 0) {
+    return { erro: `Nada para importar.${jaLancadas || " Cole pelo menos uma linha com email, valor e data."}`, valores };
+  }
+  const resumo = `${plural(resultado.novas, "lançamento novo", "lançamentos novos")}, somando ${formatarReal.format(resultado.soma)}, de ${plural(resultado.pessoas, "pessoa", "pessoas")}.${jaLancadas}`;
+  if (resultado.tipo === "previa") {
+    return { ok: `Prévia: ${resumo} Confira e toque em “Importar”.`, valores };
+  }
+  revalidarDinheiro();
+  revalidatePath("/dashboard");
+  return { ok: `Importado: ${resumo}` };
 }

@@ -1,7 +1,9 @@
 import "server-only";
 import { pool } from "./db";
 import type { Celula } from "./csv";
+import { todasSituacoes } from "./pagamentos";
 import { listarPortaria } from "./presenca";
+import { ROTULO_ESTADO, hojeBrasil } from "./situacao-regras";
 
 // Planilhas da turma (ADR-0007). Cada tipo devolve cabeçalho e linhas para
 // `paraCsv`. Quem pode baixar cada uma é decidido na rota: tudo é da
@@ -15,7 +17,11 @@ export const TIPOS_EXPORTACAO = [
   "portaria",
   "fornecedores",
   "pagamentos",
+  "situacao",
 ] as const;
+
+// Planilhas com valor de cada pessoa: só a tesouraria baixa (ADR-0005, ADR-0014).
+export const TIPOS_SO_TESOURARIA: readonly TipoExportacao[] = ["pagamentos", "situacao"];
 export type TipoExportacao = (typeof TIPOS_EXPORTACAO)[number];
 
 export const ROTULO_EXPORTACAO: Record<TipoExportacao, string> = {
@@ -26,6 +32,7 @@ export const ROTULO_EXPORTACAO: Record<TipoExportacao, string> = {
   portaria: "Lista da portaria",
   fornecedores: "Fornecedores",
   pagamentos: "Pagamentos",
+  situacao: "Situação por pessoa",
 };
 
 type Planilha = { cabecalho: string[]; linhas: Celula[][] };
@@ -130,6 +137,23 @@ export async function montarPlanilha(tipo: TipoExportacao, turmaId: string): Pro
       return {
         cabecalho: ["Fornecedor", "Categoria", "Contato", "Situação", "Valor (R$)", "Descrição"],
         linhas: rows.map((r) => Object.values(r) as Celula[]),
+      };
+    }
+    case "situacao": {
+      // Mesmo cálculo da tela da tesouraria (ADR-0014): o número da planilha é o da tela.
+      const { todas } = await todasSituacoes(turmaId, hojeBrasil());
+      return {
+        cabecalho: ["Nome", "Email", "Plano (R$)", "Pago (R$)", "Falta (R$)", "Situação", "Parcelas vencidas", "Aguardando confirmação"],
+        linhas: todas.map((l) => [
+          l.nome,
+          l.email,
+          l.situacao.totalPlano,
+          l.situacao.pago,
+          l.situacao.falta,
+          ROTULO_ESTADO[l.situacao.estado],
+          l.situacao.parcelas.filter((p) => p.emAtraso).length,
+          l.aguardando,
+        ]),
       };
     }
     case "pagamentos": {

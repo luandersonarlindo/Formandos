@@ -22,6 +22,8 @@ export const ACOES_AUDITORIA = [
   "pagamento.recusado",
   "pagamento.editado",
   "pagamento.excluido",
+  // ADR-0014: vários pagamentos colados da planilha, numa entrada só.
+  "pagamento.importado",
   // ADR-0007: download de planilha da turma (quem levou a lista de emails?).
   "turma.exportada",
   // ADR-0008: mudança no evento, link público e fornecedor.
@@ -65,6 +67,7 @@ export const ACOES_SO_TESOURARIA = [
   "pagamento.recusado",
   "pagamento.editado",
   "pagamento.excluido",
+  "pagamento.importado",
 ] as const satisfies readonly AcaoAuditoria[];
 
 // Nunca aparece em tela de turma: não tem turma e guarda o email da conta.
