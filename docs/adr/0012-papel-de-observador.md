@@ -110,3 +110,19 @@ Regra única em **`src/lib/papeis.ts`** (arquivo novo, sem banco): constante SQL
 
 **Teste de fluxo**
 - Passo novo: tornar a Maria observadora; conferir que o quórum e "Ainda não votaram" não a contam, que ela não consegue votar nem enviar dúvida, que confirma presença, e que a troca é recusada para quem tem pagamento lançado.
+
+### Andamento (2026-11-14)
+
+Tudo feito. Diferenças em relação ao texto acima:
+
+- **Filtro em função, não constante:** `contaComoFormandoSql(apelido)` em `src/lib/papeis.ts`, porque metade das consultas usa a tabela com apelido (`m.papel`). `podeEntrarEmOutraTurma` continuou em `src/lib/vinculos.ts`, onde já tinha teste.
+- **Troca de papel num lugar só:** `trocarPapel` em `src/lib/troca-papel.ts`, usada pela comissão (`alterarPapel`) e pela gestão da plataforma (`alterarPapelMaster`). Antes o código era copiado nos dois.
+- **Um diálogo para os dois sentidos** em `/admin/membros`: "Tornar observador" e "Voltar a participante". Com dois diálogos separados, o primeiro sumia da tela depois da troca e levava a confirmação junto.
+- **Admin não vira observador direto pela tela:** passa por participante (dois cliques). O servidor aceita a troca direta.
+- **Tela da gestão da plataforma:** mostra o rótulo "Observador", mas não ganhou botão próprio para a troca.
+- **Ao virar observador**, além dos votos em perguntas abertas, as tarefas da pessoa ficam sem responsável e os informes de pagamento recusados são apagados. O `papel.trocado` guarda `votosApagados`.
+- **Voto em pergunta já decidida fica**, como previsto. Efeito: nessa pergunta o total de votos pode passar em 1 o número de formandos de hoje. A fotografia da decisão (`decisoes`) não muda.
+- **Dashboard da comissão:** "Membros" e "Presença confirmada" contam todo mundo; "Participação nas votações" usa só os formandos (`formandos` em `ResumoAdmin`).
+- **Votação travada por propriedade** (`somenteLeitura` no `EnqueteCard`), não por um `fieldset` em volta do formulário.
+- **Dúvidas:** o observador também não vê "Editar dúvida" nas que escreveu antes de virar observador.
+- Testes: `typecheck`, `npm test` (305, 4 novos em `papeis.test.ts` e `vinculos.test.ts`). Passo "ADR-0012" no grupo `admin` de `fluxos.mjs`; bloco `participante,app,admin` no Docker, 63 de 63; grupo `master`, 6 de 6. Votações, dúvidas (como observador) e `/admin/membros` conferidos em 360px.
