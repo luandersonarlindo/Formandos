@@ -1992,6 +1992,98 @@ await grupo("admin", async () => {
     await dormir(2000);
     igual(sql(`select max_acompanhantes from turmas where id='${turmaTeste()}'`), "5", "limite restaurado");
   });
+  await passo("ADR-0012: observador sai da conta da turma, não vota e confirma presença", async () => {
+    const turma = turmaTeste();
+    const enq = enqueteLocal();
+    const joao = sql("select id from usuarios where email='teste-jl@example.invalid'");
+    const papel = () => sql(`select papel from membros where turma_id='${turma}' and usuario_id='${joao}'`);
+    const tarefas = sql(`select coalesce(string_agg(id::text, ','), '') from tarefas where turma_id='${turma}' and responsavel_id='${joao}'`);
+    const tornarObservador = async () => {
+      await nav.abrir("/admin/membros");
+      await nav.esperarTexto("João Lima");
+      await nav.clicar("Tornar observador", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo de troca");
+      await nav.clicar("Tornar observador", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+    };
+    // Pergunta aberta, com um voto do João, e nenhum pagamento dele.
+    sql(`delete from decisoes where turma_id='${turma}' and enquete_id='${enq}'`);
+    sql(`delete from regras_enquete where turma_id='${turma}' and enquete_id='${enq}'`);
+    sql(`delete from pagamentos where turma_id='${turma}' and usuario_id='${joao}'`);
+    sql(`delete from votos where turma_id='${turma}' and usuario_id='${joao}' and opcao_id in (select id from opcoes where enquete_id='${enq}')`);
+    sql(`insert into votos (turma_id,opcao_id,usuario_id) values ('${turma}', (select id from opcoes where enquete_id='${enq}' order by ordem limit 1), '${joao}')`);
+    const votosDoJoao = () => sql(`select count(*) from votos v join opcoes o on o.id=v.opcao_id where v.turma_id='${turma}' and v.usuario_id='${joao}' and o.enquete_id='${enq}'`);
+    try {
+      // Com pagamento lançado, a troca é recusada.
+      sql(`insert into pagamentos (turma_id,usuario_id,valor,pago_em,status) values ('${turma}','${joao}',50,current_date,'confirmado')`);
+      await tornarObservador();
+      await nav.esperarTexto("tem pagamentos lançados");
+      igual(papel(), "participante", "papel não mudou com pagamento");
+      sql(`delete from pagamentos where turma_id='${turma}' and usuario_id='${joao}'`);
+
+      // Sem pagamento, vira observador: o voto na pergunta aberta some e a troca vai para o histórico.
+      await tornarObservador();
+      await dormir(1800);
+      igual(papel(), "observador", "papel no banco");
+      igual(votosDoJoao(), "0", "voto em pergunta aberta apagado");
+      igual(
+        sql(`select detalhe->>'para' || ':' || (detalhe->>'votosApagados') from auditoria where turma_id='${turma}' and acao='papel.trocado' and entidade_id='${joao}' order by created_at desc limit 1`),
+        "observador:1",
+        "troca no histórico",
+      );
+      await nav.abrir("/admin/membros");
+      await nav.esperarTexto("1 observador");
+
+      // A turma passa a ter 1 formando: o observador não entra em "Ainda não votaram".
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
+      await nav.esperarTexto("Ainda não votaram");
+      await nav.esperarTexto("de 1 membro votou");
+      igual(
+        await nav.ev("[...document.querySelectorAll('[data-grupo] li')].some((li) => li.textContent.includes('João Lima'))"),
+        false,
+        "observador fora da lista de quem falta votar",
+      );
+
+      // Como observador: vê as perguntas travadas, não tem Minha situação e não apoia dúvida.
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir(`/votacoes/${idPadrao()}`);
+      await nav.esperarTexto("como observador e não vota");
+      igual(await nav.ev("document.querySelector('fieldset input').matches(':disabled')"), true, "opções travadas");
+      igual(await nav.ev("!!document.querySelector('a[href=\"/minha-situacao\"]')"), false, "sem Minha situação no menu");
+      await nav.abrir("/minha-situacao");
+      await nav.esperar("location.pathname === '/dashboard'", 15000, "Minha situação manda ao dashboard");
+      await nav.abrir("/duvidas");
+      await nav.esperarTexto("como observador");
+      const apoios = () => sql(`select count(*) from duvida_upvotes x join duvidas d on d.id=x.duvida_id where d.turma_id='${turma}' and x.usuario_id='${joao}'`);
+      const antes = apoios();
+      // Quem destrava o botão na mão recebe a recusa do servidor.
+      if (await nav.ev("!!document.querySelector('[data-duvida] button[aria-pressed]')")) {
+        await nav.ev("(() => { const b = document.querySelector('[data-duvida] button[aria-pressed]'); b.disabled = false; b.click(); })()");
+        await dormir(2500);
+        igual(apoios(), antes, "apoio recusado pelo servidor");
+      }
+
+      // A única coisa que o observador preenche é a própria presença.
+      sql(`delete from presencas where turma_id='${turma}' and usuario_id='${joao}'`);
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Você vai ao evento?");
+      if (await nav.tem("Mudar resposta")) await nav.clicar("Mudar resposta", { seletor: "button" });
+      else await nav.clicar("Responder", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo de presença");
+      await nav.clicar("Talvez", { escopo: "@[role=dialog]", seletor: "label", contem: false });
+      await nav.clicar("Salvar resposta", { escopo: "@[role=dialog]", seletor: "button" });
+      await nav.esperar("!document.querySelector('[role=dialog]')", 10000, "diálogo fecha ao salvar");
+      await dormir(800);
+      igual(sql(`select status from presencas where turma_id='${turma}' and usuario_id='${joao}'`), "talvez", "presença do observador");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`update membros set papel='participante' where turma_id='${turma}' and usuario_id='${joao}'`);
+      // A troca apagou os votos dele; o passo de remover membro precisa de um.
+      sql(`insert into votos (turma_id,opcao_id,usuario_id) values ('${turma}', (select id from opcoes where enquete_id='${enq}' order by ordem limit 1), '${joao}') on conflict do nothing`);
+      sql(`delete from pagamentos where turma_id='${turma}' and usuario_id='${joao}'`);
+      if (tarefas) sql(`update tarefas set responsavel_id='${joao}' where id in (${tarefas.split(",").map((t) => `'${t}'`).join(",")})`);
+      sql(`delete from auditoria where turma_id='${turma}' and acao='papel.trocado' and entidade_id='${joao}'`);
+    }
+  });
   await passo("remover um membro apaga o que ele deixou na turma", async () => {
     const rastro = (tabela, coluna) =>
       sql(`select count(*) from ${tabela} where turma_id='${turmaTeste()}' and ${coluna}=(select id from usuarios where email='teste-jl@example.invalid')`);
