@@ -17,7 +17,7 @@ import { getSessao } from "@/lib/dal";
 export const metadata: Metadata = {
   title: { absolute: "Formandos · Gestão de formaturas e eventos" },
   description:
-    "Enquetes, dúvidas, tarefas e fornecedores da sua turma num só lugar. Organize a formatura com participação de todos.",
+    "Votações com regra, parcelas, presença e avisos da sua turma num só lugar. Organize a formatura com participação de todos.",
 };
 
 // Vitrine do projeto. O conteúdo é todo renderizado no servidor; as animações

@@ -6,16 +6,22 @@ import {
   CircleHelp,
   ClipboardList,
   Crown,
+  Eye,
+  Globe,
   GraduationCap,
+  History,
   KeyRound,
+  Link2,
   Megaphone,
   PartyPopper,
+  Scale,
   ShieldCheck,
   Sparkles,
   Store,
   UserCheck,
   UserRound,
   Vote,
+  Wallet,
 } from "lucide-react";
 import { AlternadorTema } from "@/components/features/alternador-tema";
 import { Badge } from "@/components/ui/badge";
@@ -120,7 +126,7 @@ export function Hero({ logado }: Sessao) {
             ))}
           </h1>
           <p data-hero="texto" className="mt-5 max-w-xl text-lg text-muted-foreground text-pretty">
-            Enquetes, dúvidas, tarefas e fornecedores da turma num só lugar. A comissão decide com dados, e os formandos participam de verdade.
+            Votações, parcelas, presença e avisos da turma num só lugar. A comissão decide com regra combinada, e cada formando sabe o que foi decidido e quanto falta pagar.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <span data-hero="botao">
@@ -133,7 +139,7 @@ export function Hero({ logado }: Sessao) {
             </span>
           </div>
           <p data-hero="texto" className="mt-4 text-sm text-muted-foreground">
-            Entre com a sua conta Google ou com email e senha.
+            Para maiores de 18 anos. Entre com a sua conta Google ou com email e senha.
           </p>
         </div>
 
@@ -181,12 +187,42 @@ const RECURSOS = [
   {
     icone: Vote,
     titulo: "Enquetes por categoria",
-    texto: "Catálogo padrão com 10 categorias e perguntas de escolha única ou múltipla. Os votos são identificados e cada pessoa pode mudar o seu.",
+    texto: "Catálogo padrão com 10 categorias, modelos por tipo de turma e perguntas de escolha única ou múltipla. Cada opção pode mostrar o valor por pessoa.",
+  },
+  {
+    icone: Scale,
+    titulo: "Regra para decidir",
+    texto: "Prazo, quórum e voto secreto definidos por pergunta. Decisão fora da regra exige justificativa, e a turma vê o registro.",
   },
   {
     icone: BarChart3,
     titulo: "Relatório automático",
     texto: "Os votos viram um relatório consolidado com gráficos, para a comissão decidir com base no que a turma realmente prefere.",
+  },
+  {
+    icone: Wallet,
+    titulo: "Minha situação e caixa",
+    texto: "Cada formando vê as parcelas, o que já pagou e o que falta. A tesouraria confirma os pagamentos, importa a planilha, e a turma vê os totais do caixa.",
+  },
+  {
+    icone: Megaphone,
+    titulo: "Avisos que chegam",
+    texto: "Mural de avisos, email só para o essencial (decisão, mudança no evento e prazos) e texto pronto para mandar no grupo do WhatsApp.",
+  },
+  {
+    icone: UserCheck,
+    titulo: "Presença com nomes",
+    texto: "Cada membro confirma presença e informa o nome dos acompanhantes até o prazo. A comissão imprime a lista da portaria.",
+  },
+  {
+    icone: Globe,
+    titulo: "Página pública do evento",
+    texto: "Um link sem login para a família e os convidados, com data, local, como chegar e o aviso do que mudou.",
+  },
+  {
+    icone: Link2,
+    titulo: "Convite por link ou lista",
+    texto: "O link de convite já leva o código da turma. A comissão também convida por uma lista de emails e exporta os registros em planilha.",
   },
   {
     icone: CircleHelp,
@@ -204,19 +240,9 @@ const RECURSOS = [
     texto: "Buffet, músicos, fotógrafos e equipe de apoio cadastrados pelo administrador, para a turma conhecer as opções.",
   },
   {
-    icone: Megaphone,
-    titulo: "Mural de avisos",
-    texto: "A comissão publica recados para a turma, com os mais recentes também no dashboard de todos.",
-  },
-  {
-    icone: UserCheck,
-    titulo: "Confirmação de presença",
-    texto: "Cada membro diz se vai à festa e quantos acompanhantes leva; a comissão vê o total de pessoas esperadas.",
-  },
-  {
-    icone: ShieldCheck,
-    titulo: "Acesso por convite",
-    texto: "Cada turma tem um código de convite privado. Administradores gerem membros, papéis e o que a turma enxerga.",
+    icone: History,
+    titulo: "Histórico e encerramento",
+    texto: "As mudanças de decisão, valor e evento ficam num histórico visível. Ao arquivar, a turma recebe a data de exclusão dos dados.",
   },
 ];
 
@@ -226,7 +252,7 @@ export function Recursos() {
       <Titulo
         selo="Recursos"
         titulo="Tudo o que a comissão precisa, sem planilha perdida"
-        texto="Cada área do app resolve uma parte da organização da formatura."
+        texto="Cada área do app resolve uma parte da organização da formatura: decidir, pagar, avisar e reunir a turma."
       />
       <div data-grupo className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {RECURSOS.map(({ icone: Icone, titulo, texto }) => (
@@ -239,15 +265,18 @@ export function Recursos() {
           </article>
         ))}
       </div>
+      <p data-reveal className="mx-auto mt-8 max-w-2xl text-center text-sm text-muted-foreground text-pretty">
+        As telas de voto, presença e evento foram testadas com leitor de tela (TalkBack e VoiceOver).
+      </p>
     </section>
   );
 }
 
 const PASSOS = [
   { icone: UserRound, titulo: "Entre", texto: "Use sua conta Google ou crie uma conta com email e senha. O email é confirmado por um link." },
-  { icone: KeyRound, titulo: "Junte-se à turma", texto: "Informe o código de convite do administrador, ou crie uma turma nova e convide os colegas." },
-  { icone: Vote, titulo: "Participe", texto: "Vote nas enquetes, envie dúvidas, dê upvote nas dos colegas e acompanhe as tarefas." },
-  { icone: PartyPopper, titulo: "Decida e comemore", texto: "A comissão consulta o relatório, responde as dúvidas e fecha os detalhes da festa." },
+  { icone: KeyRound, titulo: "Junte-se à turma", texto: "Abra o link de convite da comissão, que já leva o código, ou crie uma turma nova e convide os colegas." },
+  { icone: Vote, titulo: "Participe", texto: "Vote nas enquetes, confirme a presença, acompanhe as suas parcelas e envie dúvidas." },
+  { icone: PartyPopper, titulo: "Decida e comemore", texto: "A comissão fixa cada decisão pela regra combinada, avisa a turma e fecha os detalhes da festa." },
 ];
 
 export function ComoFunciona() {
@@ -285,7 +314,7 @@ const NUMEROS = [
   { valor: 10, rotulo: "categorias no catálogo padrão" },
   { valor: 23, rotulo: "perguntas prontas para votar" },
   { valor: 129, rotulo: "opções de resposta descritivas" },
-  { valor: 3, rotulo: "níveis de acesso" },
+  { valor: 4, rotulo: "modelos por tipo de turma" },
 ];
 
 const CATEGORIAS = [
@@ -307,7 +336,7 @@ export function Catalogo() {
       <Titulo
         selo="Catálogo de enquetes"
         titulo="Perguntas que vão além do sim ou não"
-        texto="A turma já começa com um catálogo pronto. O administrador ainda pode criar catálogos próprios."
+        texto="A turma já começa com um catálogo pronto. O administrador ainda pode criar catálogos próprios ou partir de um modelo."
       />
       <dl data-grupo className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {NUMEROS.map((n) => (
@@ -336,12 +365,17 @@ const PAPEIS = [
   {
     icone: UserRound,
     titulo: "Participante",
-    itens: ["Vota nas enquetes e pode mudar o voto", "Envia dúvidas e dá upvote nas dos colegas", "Acompanha tarefas, programação e fornecedores"],
+    itens: ["Vota nas enquetes e pode mudar o voto", "Vê as próprias parcelas e informa o que pagou", "Confirma presença com o nome dos acompanhantes", "Envia dúvidas e dá upvote nas dos colegas"],
+  },
+  {
+    icone: Eye,
+    titulo: "Observador",
+    itens: ["Professor, orientador ou coordenador", "Lê tudo o que a turma vê, sem votar nem pagar", "Confirma a própria presença"],
   },
   {
     icone: ShieldCheck,
     titulo: "Administrador da turma",
-    itens: ["Gera o código de convite e gere os membros", "Responde e destaca dúvidas, define data e local", "Cria catálogos próprios e vê quem votou", "Pode administrar várias turmas"],
+    itens: ["Convida por link ou lista e gere os membros", "Define a regra de cada votação e fixa a decisão", "Com a marca de tesouraria, lança e confirma pagamentos", "Pode administrar várias turmas"],
   },
   {
     icone: Crown,
@@ -354,8 +388,8 @@ export function Papeis() {
   return (
     <section id="papeis" className="scroll-mt-20 bg-muted/40 py-16 md:py-24">
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4">
-        <Titulo selo="Perfis" titulo="Cada pessoa vê o que precisa" texto="Três níveis de acesso mantêm a organização e a segurança da plataforma." />
-        <div data-grupo className="mt-12 grid gap-4 md:grid-cols-3">
+        <Titulo selo="Perfis" titulo="Cada pessoa vê o que precisa" texto="Quatro perfis mantêm a organização e a segurança da plataforma." />
+        <div data-grupo className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {PAPEIS.map(({ icone: Icone, titulo, itens }) => (
             <article key={titulo} data-item className="vitrine-cartao rounded-xl border bg-card p-6">
               <span className="grid size-11 place-items-center rounded-lg bg-[color-mix(in_oklch,var(--vitrine-b)_14%,transparent)] text-[var(--vitrine-b)]">
@@ -436,9 +470,9 @@ export function Equipe() {
 }
 
 const MOTIVOS = [
-  "Opinião identificada de cada formando, sem palpite solto no grupo",
+  "Voto identificado ou secreto, conforme a regra de cada pergunta",
   "Categorias separadas para local, comida, música e DJ",
-  "Relatório pronto para a comissão fechar os fornecedores",
+  "Decisão fixada com prazo e quórum, e histórico à vista da turma",
 ];
 
 // Ilustração Amico (Storyset). Estática por enquanto: a animação fica para
@@ -487,7 +521,7 @@ export function ChamadaFinal({ logado }: Sessao) {
           Pronto para organizar a formatura da sua turma?
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-white/85 text-pretty">
-          Entre, junte-se à sua turma com o código de convite e comece a decidir em conjunto.
+          Entre, junte-se à sua turma pelo link de convite e comece a decidir em conjunto.
         </p>
         <Button asChild size="lg" variant="secondary" className="mt-8">
           <Link href={logado ? "/dashboard" : "/entrar"}>
