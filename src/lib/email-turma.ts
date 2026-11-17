@@ -50,6 +50,15 @@ async function reservarEnvios(quantos: number): Promise<number> {
   });
 }
 
+// Quantos envios ainda cabem no teto das últimas 24 horas, sem reservar.
+// Serve para recusar antes um envio que não caberia inteiro (ADR-0018).
+export async function enviosLivresHoje(): Promise<number> {
+  const { rows } = await pool.query(
+    "select count(*)::int as n from throttle where chave = 'email:dia' and created_at > now() - interval '1 day'",
+  );
+  return Math.max(0, tetoDiario() - rows[0].n);
+}
+
 // Manda um email por destinatário, em sequência. Falha de um não para os
 // outros (enviarEmailSilencioso). Chame dentro de `after()`: a tela não espera.
 export async function enviarParaTurma(

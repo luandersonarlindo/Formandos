@@ -420,7 +420,7 @@ Prioridade MoSCoW: **M** obrigatório, **S** desejável, **C** possível. Situa�
 - **EM-11** — Falha de envio não impede a ação que o originou e é registrada em log.
 - **EM-12** — O HTML só leva endereço quando o site está publicado (ou com `EMAIL_LINKS_LOCAIS=1`); o texto puro sempre leva.
 - **EM-20** — Os emails da turma respeitam um teto diário (`EMAIL_TETO_DIA`, padrão 400); o que não cabe sai na próxima rodada. Os lembretes não se repetem (`lembretes_enviados`).
-- **EM-21** — Votação nova e aviso novo **não** geram email nesta versão (ver RF-55).
+- **EM-21** — Votação aberta: a comissão avisa a turma por email, uma vez por pergunta com prazo, só a quem ainda não votou (`emailVotacaoAberta`, ADR-0018). Aviso novo **não** gera email.
 
 #### 3.2.11 Requisitos propostos e decisões pendentes
 
@@ -428,7 +428,7 @@ Origem: `docs/simulacoes/levantamento-rodada-2.md`, seções 3 e 4. São **espec
 
 | ID | Requisito proposto | Pri. | Nível | Origem | Sit. |
 |---|---|---|---|---|---|
-| RF-55 | O sistema DEVE enviar email "Votação nova aberta" aos membros quando a comissão abrir uma pergunta com prazo. | S | 1.1 | temas 1, 2, 3, 5, 10 | Proposto |
+| RF-55 | O sistema DEVE enviar email "Votação nova aberta" aos membros quando a comissão abrir uma pergunta com prazo. | S | 1.1 | temas 1, 2, 3, 5, 10 | Atendido (ADR-0018) |
 | RF-56 | O texto pronto do evento DEVE começar com "MUDOU: [campo] era X, agora é Y" quando houver mudança dos últimos 14 dias. | S | 0.1 | temas 7, 9 | Atendido (ADR-0017) |
 | RF-57 | O evento DEVE ter um campo "Entrada / portão" que entra no "Mudou em", no EM-14 e no texto pronto. | S | 1.2 | temas 7, 9 | Proposto |
 | RF-58 | Todo membro DEVE poder baixar o Registro da turma em PDF, pelo menos com a turma arquivada. | S | 1.3 | tema 8 | Proposto |
@@ -579,7 +579,7 @@ Vale a partir da publicação. Projeto acadêmico, sem compensação financeira 
 | LAC-07 | `fornecedores.turma_id` aceita nulo | Continua | Registro antigo sem turma não aparece. |
 | LAC-08 | Encerramento do site só em texto | Continua (RF-59) | O aviso de 60 dias depende de trabalho manual se for preciso. |
 | LAC-09 | Sem hospedagem pública | Continua | 3.3.3, 3.3.6 e o monitoramento são alvo, não compromisso. |
-| LAC-10 | Votação nova e aviso novo sem email | Continua (RF-55) | A comissão cola no grupo; quem silenciou o grupo não fica sabendo. |
+| LAC-10 | Votação nova e aviso novo sem email | Parcial: votação resolvida (RF-55, ADR-0018); aviso novo continua sem email | A comissão cola no grupo; quem silenciou o grupo não fica sabendo. |
 | LAC-11 | O texto pronto do evento não diz que algo mudou | Resolvido (RF-56, ADR-0017) | Quem lê só o grupo não percebe a mudança. |
 
 ---

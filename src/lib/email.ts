@@ -517,6 +517,46 @@ export function emailPrazoVotacao(d: {
   };
 }
 
+// Votação aberta (ADR-0018): a comissão avisa a turma uma vez por pergunta.
+// Vai a quem ainda não votou.
+export function emailVotacaoAberta(d: {
+  nome: string;
+  turma: string;
+  pergunta: string;
+  prazo: Date;
+  opcoes: { texto: string; valorPessoa: number | null }[];
+  url: string;
+}): Omit<Email, "para"> {
+  const quando = dataHoraBr(d.prazo);
+  const opcao = (o: { texto: string; valorPessoa: number | null }) =>
+    o.valorPessoa != null ? `${o.texto} (${reais(o.valorPessoa)} por pessoa)` : o.texto;
+  return {
+    assunto: `Votação aberta: ${d.pergunta}, fecha em ${quando}`,
+    texto: [
+      `Olá, ${d.nome}! A comissão da turma ${d.turma} abriu uma votação:`,
+      d.pergunta,
+      d.opcoes.length ? d.opcoes.map((o) => `- ${opcao(o)}`).join("\n") : "",
+      `A votação fecha em ${quando}. Depois disso, a comissão decide com os votos que tiver.`,
+      `Vote aqui: ${d.url}`,
+      rodapeTexto(d.turma),
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+    html: caixaEmail({
+      preheader: `Fecha em ${quando}.`,
+      titulo: `Votação aberta: ${d.pergunta}`,
+      motivo: motivoTurma(d.turma),
+      corpo:
+        (d.opcoes.length
+          ? `<ul style="margin:0 0 16px;padding-left:20px">${d.opcoes.map((o) => `<li>${escapar(opcao(o))}</li>`).join("")}</ul>`
+          : "") +
+        p(`A votação fecha em <strong>${escapar(quando)}</strong>. Depois disso, a comissão decide com os votos que tiver.`) +
+        botao(d.url, "Votar agora") +
+        linkCru(d.url),
+    }),
+  };
+}
+
 // Lembrete do prazo de presença (ADR-0013): vai a quem não respondeu ou
 // marcou "talvez".
 export function emailPrazoPresenca(d: {

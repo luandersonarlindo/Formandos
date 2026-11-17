@@ -2,11 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { getModelo } from "@/lib/modelos";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { emailVotacaoAberta, urlDoSite } from "@/lib/email";
+import { enviarParaTurma, enviosLivresHoje, type Destinatario } from "@/lib/email-turma";
+import { contaComoFormandoSql } from "@/lib/papeis";
 import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
 import { lerQuorum } from "@/lib/decisao-regras";
 import { lerDetalheOpcao, lerPrazoLocal, type DetalheOpcao } from "@/lib/opcao-detalhe";
@@ -870,4 +874,135 @@ export async function salvarRegraEnquete(
   revalidatePath("/votacoes", "layout");
   revalidatePath("/dashboard");
   return { ok: "Regra salva. A mudança aparece no histórico da turma." };
+}
+
+// Email de votação aberta (ADR-0018) -----------------------------------
+//
+// A comissão dispara, uma vez por pergunta, com o botão ao lado do "Mandar
+// para o grupo". Só pergunta visível, sem decisão e com prazo no futuro. Vai a
+// quem conta na turma (observador não vota), aceita email, tem email
+// confirmado e ainda não votou. Se o teto do dia não comporta todos, recusa
+// antes de mandar para metade.
+
+const esquemaAvisar = z.object({ enqueteId: z.uuid(), catalogoId: z.uuid() });
+
+export async function avisarVotacao(
+  _estado: EstadoForm,
+  formData: FormData,
+): Promise<EstadoForm> {
+  const admin = await exigirAdminEditavel();
+  const dados = esquemaAvisar.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: "Pergunta não encontrada." };
+  const { enqueteId, catalogoId } = dados.data;
+
+  const resultado = await transacao(
+    async (db) => {
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+        `${admin.turmaId}:${enqueteId}`,
+      ]);
+      const { rows: enq } = await db.query(
+        `select e.titulo, ca.catalogo_id as "catalogoId", r.prazo,
+                r.prazo > now() as aberta,
+                exists (select 1 from enquetes_ocultas eo
+                         where eo.turma_id = $2 and eo.enquete_id = e.id) as oculta,
+                exists (select 1 from decisoes d
+                         where d.turma_id = $2 and d.enquete_id = e.id) as decidida,
+                exists (select 1 from auditoria a
+                         where a.turma_id = $2 and a.acao = 'votacao.avisada'
+                           and a.entidade_id = e.id) as avisada
+           from enquetes e
+           join categorias ca on ca.id = e.categoria_id
+           join catalogos c on c.id = ca.catalogo_id
+           left join regras_enquete r on r.turma_id = $2 and r.enquete_id = e.id
+          where e.id = $1 and ${catalogoVisivelSql("$2")}`,
+        [enqueteId, admin.turmaId],
+      );
+      const e = enq[0];
+      if (!e || e.oculta) return { estado: "inexistente" as const };
+      if (e.decidida) return { estado: "decidida" as const };
+      if (!e.prazo) return { estado: "sem_prazo" as const };
+      if (!e.aberta) return { estado: "encerrada" as const };
+      if (e.avisada) return { estado: "avisada" as const };
+
+      const { rows: destinatarios } = await db.query<Destinatario>(
+        `select u.id as "usuarioId", u.name as nome, u.email
+           from membros m join usuarios u on u.id = m.usuario_id
+          where m.turma_id = $1 and ${contaComoFormandoSql("m")}
+            and u.receber_emails and u."emailVerified" and u.id <> $3
+            and not exists (
+              select 1 from votos v join opcoes o on o.id = v.opcao_id
+               where o.enquete_id = $2 and v.turma_id = $1 and v.usuario_id = m.usuario_id)
+          order by u.name`,
+        [admin.turmaId, enqueteId, admin.usuarioId],
+      );
+      if (destinatarios.length === 0) return { estado: "ninguem" as const };
+      const livres = await enviosLivresHoje();
+      if (livres < destinatarios.length) {
+        return { estado: "teto" as const, livres, precisa: destinatarios.length };
+      }
+
+      const { rows: opcoes } = await db.query(
+        `select texto, valor_pessoa::float8 as "valorPessoa"
+           from opcoes where enquete_id = $1 order by ordem`,
+        [enqueteId],
+      );
+      await registrarAuditoria(db, {
+        usuarioId: admin.usuarioId,
+        turmaId: admin.turmaId,
+        acao: "votacao.avisada",
+        entidade: "enquete",
+        entidadeId: enqueteId,
+        detalhe: { pergunta: e.titulo, prazo: e.prazo, avisados: destinatarios.length },
+      });
+      return {
+        estado: "ok" as const,
+        destinatarios,
+        email: {
+          pergunta: e.titulo as string,
+          prazo: e.prazo as Date,
+          opcoes: opcoes as { texto: string; valorPessoa: number | null }[],
+          url: urlDoSite(`/votacoes/${e.catalogoId}#enquete-${enqueteId}`),
+        },
+      };
+    },
+    { acao: "catalogos.avisar" },
+  );
+
+  switch (resultado.estado) {
+    case "inexistente":
+      return { erro: "Pergunta não encontrada." };
+    case "decidida":
+      return { erro: "Esta pergunta já foi decidida." };
+    case "sem_prazo":
+      return { erro: "Marque um prazo na regra da votação antes de avisar a turma." };
+    case "encerrada":
+      return { erro: "O prazo desta votação já passou." };
+    case "avisada":
+      return { erro: "A turma já foi avisada desta votação." };
+    case "ninguem":
+      return { erro: "Ninguém para avisar: todos já votaram ou desligaram os emails." };
+    case "teto":
+      return {
+        erro: `O limite de emails de hoje não comporta a turma: faltam ${resultado.precisa} envios e restam ${resultado.livres}. Tente amanhã ou use o "Mandar para o grupo".`,
+      };
+  }
+
+  const { destinatarios, email } = resultado;
+  after(async () => {
+    const { enviados } = await enviarParaTurma(destinatarios, (d) =>
+      emailVotacaoAberta({ nome: d.nome, turma: admin.turmaNome, ...email }),
+    );
+    // enviarParaTurma manda na ordem da lista: os primeiros `enviados` receberam.
+    for (const d of destinatarios.slice(0, enviados)) {
+      await pool.query(
+        `insert into lembretes_enviados (tipo, referencia, turma_id, usuario_id)
+         values ('abertura', $1, $2, $3) on conflict do nothing`,
+        [enqueteId, admin.turmaId, d.usuarioId],
+      );
+    }
+  });
+  revalidarCatalogo(catalogoId);
+  revalidatePath("/votacoes", "layout");
+  const n = destinatarios.length;
+  return { ok: `Email a caminho de ${n} ${n === 1 ? "pessoa" : "pessoas"} que ainda não votaram.` };
 }

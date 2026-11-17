@@ -9,6 +9,7 @@ import {
   Folder,
   ListChecks,
   Lock,
+  Mail,
   Pencil,
   Trash2,
   Users,
@@ -18,6 +19,7 @@ import { z } from "zod";
 import {
   adicionarCategoria,
   atualizarEnquete,
+  avisarVotacao,
   excluirCatalogo,
   excluirCategoria,
   excluirEnquete,
@@ -352,6 +354,25 @@ export default async function CatalogoAdminPage(
                           }}
                         />
                       )}
+                      {/* ADR-0018: email de votação aberta, uma vez por pergunta. */}
+                      {!e.decidida && !e.oculta && e.prazoAberto &&
+                        (e.avisadaEm ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 text-xs text-muted-foreground">
+                            <Mail className="size-3.5" aria-hidden />
+                            Turma avisada por email em {formatarDataHora.format(e.avisadaEm)}
+                          </span>
+                        ) : (
+                          <FormAcao
+                            acao={avisarVotacao}
+                            rotulo="Avisar a turma por email"
+                            rotuloPendente="Avisando…"
+                            variante="outline"
+                            className="contents"
+                          >
+                            <input type="hidden" name="enqueteId" value={e.id} />
+                            <input type="hidden" name="catalogoId" value={catalogo.id} />
+                          </FormAcao>
+                        ))}
                       <FormDialog
                         rotulo="Regra da votação"
                         icone={<CalendarClock aria-hidden />}

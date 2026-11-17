@@ -59,6 +59,9 @@ export type EnqueteAdmin = {
   decidida: boolean;
   // Só vale para o catálogo padrão: pergunta que esta turma escolheu não ver.
   oculta: boolean;
+  // ADR-0018: prazo marcado e ainda no futuro; quando a turma foi avisada.
+  prazoAberto: boolean;
+  avisadaEm: Date | null;
 };
 export type CategoriaAdmin = { id: string; nome: string; enquetes: EnqueteAdmin[] };
 export type CatalogoDetalhe = {
@@ -149,7 +152,11 @@ export async function getCatalogoAdmin(
                        where d.turma_id = $2 and d.enquete_id = e.id) as decidida,
               r.prazo, r.quorum_pct as "quorumPct", coalesce(r.secreto, false) as secreto,
               coalesce(to_char(r.prazo at time zone 'America/Sao_Paulo',
-                               'YYYY-MM-DD"T"HH24:MI'), '') as "prazoLocal"
+                               'YYYY-MM-DD"T"HH24:MI'), '') as "prazoLocal",
+              coalesce(r.prazo > now(), false) as "prazoAberto",
+              (select max(a.created_at) from auditoria a
+                where a.turma_id = $2 and a.acao = 'votacao.avisada'
+                  and a.entidade_id = e.id) as "avisadaEm"
          from enquetes e join categorias ca on ca.id = e.categoria_id
          left join regras_enquete r on r.turma_id = $2 and r.enquete_id = e.id
         where ca.catalogo_id = $1 order by e.ordem`,
@@ -200,6 +207,9 @@ export async function getCatalogoAdmin(
           votantes: n.get(e.id) ?? 0,
           oculta: e.oculta,
           decidida: e.decidida,
+          // ADR-0018: o email de votação aberta sai uma vez por pergunta.
+          prazoAberto: e.prazoAberto as boolean,
+          avisadaEm: e.avisadaEm as Date | null,
           regra: { prazo: e.prazo, prazoLocal: e.prazoLocal, quorumPct: e.quorumPct, secreto: e.secreto },
           opcoes: opcoes.rows
             .filter((o) => o.enquete_id === e.id)

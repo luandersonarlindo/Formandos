@@ -149,6 +149,11 @@ export function descreverAcao(
         frase: "arquivou a turma.",
         detalhes: typeof d.excluirEm === "string" ? [`Tudo será excluído em ${dataBr(d.excluirEm)}.`] : [],
       };
+    case "votacao.avisada":
+      return {
+        frase: `avisou a turma por email da votação ${aspas(d.pergunta)}.`,
+        detalhes: typeof d.avisados === "number" ? [`Email para ${d.avisados} ${d.avisados === 1 ? "pessoa" : "pessoas"} que ainda não tinham votado.`] : [],
+      };
     case "presenca.prazo":
       return {
         frase: `mudou o prazo para confirmar presença: de ${prazoTexto(d.antes)} para ${prazoTexto(d.depois)}.`,

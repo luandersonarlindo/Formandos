@@ -5,6 +5,7 @@ import {
   emailEventoMudou,
   emailPrazoParcela,
   emailPrazoVotacao,
+  emailVotacaoAberta,
   emailBoasVindas,
   emailContaExcluida,
   emailEntrouNaTurma,
@@ -346,6 +347,21 @@ describe("emails da turma", () => {
       /^Prazo: votação "Qual buffet\?" fecha em 12\/12 às 23:59$/,
     ],
     [
+      "votação aberta",
+      emailVotacaoAberta({
+        nome: "Ana",
+        turma: "SI 2026",
+        pergunta: "Qual buffet?",
+        prazo: new Date("2026-12-13T02:59:00Z"),
+        opcoes: [
+          { texto: "Buffet A", valorPessoa: 120 },
+          { texto: "Buffet B", valorPessoa: null },
+        ],
+        url,
+      }),
+      /^Votação aberta: Qual buffet\?, fecha em 12\/12 às 23:59$/,
+    ],
+    [
       "prazo de parcela",
       emailPrazoParcela({ nome: "Ana", turma: "SI 2026", numero: 3, falta: 150, vencimento: "2026-12-10", url }),
       /^Prazo: sua parcela de R\$\s150,00 vence em 10\/12\/2026$/,
@@ -366,6 +382,14 @@ describe("emails da turma", () => {
     const [, email] = casos[0];
     expect(email.texto).toContain("Votaram 22 de 38.");
     expect(email.texto).toContain("Motivo da comissão: O A não tem a data.");
+  });
+
+  it("votação aberta lista as opções com o valor por pessoa (ADR-0018)", () => {
+    const email = casos.find(([n]) => n === "votação aberta")![1];
+    expect(email.texto).toMatch(/- Buffet A \(R\$\s120,00 por pessoa\)/);
+    expect(email.texto).toContain("- Buffet B\n");
+    expect(email.texto).toContain("Vote aqui: https://formandos.app/dashboard");
+    expect(email.html).toContain("Buffet A");
   });
 
   it("evento mostra antes e agora", () => {

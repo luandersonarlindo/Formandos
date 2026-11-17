@@ -1245,6 +1245,67 @@ await grupo("admin", async () => {
       sql("delete from avisos where titulo='Reunião ADR-0004'");
     }
   });
+  await passo("ADR-0018: avisar a turma por email de uma votação aberta, uma vez só", async () => {
+    const turma = turmaTeste();
+    // Outra pergunta da mesma categoria da "Onde vai ser...", sem decisão nem
+    // voto do João, com prazo daqui a 3 dias.
+    const enq = sql(`select e.id from enquetes e
+      where e.categoria_id = (select categoria_id from enquetes where id='${enqueteLocal()}')
+        and e.id <> '${enqueteLocal()}'
+        and not exists (select 1 from decisoes d where d.turma_id='${turma}' and d.enquete_id=e.id)
+        and not exists (select 1 from enquetes_ocultas eo where eo.turma_id='${turma}' and eo.enquete_id=e.id)
+      order by e.ordem limit 1`);
+    verdade(enq !== "", "pergunta para avisar");
+    const titulo = sql(`select titulo from enquetes where id='${enq}'`);
+    const limpar = () => {
+      sql(`delete from regras_enquete where turma_id='${turma}' and enquete_id='${enq}'`);
+      sql(`delete from auditoria where turma_id='${turma}' and acao='votacao.avisada' and entidade_id='${enq}'`);
+      sql(`delete from lembretes_enviados where tipo='abertura' and referencia='${enq}'`);
+    };
+    limpar();
+    sql(`delete from votos where turma_id='${turma}' and usuario_id=(select id from usuarios where email='teste-jl@example.invalid')
+           and opcao_id in (select id from opcoes where enquete_id='${enq}')`);
+    sql(`update usuarios set receber_emails=true, "emailVerified"=true where email='teste-jl@example.invalid'`);
+    try {
+      // Sem prazo, o botão não aparece.
+      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      await nav.esperar(`!!document.querySelector('#enq-${enq}')`, 15000, "card da pergunta");
+      verdade(
+        !(await nav.ev(`document.querySelector('#enq-${enq}').textContent.includes('Avisar a turma por email')`)),
+        "sem prazo, sem botão",
+      );
+
+      sql(`insert into regras_enquete (turma_id, enquete_id, prazo) values ('${turma}', '${enq}', now() + interval '3 days')`);
+      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      await nav.clicar("Avisar a turma por email", { escopo: `@#enq-${enq}`, seletor: "button" });
+      // A página recarrega com o aviso feito: o botão vira a data do aviso.
+      await nav.esperar(`document.querySelector('#enq-${enq}')?.textContent.includes('Turma avisada por email em')`, 15000, "data do aviso");
+      const email = await ultimoEmail(`Votação aberta: ${titulo}`);
+      verdade(email.includes("teste-jl@example.invalid"), "email para o João, que não votou");
+      verdade(email.includes(`#enquete-${enq}`), "link direto para a pergunta");
+      igual(
+        sql(`select count(*) from auditoria where turma_id='${turma}' and acao='votacao.avisada' and entidade_id='${enq}'`),
+        "1",
+        "aviso no histórico",
+      );
+      for (let i = 0; i < 20 && sql(`select count(*) from lembretes_enviados where tipo='abertura' and referencia='${enq}'`) === "0"; i++) await dormir(500);
+      verdade(
+        sql(`select count(*) from lembretes_enviados l join usuarios u on u.id=l.usuario_id
+              where l.tipo='abertura' and l.referencia='${enq}' and u.email='teste-jl@example.invalid'`) === "1",
+        "envio marcado para o João",
+      );
+
+      // Uma vez só: depois de avisar, o botão vira a data do aviso.
+      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      await nav.esperar(`document.querySelector('#enq-${enq}')?.textContent.includes('Turma avisada por email em')`, 15000, "data do aviso");
+      verdade(
+        !(await nav.ev(`document.querySelector('#enq-${enq}').textContent.includes('Avisar a turma por email')`)),
+        "o botão some depois do aviso",
+      );
+    } finally {
+      limpar();
+    }
+  });
   await passo("ADR-0005: tesouraria monta o plano, lança e o formando vê a própria situação", async () => {
     const turma = turmaTeste();
     try {

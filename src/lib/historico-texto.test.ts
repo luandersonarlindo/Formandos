@@ -67,6 +67,13 @@ describe("descreverAcao", () => {
     ).toMatch(/^montou o plano de parcelas: 2 × R\$\s100,00, a partir de 10\/10\/2026\.$/);
   });
 
+  it("votação avisada diz a pergunta e quantos receberam (ADR-0018)", () => {
+    expect(descreverAcao("votacao.avisada", { pergunta: "Qual buffet?", avisados: 12 })).toEqual({
+      frase: "avisou a turma por email da votação “Qual buffet?”.",
+      detalhes: ["Email para 12 pessoas que ainda não tinham votado."],
+    });
+  });
+
   it("arquivar e mudar a data mostram as datas (ADR-0009)", () => {
     expect(descreverAcao("turma.arquivada", { excluirEm: "2027-02-07" }).detalhes).toEqual([
       "Tudo será excluído em 07/02/2027.",

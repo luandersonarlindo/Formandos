@@ -14,6 +14,7 @@ describe("ACOES_VISIVEIS_TURMA", () => {
       "turma.arquivada",
       "turma.desarquivada",
       "turma.prazo_exclusao",
+      "votacao.avisada",
     ]);
   });
 

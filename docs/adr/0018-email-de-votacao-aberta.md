@@ -85,3 +85,16 @@ alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
 **Teste de fluxo**
 - `email.test.ts`: assunto e corpo, com e sem valor por pessoa.
 - Passo no E2E (grupo `admin` de `fluxos.mjs`): avisar, ver o email no Mailpit e conferir que o segundo clique não manda de novo.
+
+### Andamento (2026-11-17)
+
+Feita. Diferenças em relação ao texto acima:
+
+- **"Já avisada" vem do histórico:** a trava de uma vez por pergunta olha a auditoria (`votacao.avisada`), e não `lembretes_enviados`. Assim ela vale mesmo quando ninguém recebeu o email. `lembretes_enviados` (tipo `abertura`) guarda quem recebeu, pessoa por pessoa.
+- **Quem recebe:** só quem ainda não votou naquela pergunta, conta na turma (observador fica de fora, ADR-0012), aceita email e tem email confirmado. Quem clicou também fica de fora.
+- **Teto do dia:** antes de enviar, `enviosLivresHoje` (em `email-turma.ts`) confere se o teto comporta todos. Se não comporta, a ação recusa e diz quantos envios faltam e quantos restam, sugerindo o "Mandar para o grupo". Assim a turma nunca é avisada pela metade.
+- **Sem ninguém para avisar** (todos votaram ou desligaram os emails): a ação recusa com essa mensagem e não gasta o aviso.
+- **O email lista as opções**, com o valor por pessoa ao lado de cada uma que tiver valor.
+- **Depois do clique, a página recarrega** e o botão vira "Turma avisada por email em dd/mm às HH:MM". Esse texto é a confirmação: a mensagem de sucesso da ação some com o botão.
+- **Histórico da turma:** `votacao.avisada` é visível para a turma, com a frase "avisou a turma por email da votação …" e quantas pessoas receberam.
+- Testes: `typecheck`, `npm test` (339; 4 novos em `email.test.ts`, `historico-texto.test.ts` e `auditoria-acoes.test.ts`). Passo novo "ADR-0018" no grupo `admin` de `fluxos.mjs`: sem prazo não há botão; com prazo, avisa, o email chega ao participante no Mailpit, o envio fica marcado e o botão some. Bloco `participante,app,admin` no Docker, 67 de 67.

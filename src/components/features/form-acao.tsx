@@ -10,7 +10,7 @@ type FormAcaoProps = {
   acao: (estado: EstadoForm, formData: FormData) => Promise<EstadoForm>;
   rotulo: string;
   rotuloPendente?: string;
-  variante?: "default" | "destructive";
+  variante?: "default" | "destructive" | "outline";
   className?: string;
   /** Chamado depois que a ação volta sem erro. Usado para fechar diálogos. */
   onSucesso?: () => void;

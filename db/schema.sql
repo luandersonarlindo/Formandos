@@ -470,3 +470,11 @@ alter table turmas add column if not exists presenca_ate timestamptz;
 alter table lembretes_enviados drop constraint if exists lembretes_enviados_tipo_check;
 alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
   check (tipo in ('votacao', 'parcela', 'exclusao', 'presenca'));
+
+-- Email de votação aberta (ADR-0018): a comissão avisa a turma uma vez por
+-- pergunta. Cada pessoa avisada fica marcada em `lembretes_enviados` com o
+-- tipo `abertura` (referência = pergunta). "Já avisada" vem da auditoria
+-- (`votacao.avisada`), que existe mesmo quando ninguém recebeu.
+alter table lembretes_enviados drop constraint if exists lembretes_enviados_tipo_check;
+alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
+  check (tipo in ('votacao', 'parcela', 'exclusao', 'presenca', 'abertura'));
