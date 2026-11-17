@@ -158,3 +158,212 @@ Mesmo formato de `levantamento.md`. Cada item diz de onde vem.
 | 10. Planilha e grupo | `2026-11-08-7` | `2026-11-16` |
 
 Cada pasta tem `briefing.md`, `personas.md`, `entrevistas.md`, `grupo.md` e `relatorio.md`.
+
+---
+
+# Parte 2: levantamento de requisitos
+
+As seções 8 a 10 fazem, para a rodada 2, o que as seções 7 a 9 de `levantamento.md` fizeram para a rodada 1: dizem como o código está hoje, o que reaproveitar e, item por item, o que mudar. Cada item usa o identificador da ERS 2.0 (`docs/Especificação de Requisitos de Software.md`, seção 3.2.11). Nada aqui foi implementado. Cada item, antes de ser feito, ganha uma ADR, como na rodada 1.
+
+Convenção: **[R]** reaproveita o que existe; **[N]** é novo. "Banco" lista mudanças em `db/schema.sql`, sempre idempotentes.
+
+## 8. Como o projeto está hoje (16/11/2026)
+
+| Camada | Onde | O que já faz (o que mudou desde a rodada 1) |
+|---|---|---|
+| Rotas | `src/app/(publico)`, `(onboarding)`, `(app)`, `(admin)`, `(conta)`, `(master)` | 36 telas; novas: `/minha-situacao`, `/conta/meus-dados`, `/termos`, `/privacidade`, `/evento/[token]`, `/admin/tesouraria`, `/admin/presenca/lista`, `/admin/turma/historico`, `/admin/turma/registro` |
+| Barreira | `src/lib/dal.ts` | `exigirSessao`, `exigirMembro`, `exigirAdmin`, `exigirTesouraria`, `exigir*Editavel`; o código do convite sobrevive ao login (`src/lib/convite-link.ts`) |
+| Banco | `db/schema.sql` | 26 tabelas próprias, mais as do Better Auth; novas: `regras_enquete`, `parcelas`, `pagamentos`, `lembretes_enviados`, `cron_execucoes`, `convites_email`, `acompanhantes`, `enquetes_ocultas` |
+| Email | `src/lib/email.ts`, `src/lib/email-turma.ts` | 15 modelos; emails da turma com preferência (`usuarios.receber_emails`) e teto diário (`EMAIL_TETO_DIA`) |
+| Agendador | `/api/cron/lembretes` + serviço `cron` do Docker | lembretes de votação, parcela e presença; avisos e exclusão automática de turmas arquivadas (`src/lib/lembretes.ts`, `src/lib/fim-da-turma.ts`) |
+| Texto para o grupo | `src/lib/texto-whatsapp.ts` + `MandarParaGrupo` | `textoAviso`, `textoVotacao`, `textoDecisao`, `textoEvento`, `linkWhatsApp` |
+| Trilha | `src/lib/auditoria.ts`, `src/lib/auditoria-acoes.ts` | vocabulário amplo, com listas `ACOES_VISIVEIS_TURMA` e `ACOES_SO_TESOURARIA`; frases em `src/lib/historico-texto.ts` |
+| Exportação | `src/lib/exportacao.ts`, `src/lib/csv.ts`, `src/lib/registro.ts` | 8 planilhas; registro em PDF pelo navegador |
+| Infra | `compose.yaml` | `db`, `migrate`, `app`, `mail`, `cron`, `backup`; sem deploy (decisão do grupo); CI com typecheck e testes |
+
+**Requisitos não funcionais que valem para todos os itens:**
+- turmas de 30 a 150 pessoas;
+- celular simples e 3G (páginas leves, sem JavaScript pesado);
+- LGPD: dado mínimo e quem vê o quê;
+- turma arquivada não muda (`exigir*Editavel`);
+- tudo em português na interface;
+- telas testadas com leitor de tela continuam passando em `scripts/teste/leitor.mjs` (ADR-0015);
+- todo email novo da turma passa por `enviarParaTurma` e conta no teto.
+
+## 9. Mapa de reaproveitamento (não duplicar)
+
+Itens novos em relação ao mapa de `levantamento.md`, seção 8.
+
+| Precisa de... | Já existe | Onde |
+|---|---|---|
+| Mandar email a toda a turma, com preferência e teto | `destinatariosDaTurma`, `enviarParaTurma` | `src/lib/email-turma.ts` |
+| Não repetir lembrete | tabela `lembretes_enviados` e `marcar(...)` | `src/lib/lembretes.ts` |
+| Comparar o evento antes e depois | `mudancasEvento`, `listarRotulos`, tipo `EstadoEvento` | `src/lib/lembretes-regras.ts` |
+| Última mudança do evento (14 dias) | `getUltimaMudancaEvento`, `DIAS_DESTAQUE_MUDANCA` | `src/lib/evento-publico.ts` |
+| Texto pronto para o grupo | `textoEvento`, `textoVotacao`, `textoAviso`, `textoDecisao` e o componente `MandarParaGrupo` | `src/lib/texto-whatsapp.ts`, `src/components/features/mandar-para-grupo.tsx` |
+| Regra da pergunta (prazo, quórum, secreto) | `salvarRegraEnquete`, tabela `regras_enquete` | `src/actions/catalogos.ts` |
+| Valor e link de opção | `lerValorPessoa`, `lerDetalheOpcao` | `src/lib/opcao-detalhe.ts` |
+| Situação de cada pessoa e caixa | `listarSituacoes`, `getCaixa`, regras puras | `src/lib/pagamentos.ts`, `src/lib/situacao-regras.ts` |
+| Lançamento com histórico da tesouraria | `lancarPagamento`, `editarPagamento`, `excluirPagamento`, ações `pagamento.*` | `src/actions/tesouraria.ts`, `src/lib/auditoria-acoes.ts` |
+| Importar colando planilha | `lerPlanilhaPagamentos`, `descontarExistentes` e a prévia tudo ou nada | `src/lib/importar-pagamentos.ts` |
+| Página para imprimir | layout de `/admin/turma/registro` e de `/admin/presenca/lista` (`@media print`) | `src/app/(admin)/admin/turma/registro/page.tsx` |
+| Página pública sem login por código | `getEventoPublico`, padrão de código de 22 caracteres | `src/lib/evento-publico.ts` |
+| Registro da turma | `getRegistroTurma` | `src/lib/registro.ts` |
+| Faixa no topo de todas as telas | faixa de turma arquivada no `AppShell` | `src/components/features/app-shell.tsx` |
+| Responsável, encarregado, textos de confiança | `EMPRESA`, `DPO`, `AVISO_INSTITUCIONAL`, `AVISO_VISIBILIDADE_VOTO` | `src/lib/empresa.ts` |
+
+## 10. Item por item
+
+### Nível 0 — texto e ajustes pequenos
+
+**0.1 Texto pronto do evento diz que mudou (RF-56)**
+- Problema no código: `textoEvento` (`src/lib/texto-whatsapp.ts:110`) só monta nome, "Quando", "Onde" e o link. `DadosEvento` não recebe a mudança.
+- Mudanças:
+  1. `DadosEvento` [R] ganha `mudanca?: { rotulo: string; antes: string; depois: string }[]`.
+  2. `textoEvento` [R] começa com `*MUDOU:* horário era 20:00, agora é 19:00` quando há mudança.
+  3. Quem monta os dados do botão (o card do evento da comissão) passa a mudança vinda de `getUltimaMudancaEvento` [R], a mesma do "Mudou em" (14 dias).
+- Banco: nada. Teste: caso novo em `texto-whatsapp.test.ts` [R].
+- Cuidado: o texto não pode passar o limite do link `wa.me`; reaproveitar `umaLinha` e `juntar` [R].
+
+**0.2 Tela de convite com o nome da turma (RF-60)**
+- Problema no código: `/convite` (`src/app/(onboarding)/convite/page.tsx`) recebe o código do link ou do cookie e só preenche o campo; não mostra de qual turma é.
+- Mudanças:
+  1. Leitura nova `getTurmaPorCodigo(codigo)` [N, pequena] em `src/lib/convite.ts`, que devolve só `nome` e o nome de quem criou.
+  2. Na página, com código vindo do link, mostrar "Você foi convidado para a turma **X**" acima do botão "Entrar na turma" [R].
+- Trade-off: ler o nome pelo código permite adivinhar turmas. Mitigação: só fazer a leitura quando o código vem do link ou do cookie de convite (não do campo digitado) e contar a leitura em `tentativas_convite` [R], com o mesmo limite de `entrarPorConvite`.
+- Email de convite: o assunto `Convite: entre na turma X no Formandos` (`emailConviteTurma`) [R] fica. Cair no spam é questão de domínio e assinatura do remetente (SPF, DKIM), que só se resolve com a publicação. Registrar na ADR.
+
+**0.3 "Valor por pessoa" diz se é total ou por mês (RF-61)**
+- Onde: `enquete-card.tsx` e `editor-opcoes.tsx` [R].
+- Caminho mais barato: mudar só o rótulo para "Valor total por pessoa" e a dica do campo para "o valor que cada um paga no total; se for parcelado, explique no texto da opção". Sem banco.
+- Caminho completo (avaliar na ADR): coluna `opcoes.parcelas smallint` para mostrar "R$ 2.400 por pessoa (12 × R$ 200)". Só vale se a turma usar.
+
+**0.4 Frase "ninguém muda o seu voto" (RF-62)**
+- Onde: `AVISO_VISIBILIDADE_VOTO` em `src/lib/empresa.ts` [R], que já aparece em `/votacoes` e na tela de votar.
+- Mudança: acrescentar "Ninguém da comissão muda o seu voto. Mudanças em decisões ficam no histórico da turma." Conferir antes no código que nenhuma ação altera voto de outra pessoa (só `salvarVotos` da própria pessoa e a saída da turma).
+
+**0.5 Link público trocado (RF-63)**
+- Onde: `src/app/(publico)/evento/[token]/not-found.tsx` [R].
+- Mudança sem banco: o texto de "não encontrado" passa a dizer "Este link não existe, foi trocado ou foi desligado pela comissão. Peça o link novo a quem mandou."
+- Mudança com banco (só se a frase genérica não bastar): `turmas.token_anterior` para dizer "este link foi trocado" com certeza. Não recomendado: guardar o código antigo mantém um identificador a mais.
+
+**0.6 Email próprio para o encarregado (RF-70) — descartado pelo grupo em 16/11/2026 (ADR-0017, decisão 4)**
+- Onde: `DPO.email` em `src/lib/empresa.ts` [R]. Aparece em `/privacidade`, `/termos` e "Minha conta".
+- Mudança: só o valor, depois de o grupo criar o endereço (do domínio do projeto, quando houver, ou um email do projeto que não seja pessoal). Decisão do grupo, não de código.
+
+### Nível 1 — o gargalo
+
+**1.1 Email de votação nova aberta (RF-55)**
+- Problema: não há evento "pergunta aberta". As perguntas existem no catálogo desde a criação; a regra (prazo) é salva em `salvarRegraEnquete` [R]. O catálogo padrão tem 23 perguntas: avisar cada uma lotaria a caixa e o teto diário.
+- Recomendação: email **disparado pela comissão**, como o "Mandar para o grupo". Um botão "Avisar a turma por email" ao lado do "Mandar para o grupo" da pergunta, habilitado quando a pergunta tem prazo e ainda não foi avisada.
+- Mudanças:
+  1. Modelo novo `emailVotacaoAberta({ pergunta, prazo, url })` [N] em `src/lib/email.ts`, no padrão dos outros ("Votação aberta: X, fecha em dd/mm").
+  2. Action `avisarVotacao(enqueteId)` [N] em `src/actions/catalogos.ts`: confere a regra, usa `destinatariosDaTurma` e `enviarParaTurma` [R] (preferência e teto), marca em `lembretes_enviados` com tipo novo `abertura` [R] para não repetir, e registra `votacao.avisada` na auditoria [R].
+  3. Banco: ampliar o `check` de `lembretes_enviados.tipo` com `abertura` (`alter table ... drop constraint ... add constraint`, como já foi feito para `exclusao` e `presenca`).
+- Alternativa avaliada: disparar sozinho quando o prazo é salvo pela primeira vez. Mais simples para a comissão, mas manda email quando a comissão só está montando o catálogo. Escolher na ADR.
+- Teste: `email.test.ts` [R] e um passo novo no grupo `admin` de `fluxos.mjs`.
+
+**1.2 Campo "Entrada / portão" no "Mudou" (RF-57)**
+- Problema no código: `mudancasEvento` (`src/lib/lembretes-regras.ts:68`) compara só `inicio`, `local` e `endereco` (`EstadoEvento`). As observações do local (`turmas.observacoes_local`) ficam fora.
+- Recomendação: campo próprio, e não comparar as observações inteiras (texto livre, qualquer vírgula viraria "mudou").
+- Banco [N]: `alter table turmas add column if not exists entrada varchar(120);`
+- Mudanças:
+  1. `EstadoEvento` e `mudancasEvento` [R] ganham `entrada`, com rótulo "entrada".
+  2. `salvarEvento` (`src/actions/evento.ts:77`) [R] lê e salva o campo; a auditoria `evento.alterado` já guarda as mudanças calculadas [R].
+  3. O campo aparece no card do evento, na página pública (ao lado de "Onde") e na lista da portaria [R].
+  4. O EM-14 (`emailEventoMudou`) e o "Mudou em" já mostram qualquer item de `mudancasEvento` [R]; o 0.1 leva o mesmo item ao texto do grupo.
+- Teste: casos novos em `evento.test.ts` e no teste de `mudancasEvento` [R].
+
+**1.3 Registro da turma para todos (RF-58)**
+- Problema no código: `/admin/turma/registro` usa `exigirAdmin` [R]. O conteúdo de `getRegistroTurma` (`src/lib/registro.ts`) já é sem dado pessoal, por desenho.
+- Mudanças:
+  1. Rota nova `/registro` [N] na área do membro (`src/app/(app)/registro/page.tsx`), com `exigirMembro` [R], que reaproveita `getRegistroTurma` e o mesmo layout de impressão. Melhor: extrair o corpo da página da comissão para um componente `RegistroTurma` [N] e usar nas duas rotas.
+  2. Link "Baixar o registro da turma" na faixa de turma arquivada do `AppShell` [R] e no EM-18 (`emailExclusaoTurma`) [R].
+- Decisão para a ADR: liberar sempre ou só com a turma arquivada. Recomendação: sempre, porque o conteúdo é o mesmo que a turma já vê em partes.
+- Banco: nada.
+
+**1.4 Faixa e email de encerramento do site (RF-59)**
+- Promessa atual: Termos, seção "Se o Formandos for encerrado" (ADR-0009, item 6). A ADR deixou "uma variável de ambiente e um script" para quando for preciso.
+- Mudanças:
+  1. Variável `ENCERRAMENTO_EM=AAAA-MM-DD` [N]. Com ela, o `AppShell` [R] e a vitrine mostram a faixa "O Formandos será encerrado em dd/mm. Baixe seus dados em Minha conta e peça o registro à comissão.", e `criarTurma` [R] recusa turma nova.
+  2. Script `scripts/encerramento.mjs` [N] que manda o aviso a todos os usuários com email confirmado, em lotes que respeitam o teto diário, marcando quem já recebeu (tabela pequena ou tipo novo em `lembretes_enviados`).
+- Banco: só se a marcação de envio precisar de tabela.
+- Teste: um passo de E2E com a variável ligada (faixa aparece, criar turma é recusado).
+
+### Nível 2 — dinheiro e família
+
+**2.1 Saída do caixa (RF-64)**
+- Problema: `pagamentos` é sempre de uma pessoa (`usuario_id`); `getCaixa` (`src/lib/pagamentos.ts:262`) soma só entradas. Pagamento a fornecedor não tem lugar.
+- Banco [N]:
+  ```sql
+  create table if not exists saidas (
+    id            uuid primary key default gen_random_uuid(),
+    turma_id      uuid not null references turmas(id) on delete cascade,
+    fornecedor_id uuid references fornecedores(id) on delete set null,
+    descricao     varchar(200) not null,
+    valor         numeric(10,2) not null check (valor > 0),
+    data          date not null,
+    lancado_por   uuid references usuarios(id) on delete set null,
+    created_at    timestamptz not null default now()
+  );
+  ```
+- Mudanças: actions `lancarSaida`, `editarSaida`, `excluirSaida` [N] em `src/actions/tesouraria.ts`, com auditoria `saida.*` visível à turma (é dinheiro da turma, não de pessoa); `getCaixa` [R] devolve também `saidas` e `saldo`; o card do caixa e o Registro da turma [R] mostram "arrecadado, gasto, saldo"; planilha nova `saidas` em `TIPOS_EXPORTACAO` [R].
+- Decisão para a ADR: a turma vê cada saída (descrição e valor) ou só o total gasto. Recomendação: cada saída, sem dado de pessoa.
+
+**2.2 Recibo do pagamento confirmado (RF-66)**
+- Mudanças: página para imprimir `/minha-situacao/recibo/[pagamentoId]` [N], com `exigirMembro` e a conferência de que o lançamento é da própria pessoa (ou da tesouraria), reaproveitando o layout de impressão [R]. Conteúdo: turma, nome, valor, data, forma, quem confirmou, número do lançamento e "Registro do Formandos; não é nota fiscal".
+- Banco: nada (o `id` do lançamento serve de número).
+- Cuidado: deixar claro que é comprovante de registro, não de recebimento pelo site.
+
+**2.3 Email de quem paga (RF-67)**
+- Problema no código: a importação (`src/lib/importar-pagamentos.ts`) casa a linha pelo email do formando. Pagamento do pai com outro email vira linha com problema.
+- Banco [N]:
+  ```sql
+  create table if not exists pagadores (
+    turma_id   uuid not null references turmas(id) on delete cascade,
+    usuario_id uuid not null references usuarios(id) on delete cascade,
+    email      varchar(255) not null,
+    primary key (turma_id, email)
+  );
+  ```
+- Mudanças: o formando cadastra até 2 emails de quem paga em "Minha situação" [R]; a importação [R] procura primeiro em `membros` e depois em `pagadores`; a prévia mostra "pago por pai@... para Fulana".
+- LGPD: é dado de terceiro. A Política [R] precisa citar, e o dado some quando o formando sai (cascade) ou exclui a conta.
+
+**2.4 Link só de leitura da Minha situação (RF-68)**
+- Banco [N]: `alter table membros add column if not exists token_situacao varchar(32) unique;`
+- Mudanças: em "Minha situação" [R], "Gerar link para quem paga", "Trocar" e "Desligar", como na página pública do evento [R]; página nova `/situacao/[token]` [N], sem login, `noindex`, mostrando só o plano, o pago, o que falta e o que vence, sem botão de "Já paguei".
+- Por que não deixar a família entrar na turma: ela viraria participante com voto (achado do tema 10).
+- Teste: código inexistente devolve 404; desligar invalida.
+
+**2.5 Acessibilidade do local (RF-69)**
+- Banco [N]: `alter table turmas add column if not exists acessibilidade jsonb;` com chaves fixas `rampa`, `estacionamento_perto`, `banheiro_adaptado` (sim, não ou não informado) e uma observação curta.
+- Mudanças: campos no formulário do evento (`evento-admin.tsx`) [R]; ícones e texto no card e na página pública [R]; passa no `leitor.mjs` [R] (texto, não só ícone).
+- Não entra no "Mudou" no primeiro corte.
+
+**2.6 Link de documento em decisão e fornecedor (RF-65)**
+- Banco [N]: `alter table fornecedores add column if not exists link_documento varchar(500);` e `alter table decisoes add column if not exists link_documento varchar(500);`
+- Mudanças: campo no fixar decisão e no formulário de fornecedor [R]; validação com `ehLinkHttps` (`src/lib/evento.ts`) [R]; na decisão, visível à turma; no fornecedor, só à comissão, como o orçamento [R].
+- Por que link e não anexo: sem armazenamento de arquivo, sem custo, sem novo dado pessoal guardado no site.
+
+### Nível 3 — decisões antes de qualquer código
+
+Estes itens dependem de decisão do grupo (ERS, DEC-01 a DEC-05). Para cada um, o que a decisão destrava:
+
+| Decisão | Se "sim", o primeiro requisito seria | Peso no código |
+|---|---|---|
+| DEC-01 Turma de escola é público | papel "responsável" ligado a um formando, um voto por família, página "Para a escola" | grande (muda papéis, voto e Termos; volta a ADR-0011) |
+| DEC-02 Permissões por área na comissão | lista de permissões por admin (tarefas, presença, avisos, votações) | médio (`exigirAdmin` vira `exigirPermissao`) |
+| DEC-03 Subgrupos na turma | `subgrupos` com membros e evento próprios, votações comuns ou por subgrupo | grande |
+| DEC-04 Memória entre turmas | exportar e importar catálogo, fornecedores e tarefas sem valores e sem pessoas | médio |
+| DEC-05 Notificação no celular | web push com permissão do navegador | grande (service worker, chaves, consentimento) |
+
+### Ordem sugerida para as ADRs
+
+1. **ADR-0017**: itens 0.1, 0.4 e 0.5 juntos (texto, sem banco). O 0.6 foi descartado.
+2. **ADR-0018**: 1.1, email de votação aberta (o gargalo).
+3. **ADR-0019**: 1.2 e 0.1 (entrada no "Mudou"; o 0.1 já pronto entra aqui).
+4. **ADR-0020**: 0.2 e 1.3 (convite com nome e registro para todos).
+5. **ADR-0021**: 1.4 (encerramento).
+6. Nível 2 depois de validar com 2 tesoureiras reais (seção 6, item 4), na ordem 2.1, 2.2, 2.6, 2.3, 2.4, 2.5.
+
+Antes de qualquer item do nível 2, rodar o teste com uma turma real (seção 6, item 1): ele pode mudar a ordem.

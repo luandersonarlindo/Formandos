@@ -285,7 +285,7 @@ Cada requisito pertence a exatamente uma seção normativa. As outras apenas rem
 
 Padrão: verbo observável, condição e critério de aceite. "DEVE" é obrigatório; "PODE" é opcional.
 
-Prioridade MoSCoW: **M** obrigatório, **S** desejável, **C** possível. Situação apurada em 16/11/2026: **Atendido**, **Parcial**, **Pendente** (prometido e não feito) ou **Proposto** (vem das simulações; não decidido).
+Prioridade MoSCoW: **M** obrigatório, **S** desejável, **C** possível. Situação apurada em 16/11/2026: **Atendido**, **Parcial**, **Pendente** (prometido e não feito) **Proposto** (vem das simulações; não decidido) ou **Descartado** (o grupo decidiu não fazer).
 
 #### 3.2.1 Conta e acesso
 
@@ -443,7 +443,7 @@ Origem: `docs/simulacoes/levantamento-rodada-2.md`, seções 3 e 4. São **espec
 | RF-67 | O formando DEVE poder ligar a ele o email de quem paga (pai, mãe), para a importação casar a linha. | C | 2.3 | tema 10 | Proposto |
 | RF-68 | O formando DEVE poder gerar um link só de leitura da própria situação para quem paga, sem que a pessoa vire membro. | C | 2.4 | tema 10 | Proposto |
 | RF-69 | O evento DEVE ter campos de acessibilidade do local (rampa, estacionamento perto, banheiro adaptado), mostrados na página pública. | C | 2.5 | temas 7, 9 | Proposto |
-| RF-70 | O encarregado de dados DEVE ter um email próprio do projeto, no lugar do Gmail pessoal. | S | 0.6 | tema 8 | Proposto |
+| RF-70 | O encarregado de dados DEVE ter um email próprio do projeto, no lugar do Gmail pessoal. | S | 0.6 | tema 8 | Descartado (ADR-0017) |
 
 **Decisões de produto pendentes** (não são requisitos até a equipe decidir):
 
