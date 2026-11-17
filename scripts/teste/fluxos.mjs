@@ -1798,15 +1798,26 @@ await grupo("admin", async () => {
       await nav.esperarTexto("Mudou em");
       await nav.esperarTexto(`agora é ${novo.slice(11)}`);
 
-      // Gerar outro link: o antigo dá 404.
+      // ADR-0017: o texto do grupo começa dizendo o que mudou.
       await nav.cookie(lerCookie("cookie-admin.txt"));
+      await nav.abrir("/dashboard");
+      await nav.clicar("Mandar para o grupo", { escopo: "Dados do evento", seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #texto-grupo')", 10000, "prévia do evento");
+      const textoGrupo = await nav.ev("document.querySelector('[role=dialog] #texto-grupo')?.value ?? ''");
+      igual(
+        textoGrupo.split("\n")[0],
+        `*MUDOU:* horário era ${atual.slice(11, 16)}, agora é ${novo.slice(11)}`,
+        "primeira linha do texto do evento",
+      );
+
+      // Gerar outro link: o antigo dá 404.
       await nav.abrir("/dashboard");
       await nav.clicar("Gerar outro link", { seletor: "button" });
       for (let i = 0; i < 20 && token() === t1; i++) await dormir(500);
       verdade(token() !== t1 && token() !== "", "link trocado");
       await nav.cookie(null);
       await nav.abrir(`/evento/${t1}`);
-      await nav.esperarTexto("Este link não existe ou foi desligado");
+      await nav.esperarTexto("Este link não existe, foi trocado ou foi desligado");
 
       // Histórico da comissão: mostra o evento, esconde pagamento de quem não é tesouraria.
       sql(`insert into auditoria (usuario_id,turma_id,acao,entidade,detalhe)

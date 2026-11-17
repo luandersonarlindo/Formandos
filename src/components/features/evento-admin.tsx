@@ -33,6 +33,7 @@ import type { EventoAdmin as DadosEvento } from "@/lib/admin";
 import { MandarParaGrupo } from "@/components/features/mandar-para-grupo";
 import { LinkPublicoEvento } from "@/components/features/link-publico-evento";
 import type { ItemProgramacao } from "@/lib/dashboard";
+import type { MudancaRecente } from "@/lib/evento-publico";
 import { formatarDiaCurto, formatarHora, paraDatetimeLocal } from "@/lib/datas";
 
 // A área de evento do administrador, embutida no dashboard: edita os dados do
@@ -42,9 +43,12 @@ import { formatarDiaCurto, formatarHora, paraDatetimeLocal } from "@/lib/datas";
 export function EventoAdmin({
   evento,
   programacao,
+  mudanca,
 }: {
   evento: DadosEvento;
   programacao: ItemProgramacao[];
+  // Última mudança dos últimos 14 dias (ADR-0017): vai no texto do grupo.
+  mudanca?: MudancaRecente["mudancas"];
 }) {
 
   const rotulo = "flex items-center gap-1.5";
@@ -159,6 +163,7 @@ export function EventoAdmin({
                   local: evento.local,
                   endereco: evento.endereco,
                   tokenPublico: evento.tokenPublico,
+                  mudanca,
                 },
               }}
             />

@@ -138,6 +138,39 @@ describe("textoEvento", () => {
   });
 });
 
+describe("textoEvento com mudança (ADR-0017)", () => {
+  const base = { nome: "SI", data: null, local: "", endereco: "" };
+
+  it("começa com a linha MUDOU", () => {
+    expect(
+      textoEvento({ ...base, mudanca: [{ rotulo: "horário", antes: "20:00", depois: "19:00" }] }, ORIGEM),
+    ).toBe(
+      "*MUDOU:* horário era 20:00, agora é 19:00\n*Formatura: SI*\nVer detalhes no Formandos: https://formandos.example.com/dashboard",
+    );
+  });
+
+  it("uma linha por mudança, na ordem", () => {
+    const texto = textoEvento(
+      {
+        ...base,
+        mudanca: [
+          { rotulo: "data", antes: "19/12/2026", depois: "20/12/2026" },
+          { rotulo: "local", antes: "Chácara A", depois: "Salão\nB" },
+        ],
+      },
+      ORIGEM,
+    );
+    expect(texto.split("\n").slice(0, 2)).toEqual([
+      "*MUDOU:* data era 19/12/2026, agora é 20/12/2026",
+      "*MUDOU:* local era Chácara A, agora é Salão B",
+    ]);
+  });
+
+  it("sem mudança, o texto não muda", () => {
+    expect(textoEvento({ ...base, mudanca: [] }, ORIGEM)).toBe(textoEvento(base, ORIGEM));
+  });
+});
+
 describe("textoEvento com página pública", () => {
   it("usa o link público quando ligado", () => {
     expect(

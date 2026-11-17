@@ -252,7 +252,7 @@ Cada requisito pertence a exatamente uma seção normativa. As outras apenas rem
 - **INT-11** — A área master responde 404 para quem não é master.
 - **INT-12** — Contraste mínimo de 4,5:1 (texto normal) e 3:1 (texto grande), WCAG 2.1 AA.
 - **INT-23** — As telas de votar, de presença e do evento (card e página pública) DEVEM funcionar com leitor de tela (TalkBack e VoiceOver): título da página, foco movido ao concluir uma ação e cada informação lida uma vez (ADR-0015).
-- **INT-24** — Toda tela de voto DEVE dizer quem vê o voto: "Os administradores da turma veem em qual opção você votou, menos nas perguntas com voto secreto. A turma vê só os totais." (`AVISO_VISIBILIDADE_VOTO`).
+- **INT-24** — Toda tela de voto DEVE dizer quem vê o voto: "Os administradores da turma veem em qual opção você votou, menos nas perguntas com voto secreto. A turma vê só os totais. Ninguém da comissão muda o seu voto. Mudanças em decisões ficam no histórico da turma." (`AVISO_VISIBILIDADE_VOTO`).
 - **INT-25** — O rodapé da vitrine e a tela de convite DEVEM dizer quem mantém o site e que ele não é oficial da Unifacol (`AVISO_INSTITUCIONAL`).
 
 **Contagem de rotas de tela.** Pública: 7. Onboarding: 1. Membro: 9. Conta: 2. Comissão: 13. Master: 4.
@@ -429,14 +429,14 @@ Origem: `docs/simulacoes/levantamento-rodada-2.md`, seções 3 e 4. São **espec
 | ID | Requisito proposto | Pri. | Nível | Origem | Sit. |
 |---|---|---|---|---|---|
 | RF-55 | O sistema DEVE enviar email "Votação nova aberta" aos membros quando a comissão abrir uma pergunta com prazo. | S | 1.1 | temas 1, 2, 3, 5, 10 | Proposto |
-| RF-56 | O texto pronto do evento DEVE começar com "MUDOU: [campo] era X, agora é Y" quando houver mudança dos últimos 14 dias. | S | 0.1 | temas 7, 9 | Proposto |
+| RF-56 | O texto pronto do evento DEVE começar com "MUDOU: [campo] era X, agora é Y" quando houver mudança dos últimos 14 dias. | S | 0.1 | temas 7, 9 | Atendido (ADR-0017) |
 | RF-57 | O evento DEVE ter um campo "Entrada / portão" que entra no "Mudou em", no EM-14 e no texto pronto. | S | 1.2 | temas 7, 9 | Proposto |
 | RF-58 | Todo membro DEVE poder baixar o Registro da turma em PDF, pelo menos com a turma arquivada. | S | 1.3 | tema 8 | Proposto |
 | RF-59 | O sistema DEVE ter a faixa no site e o email a todos os usuários para o encerramento com 60 dias de aviso, prometidos nos Termos. | S | 1.4 | tema 8; ADR-0009 | Pendente |
 | RF-60 | A tela de convite DEVE mostrar o nome da turma e de quem convidou. | S | 0.2 | tema 3 | Proposto |
 | RF-61 | O "valor por pessoa" DEVE dizer se é o total ou por mês. | S | 0.3 | tema 5 | Proposto |
-| RF-62 | A tela de votação DEVE dizer: "Ninguém da comissão muda o seu voto; mudanças em decisões ficam no histórico". | C | 0.4 | tema 10 | Proposto |
-| RF-63 | Um link público trocado DEVE abrir uma página que diga "Este link foi trocado. Peça o novo a quem mandou". | C | 0.5 | tema 9 | Proposto |
+| RF-62 | A tela de votação DEVE dizer: "Ninguém da comissão muda o seu voto; mudanças em decisões ficam no histórico". | C | 0.4 | tema 10 | Atendido (ADR-0017) |
+| RF-63 | Um link público trocado DEVE abrir uma página que diga "Este link foi trocado. Peça o novo a quem mandou". | C | 0.5 | tema 9 | Atendido (ADR-0017) |
 | RF-64 | O caixa DEVE registrar saídas (pagamentos a fornecedor), com totais para a turma. | C | 2.1 | temas 2, 6 | Proposto |
 | RF-65 | Decisão e fornecedor DEVEM aceitar um link de documento (contrato, orçamento) no lugar de anexo. | C | 2.6 | temas 2, 6, 10 | Proposto |
 | RF-66 | A tesouraria DEVE poder gerar um recibo (página para imprimir) de um lançamento confirmado. | C | 2.2 | temas 4, 6 | Proposto |
@@ -580,7 +580,7 @@ Vale a partir da publicação. Projeto acadêmico, sem compensação financeira 
 | LAC-08 | Encerramento do site só em texto | Continua (RF-59) | O aviso de 60 dias depende de trabalho manual se for preciso. |
 | LAC-09 | Sem hospedagem pública | Continua | 3.3.3, 3.3.6 e o monitoramento são alvo, não compromisso. |
 | LAC-10 | Votação nova e aviso novo sem email | Continua (RF-55) | A comissão cola no grupo; quem silenciou o grupo não fica sabendo. |
-| LAC-11 | O texto pronto do evento não diz que algo mudou | Continua (RF-56) | Quem lê só o grupo não percebe a mudança. |
+| LAC-11 | O texto pronto do evento não diz que algo mudou | Resolvido (RF-56, ADR-0017) | Quem lê só o grupo não percebe a mudança. |
 
 ---
 

@@ -81,3 +81,12 @@ A página de "não encontrado" do evento passa a dizer: "Este link não existe, 
 **Teste de fluxo**
 - Casos novos em `texto-whatsapp.test.ts`: com mudança, sem mudança e com duas mudanças.
 - Passo no E2E: salvar o horário novo e conferir a linha "MUDOU" no texto do botão.
+
+### Andamento (2026-11-16)
+
+Feita. Diferenças em relação ao texto acima:
+
+- **De onde vem a mudança:** o dashboard já buscava `getUltimaMudancaEvento` para o "Mudou em". O mesmo resultado agora vai por props para `EventoAdmin`, que o passa ao "Mandar para o grupo". Nenhuma consulta nova.
+- **Página de link trocado:** além do título "Este link não existe, foi trocado ou foi desligado", o texto diz que isso não quer dizer que o evento foi cancelado, que era o susto do tema 9.
+- **Frase do voto, conferida no código:** nenhuma ação muda a escolha de outra pessoa. Os votos de alguém só somem quando a pessoa sai ou é removida da turma, ou quando a comissão a muda para observador (ADR-0012), e aí só os votos das perguntas ainda sem decisão. Opção com voto não pode ser removida. A frase continua verdadeira, mas qualquer ação nova que mexa em voto precisa rever o texto.
+- Testes: `typecheck`, `npm test` (335; 3 novos em `texto-whatsapp.test.ts`). O passo "ADR-0008" do grupo `admin` em `fluxos.mjs` passou a conferir a linha "MUDOU" no texto do botão do evento e o texto novo do link trocado. Bloco `participante,app,admin` no Docker, 66 de 66.

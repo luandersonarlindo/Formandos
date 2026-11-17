@@ -105,11 +105,16 @@ export type DadosEvento = {
   // Código da página pública (ADR-0008): com ele, o link serve à família e
   // aos convidados, sem login.
   tokenPublico?: string | null;
+  // Última mudança dos últimos 14 dias, a mesma do "Mudou em" (ADR-0017).
+  mudanca?: { rotulo: string; antes: string; depois: string }[];
 };
 
 export function textoEvento(e: DadosEvento, origem: string): string {
   const onde = [e.local, e.endereco].map((x) => umaLinha(x)).filter(Boolean).join(", ");
   return juntar([
+    ...(e.mudanca ?? []).map(
+      (m) => `*MUDOU:* ${umaLinha(m.rotulo)} era ${umaLinha(m.antes)}, agora é ${umaLinha(m.depois)}`,
+    ),
     `*${umaLinha(e.nome) ? `Formatura: ${umaLinha(e.nome)}` : "Nossa formatura"}*`,
     e.data && `Quando: ${quandoLongo(e.data)}`,
     onde && `Onde: ${onde}`,

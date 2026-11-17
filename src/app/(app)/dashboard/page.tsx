@@ -423,7 +423,7 @@ export default async function DashboardPage() {
       )}
 
       {membro.papel === "admin" ? (
-        evento ? <EventoAdmin evento={evento} programacao={programacao} /> : null
+        evento ? <EventoAdmin evento={evento} programacao={programacao} mudanca={mudancaEvento?.mudancas} /> : null
       ) : (
         <Card className="mt-4">
           <CardHeader>
