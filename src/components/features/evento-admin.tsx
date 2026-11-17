@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   CalendarClock,
+  DoorOpen,
   Link2,
   MapPin,
   Plus,
@@ -121,6 +122,15 @@ export function EventoAdmin({
                 </Label>
                 <Input id="endereco" name="endereco" defaultValue={evento.endereco} maxLength={255} placeholder="Rua, número, bairro e cidade" className="h-10" />
               </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="entrada" className={rotulo}>
+                <DoorOpen className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Entrada / portão (opcional)
+              </Label>
+              <Input id="entrada" name="entrada" defaultValue={evento.entrada} maxLength={120} placeholder="Ex.: Portão 2, pela Rua das Flores" className="h-10" />
+              <p className="text-xs text-muted-foreground">
+                Se mudar, a turma recebe o aviso “Mudou”, como acontece com o horário e o local.
+              </p>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="linkMapa" className={rotulo}>

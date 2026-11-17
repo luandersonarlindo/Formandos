@@ -18,6 +18,8 @@ export type DetalhesEvento = {
   linkMapa: string | null;
   traje: string | null;
   observacoesLocal: string | null;
+  // ADR-0019: portão ou acesso, mostrado logo abaixo do local.
+  entrada: string | null;
   dataFim: Date | null;
 };
 
@@ -147,7 +149,7 @@ export async function getDadosEvento(
 ): Promise<{ detalhes: DetalhesEvento; evento: EventoAdmin | null }> {
   const { rows } = await pool.query(
     `select descricao, endereco, link_mapa as "linkMapa", traje,
-            observacoes_local as "observacoesLocal", data_fim_evento as "dataFim",
+            observacoes_local as "observacoesLocal", entrada, data_fim_evento as "dataFim",
             nome,
             coalesce(to_char(data_evento at time zone 'America/Sao_Paulo',
                              'YYYY-MM-DD"T"HH24:MI'), '') as "dataLocal",
@@ -165,6 +167,7 @@ export async function getDadosEvento(
     linkMapa: r.linkMapa,
     traje: r.traje,
     observacoesLocal: r.observacoesLocal,
+    entrada: r.entrada,
     dataFim: r.dataFim,
   };
   return {
@@ -181,6 +184,7 @@ export async function getDadosEvento(
             linkMapa: r.linkMapa ?? "",
             traje: r.traje ?? "",
             observacoesLocal: r.observacoesLocal ?? "",
+            entrada: r.entrada ?? "",
             tokenPublico: r.tokenPublico ?? null,
           }
         : null,

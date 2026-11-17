@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { BotaoImprimir } from "@/components/features/botao-imprimir";
+import { getEventoAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 import { formatarDataHora } from "@/lib/datas";
 import { getResumoPresenca, listarPortaria } from "@/lib/presenca";
@@ -12,9 +13,10 @@ export const metadata: Metadata = { title: "Lista da portaria" };
 // com os acompanhantes pelo nome, em ordem alfabética. Feita para imprimir.
 export default async function ListaPortariaPage() {
   const admin = await exigirAdmin();
-  const [linhas, resumo] = await Promise.all([
+  const [linhas, resumo, evento] = await Promise.all([
     listarPortaria(admin.turmaId),
     getResumoPresenca(admin.turmaId),
+    getEventoAdmin(admin.turmaId),
   ]);
   const geradoEm = formatarDataHora.format(new Date());
 
@@ -33,6 +35,12 @@ export default async function ListaPortariaPage() {
         </div>
         <BotaoImprimir rotulo="Imprimir ou salvar como PDF" />
       </div>
+      {/* ADR-0019: quem trabalha na portaria precisa saber por onde a turma entra. */}
+      {evento.entrada && (
+        <p className="mt-3 text-sm">
+          <strong className="font-medium">Entrada:</strong> {evento.entrada}
+        </p>
+      )}
       <p className="mt-3 text-sm">
         <strong className="font-medium">
           {resumo.pessoas} {resumo.pessoas === 1 ? "pessoa" : "pessoas"}

@@ -47,6 +47,7 @@ const esquemaEvento = z.object({
     .transform((v) => v || null),
   traje: opcional(100, "O traje pode ter no máximo 100 caracteres."),
   observacoesLocal: opcional(500, "As observações podem ter no máximo 500 caracteres."),
+  entrada: opcional(120, "A entrada pode ter no máximo 120 caracteres."),
 });
 
 const esquemaItem = z.object({
@@ -81,7 +82,7 @@ export async function salvarEvento(
   const admin = await exigirAdminEditavel();
   const dados = esquemaEvento.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: dados.error.issues[0].message };
-  const { nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal } =
+  const { nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal, entrada } =
     dados.data;
   if (dataFimEvento && !dataEvento) {
     return { erro: "Informe a data de início para usar um horário de término." };
@@ -97,7 +98,8 @@ export async function salvarEvento(
     async (db) => {
       const { rows } = await db.query(
         `select coalesce(to_char(data_evento at time zone 'America/Sao_Paulo', 'YYYY-MM-DD"T"HH24:MI'), '') as inicio,
-                coalesce(local_evento, '') as local, coalesce(endereco, '') as endereco
+                coalesce(local_evento, '') as local, coalesce(endereco, '') as endereco,
+                coalesce(entrada, '') as entrada
            from turmas where id = $1 for update`,
         [admin.turmaId],
       );
@@ -107,27 +109,28 @@ export async function salvarEvento(
         `update turmas
             set evento_atualizado_em = case
                   when (nome, data_evento, data_fim_evento, local_evento, descricao, endereco,
-                        link_mapa, traje, observacoes_local)
+                        link_mapa, traje, observacoes_local, entrada)
                        is distinct from
                        ($1::varchar, $2::timestamp at time zone 'America/Sao_Paulo',
                         $3::timestamp at time zone 'America/Sao_Paulo', $4::varchar, $5::text,
-                        $6::varchar, $7::varchar, $8::varchar, $9::text)
+                        $6::varchar, $7::varchar, $8::varchar, $9::text, $11::varchar)
                   then now() else evento_atualizado_em end,
                 nome = $1,
                 data_evento = $2::timestamp at time zone 'America/Sao_Paulo',
                 data_fim_evento = $3::timestamp at time zone 'America/Sao_Paulo',
                 local_evento = $4, descricao = $5, endereco = $6, link_mapa = $7,
-                traje = $8, observacoes_local = $9
+                traje = $8, observacoes_local = $9, entrada = $11
           where id = $10`,
-        [nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal, admin.turmaId],
+        [nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal, admin.turmaId, entrada],
       );
       const depois: EstadoEvento = {
         inicio: dataEvento ?? "",
         local: localEvento ?? "",
         endereco: endereco ?? "",
+        entrada: entrada ?? "",
       };
       const lista = mudancasEvento(rows[0] as EstadoEvento, depois);
-      // Data, horário, local ou endereço mudaram: fica no histórico, visível à
+      // Data, horário, local, endereço ou entrada mudaram: fica no histórico, visível à
       // turma e na página pública (ADR-0008).
       if (lista.length > 0) {
         await registrarAuditoria(db, {

@@ -71,6 +71,11 @@ export default async function EventoPublicoPage(props: PageProps<"/evento/[token
             <dt className="text-xs text-muted-foreground">Onde</dt>
             <dd className="font-medium wrap-break-word">{e.local || "Local a definir"}</dd>
             {e.endereco && <dd className="text-sm text-muted-foreground wrap-break-word">{e.endereco}</dd>}
+            {e.entrada && (
+              <dd className="text-sm wrap-break-word">
+                <span className="text-muted-foreground">Entrada:</span> {e.entrada}
+              </dd>
+            )}
             {comoChegar && (
               <dd className="mt-1">
                 <a

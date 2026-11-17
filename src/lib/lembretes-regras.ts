@@ -40,10 +40,11 @@ export function parcelasParaLembrar(
 
 // Estado do evento que importa para quem vai à festa. Data e horário vêm como
 // "AAAA-MM-DDTHH:mm" (horário de Brasília) ou vazio.
-export type EstadoEvento = { inicio: string; local: string; endereco: string };
+// `entrada` (ADR-0019): portão ou acesso, que a família precisa na noite.
+export type EstadoEvento = { inicio: string; local: string; endereco: string; entrada: string };
 
 export type MudancaEvento = {
-  campo: "data" | "horario" | "local" | "endereco";
+  campo: "data" | "horario" | "local" | "endereco" | "entrada";
   rotulo: string;
   antes: string;
   depois: string;
@@ -54,6 +55,7 @@ const ROTULO_CAMPO: Record<MudancaEvento["campo"], string> = {
   horario: "horário",
   local: "local",
   endereco: "endereço",
+  entrada: "entrada",
 };
 
 const diaBr = (inicio: string) => {
@@ -79,7 +81,7 @@ export function mudancasEvento(antes: EstadoEvento, depois: EstadoEvento): Mudan
       }
     }
   }
-  for (const campo of ["local", "endereco"] as const) {
+  for (const campo of ["local", "endereco", "entrada"] as const) {
     const a = antes[campo].trim();
     const d = depois[campo].trim();
     if (a && a !== d) {

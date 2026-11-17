@@ -1895,6 +1895,50 @@ await grupo("admin", async () => {
       sql(`delete from auditoria where turma_id='${turma}' and acao='pagamento.lancado' and detalhe->>'valor'='123'`);
     }
   });
+  await passo("ADR-0019: entrada do evento entra no \"Mudou\", no email, no texto do grupo e na portaria", async () => {
+    const turma = turmaTeste();
+    const alterado = () => sql(`select count(*) from auditoria where turma_id='${turma}' and acao='evento.alterado'`);
+    const salvarEntrada = async (valor) => {
+      await nav.abrir("/dashboard");
+      await abrirDadosDoEvento();
+      await nav.esperar("!!document.querySelector('#entrada')", 10000, "campo de entrada");
+      await nav.preencher("#entrada", valor);
+      await nav.clicar("Salvar", { seletor: "button", contem: false });
+      for (let i = 0; i < 20 && sql(`select coalesce(entrada,'') from turmas where id='${turma}'`) !== valor; i++) await dormir(500);
+      igual(sql(`select coalesce(entrada,'') from turmas where id='${turma}'`), valor, "entrada salva");
+    };
+    sql(`update turmas set entrada=null where id='${turma}'`);
+    try {
+      // Preencher pela primeira vez não é mudança.
+      let antes = alterado();
+      await salvarEntrada("Portão 1, pela Rua A");
+      await dormir(1000);
+      igual(alterado(), antes, "primeira vez não conta como mudança");
+
+      // Trocar é mudança: histórico, email "Mudou" e texto do grupo.
+      antes = alterado();
+      await salvarEntrada("Portão 2, pela Rua B");
+      for (let i = 0; i < 20 && alterado() === antes; i++) await dormir(500);
+      igual(Number(alterado()) - Number(antes), 1, "mudança da entrada na auditoria");
+      const email = await ultimoEmail("Mudou: entrada da formatura");
+      verdade(email.includes("Entrada: era Portão 1, pela Rua A, agora é Portão 2, pela Rua B"), "email com antes e agora");
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Entrada: Portão 2, pela Rua B");
+      await nav.clicar("Mandar para o grupo", { escopo: "Dados do evento", seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #texto-grupo')", 10000, "prévia do evento");
+      igual(
+        (await nav.ev("document.querySelector('[role=dialog] #texto-grupo')?.value ?? ''")).split("\n")[0],
+        "*MUDOU:* entrada era Portão 1, pela Rua A, agora é Portão 2, pela Rua B",
+        "primeira linha do texto do evento",
+      );
+
+      // Lista da portaria mostra por onde a turma entra.
+      await nav.abrir("/admin/presenca/lista");
+      await nav.esperarTexto("Portão 2, pela Rua B");
+    } finally {
+      sql(`update turmas set entrada=null where id='${turma}'`);
+    }
+  });
   await passo("relatório: vários catálogos e empate no topo", async () => {
     // Monta o empate aqui: o passo da ADR-0003 apaga os votos desta pergunta
     // no fim, então não dá para contar com o voto da Maria do grupo "app".

@@ -12,7 +12,7 @@ export type MudancaRecente = {
   mudancas: { rotulo: string; antes: string; depois: string }[];
 };
 
-// Última mudança de data, horário, local ou endereço dos últimos 14 dias.
+// Última mudança de data, horário, local, endereço ou entrada dos últimos 14 dias.
 export async function getUltimaMudancaEvento(turmaId: string): Promise<MudancaRecente | null> {
   const { rows } = await pool.query(
     `select created_at as quando, detalhe->'mudancas' as mudancas
@@ -34,6 +34,7 @@ export type EventoPublico = {
   linkMapa: string | null;
   traje: string | null;
   observacoesLocal: string | null;
+  entrada: string | null;
   descricao: string | null;
   atualizadoEm: Date | null;
   encerrado: boolean;
@@ -47,7 +48,7 @@ export async function getEventoPublico(token: string): Promise<EventoPublico | n
   if (!TOKEN.test(token)) return null;
   const { rows } = await pool.query(
     `select id, nome, data_evento, data_fim_evento, local_evento, endereco, link_mapa,
-            traje, observacoes_local, descricao, evento_atualizado_em, arquivada_em
+            traje, observacoes_local, entrada, descricao, evento_atualizado_em, arquivada_em
        from turmas where token_publico = $1`,
     [token],
   );
@@ -69,6 +70,7 @@ export async function getEventoPublico(token: string): Promise<EventoPublico | n
     linkMapa: t.link_mapa,
     traje: t.traje,
     observacoesLocal: t.observacoes_local,
+    entrada: t.entrada,
     descricao: t.descricao,
     atualizadoEm: t.evento_atualizado_em,
     encerrado: t.arquivada_em !== null,

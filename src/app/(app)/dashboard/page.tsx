@@ -202,6 +202,11 @@ export default async function DashboardPage() {
               {detalhes.endereco && (
                 <dd className="mt-0.5 text-xs text-muted-foreground wrap-break-word">{detalhes.endereco}</dd>
               )}
+              {detalhes.entrada && (
+                <dd className="mt-0.5 text-xs wrap-break-word">
+                  <span className="text-muted-foreground">Entrada:</span> {detalhes.entrada}
+                </dd>
+              )}
               {comoChegar && (
                 <dd className="mt-2">
                   <a

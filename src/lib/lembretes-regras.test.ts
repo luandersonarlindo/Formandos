@@ -48,7 +48,7 @@ describe("parcelasParaLembrar", () => {
 });
 
 describe("mudancasEvento", () => {
-  const base = { inicio: "2026-12-19T20:00", local: "Chácara", endereco: "Rua A" };
+  const base = { inicio: "2026-12-19T20:00", local: "Chácara", endereco: "Rua A", entrada: "Portão 1" };
   it("nada mudou", () => expect(mudancasEvento(base, { ...base })).toEqual([]));
   it("só o horário", () => {
     expect(mudancasEvento(base, { ...base, inicio: "2026-12-19T19:00" })).toEqual([
@@ -68,7 +68,20 @@ describe("mudancasEvento", () => {
     ]);
   });
   it("preencher pela primeira vez não é mudança", () => {
-    expect(mudancasEvento({ inicio: "", local: "", endereco: "" }, base)).toEqual([]);
+    expect(mudancasEvento({ inicio: "", local: "", endereco: "", entrada: "" }, base)).toEqual([]);
+  });
+  it("entrada trocada é mudança (ADR-0019)", () => {
+    expect(mudancasEvento(base, { ...base, entrada: "Portão 2, pela Rua B" })).toEqual([
+      { campo: "entrada", rotulo: "entrada", antes: "Portão 1", depois: "Portão 2, pela Rua B" },
+    ]);
+  });
+  it("entrada preenchida pela primeira vez não é mudança (ADR-0019)", () => {
+    expect(mudancasEvento({ ...base, entrada: "" }, base)).toEqual([]);
+  });
+  it("entrada apagada avisa", () => {
+    expect(mudancasEvento(base, { ...base, entrada: " " })).toEqual([
+      { campo: "entrada", rotulo: "entrada", antes: "Portão 1", depois: "não informado" },
+    ]);
   });
   it("tirar a data avisa", () => {
     expect(mudancasEvento(base, { ...base, inicio: "" })[0]).toMatchObject({ campo: "data", depois: "a definir" });
@@ -78,8 +91,8 @@ describe("mudancasEvento", () => {
 describe("listarRotulos", () => {
   it("junta com vírgula e 'e'", () => {
     const m = mudancasEvento(
-      { inicio: "2026-12-19T20:00", local: "A", endereco: "" },
-      { inicio: "2026-12-20T19:00", local: "B", endereco: "" },
+      { inicio: "2026-12-19T20:00", local: "A", endereco: "", entrada: "" },
+      { inicio: "2026-12-20T19:00", local: "B", endereco: "", entrada: "" },
     );
     expect(listarRotulos(m)).toBe("data, horário e local");
   });

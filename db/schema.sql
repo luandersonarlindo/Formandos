@@ -478,3 +478,7 @@ alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
 alter table lembretes_enviados drop constraint if exists lembretes_enviados_tipo_check;
 alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
   check (tipo in ('votacao', 'parcela', 'exclusao', 'presenca', 'abertura'));
+
+-- Entrada / portão do evento (ADR-0019): campo próprio para entrar no "Mudou"
+-- (comparar as observações inteiras faria qualquer vírgula virar mudança).
+alter table turmas add column if not exists entrada varchar(120);

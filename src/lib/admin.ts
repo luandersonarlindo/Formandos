@@ -16,6 +16,7 @@ export type EventoAdmin = {
   linkMapa: string;
   traje: string;
   observacoesLocal: string;
+  entrada: string;
   // Código da página pública do evento (ADR-0008); nulo = desligada.
   tokenPublico: string | null;
 };
@@ -107,6 +108,7 @@ export async function getEventoAdmin(turmaId: string): Promise<EventoAdmin> {
             coalesce(link_mapa, '') as "linkMapa",
             coalesce(traje, '') as traje,
             coalesce(observacoes_local, '') as "observacoesLocal",
+            coalesce(entrada, '') as entrada,
             token_publico as "tokenPublico"
        from turmas where id = $1`,
     [turmaId],
