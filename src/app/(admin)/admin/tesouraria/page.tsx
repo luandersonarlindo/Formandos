@@ -1,21 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarRange, FileDown, FileUp, HandCoins, Lock, Pencil, Plus, Receipt, ScrollText, Search } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { FileDown, FileSpreadsheet, FileUp, HandCoins, Plus } from "lucide-react";
+import { lancarPagamento } from "@/actions/tesouraria";
+import { AbasTesouraria } from "@/components/features/abas-tesouraria";
 import { AcoesInforme } from "@/components/features/acoes-informe";
-import { atualizarParcela, lancarPagamento, salvarPlano, salvarRegrasDinheiro } from "@/actions/tesouraria";
 import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
+import { CampoBusca } from "@/components/features/campo-busca";
 import { CamposLancamento } from "@/components/features/campos-lancamento";
 import { EstadoVazio } from "@/components/features/estado-vazio";
+import { FaixaNumeros } from "@/components/features/faixa-numeros";
+import { FiltrosPilula } from "@/components/features/filtros-pilula";
 import { FormDialog } from "@/components/features/form-dialog";
-import { FormImportarPagamentos } from "@/components/features/form-importar-pagamentos";
+import { AcaoLink, AcaoSeparador, MenuAcoes } from "@/components/features/menu-acoes";
 import { Paginacao } from "@/components/features/paginacao";
-import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { lerBusca } from "@/lib/busca";
 import { exigirTesouraria } from "@/lib/dal";
 import { formatarReal } from "@/lib/orcamento";
@@ -33,8 +34,10 @@ const FILTROS: { valor: FiltroTesouraria; rotulo: string }[] = [
   { valor: "aguardando", rotulo: "Aguardando confirmação" },
 ];
 
-// Tesouraria (ADR-0005): plano de parcelas da turma e a situação de cada
-// membro. Só quem é tesouraria entra aqui (exigirTesouraria).
+// Tesouraria (ADR-0005), aba Membros: a rotina de todo dia. O caixa numa faixa,
+// os "Já paguei" para conferir e a lista de quem pagou ou está atrasado. Plano,
+// regras e importação são tarefas de uma vez só e moram na aba "Plano e regras"
+// (D-12 do plano de UX). Só quem é tesouraria entra aqui (exigirTesouraria).
 export default async function TesourariaPage({ searchParams }: PageProps<"/admin/tesouraria">) {
   const tesouraria = await exigirTesouraria();
   const params = await searchParams;
@@ -42,12 +45,11 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
   const busca = lerBusca(params.busca);
   const hoje = hojeBrasil();
   const editavel = !tesouraria.arquivadaEm;
-  const [{ plano, contagem, itens, pagina, totalPaginas }, informes, caixa] = await Promise.all([
+  const [{ contagem, itens, pagina, totalPaginas }, informes, caixa] = await Promise.all([
     listarSituacoes(tesouraria.turmaId, hoje, { filtro, busca, pagina: lerPagina(params.pagina) }),
     listarInformados(tesouraria.turmaId),
     getCaixa(tesouraria.turmaId),
   ]);
-  const totalPlano = plano.reduce((s, p) => s + p.valor, 0);
   const link = (f: FiltroTesouraria) => {
     const q = new URLSearchParams();
     if (f !== "todos") q.set("filtro", f);
@@ -58,275 +60,137 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Tesouraria</h1>
-      <p className="mt-2 flex max-w-2xl items-start gap-1.5 text-muted-foreground text-pretty">
-        <Lock className="mt-1 size-4 shrink-0" aria-hidden />
-        Plano de parcelas e pagamentos de cada membro. Só a tesouraria vê esta página; cada pessoa vê a
-        própria situação em “Minha situação”.
-      </p>
+      <CabecalhoPagina
+        titulo="Tesouraria"
+        descricao="Quem pagou, quem está atrasado e o que falta conferir."
+        acao={
+          // Downloads e importação são raros: ficam juntos num menu, fora do
+          // caminho da lista. Os downloads continuam <a download> (AcaoLink).
+          <MenuAcoes nome="planilhas da tesouraria" rotulo="Planilhas" icone={<FileSpreadsheet aria-hidden />}>
+            <AcaoLink href="/admin/turma/exportar?tipo=situacao" download icone={<FileDown aria-hidden />}>
+              Situação por pessoa
+            </AcaoLink>
+            <AcaoLink href="/admin/turma/exportar?tipo=membros" download icone={<FileDown aria-hidden />}>
+              Lista de membros com email
+            </AcaoLink>
+            {editavel && <AcaoSeparador />}
+            {editavel && (
+              <AcaoLink href="/admin/tesouraria/plano#importar" icone={<FileUp aria-hidden />}>
+                Importar pagamentos…
+              </AcaoLink>
+            )}
+          </MenuAcoes>
+        }
+      />
+      <AbasTesouraria atual="membros" />
 
-      {/* "Já paguei" esperando conferência fica no topo (ADR-0005, parte 2). */}
+      <FaixaNumeros
+        className="mt-6"
+        numeros={[
+          {
+            rotulo: "Arrecadado",
+            valor: formatarReal.format(caixa.arrecadado),
+            detalhe: `de ${formatarReal.format(caixa.previsto)} previstos`,
+          },
+          { rotulo: "Saídas", valor: formatarReal.format(caixa.saidas) },
+          { rotulo: "Saldo", valor: formatarReal.format(caixa.saldo) },
+        ]}
+      />
+
+      {/* "Já paguei" esperando conferência fica no topo: é a fila de trabalho
+          (ADR-0005, parte 2). Um aviso e a lista logo abaixo, sem card. */}
       {informes.length > 0 && (
-        <Card className="mt-6 border border-[var(--vitrine-a)]/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <HandCoins className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Aguardando sua confirmação
-              <Badge variant="secondary" className="tabular-nums">{informes.length}</Badge>
-            </CardTitle>
-            <CardDescription>Pagamentos que os membros informaram. Confira no extrato antes de confirmar.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="divide-y">
-              {informes.map((i) => (
-                <li key={i.id} data-informe={i.nome} className="flex flex-col gap-2 py-3 text-sm">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <Link href={`/admin/tesouraria/${i.usuarioId}`} className="font-medium underline-offset-2 hover:underline">
-                      {i.nome}
-                    </Link>
-                    <span className="font-medium tabular-nums">{formatarReal.format(i.valor)}</span>
-                    <span className="text-muted-foreground">
-                      {ROTULO_FORMA[i.forma]} · {dataBr(i.pagoEm)}
-                    </span>
-                  </div>
-                  {(i.pagoPor || i.referencia) && (
-                    <p className="text-xs text-muted-foreground wrap-break-word">
-                      {[i.pagoPor && `Pago por ${i.pagoPor}`, i.referencia].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
-                  {editavel && <AcoesInforme id={i.id} />}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CalendarRange className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Plano de parcelas
-          </CardTitle>
-          <CardDescription className="text-pretty">
-            {plano.length === 0
-              ? "Ainda não há plano. Monte as parcelas que cada pessoa vai pagar."
-              : `${plano.length} ${plano.length === 1 ? "parcela" : "parcelas"}, ${formatarReal.format(totalPlano)} por pessoa. Igual para todos.`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {plano.length > 0 && (
-            <ol className="divide-y">
-              {plano.map((p) => (
-                <li key={p.numero} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
-                  <span className="w-24 shrink-0 font-medium">Parcela {p.numero}</span>
-                  <span className="tabular-nums">{formatarReal.format(p.valor)}</span>
-                  <span className="text-muted-foreground tabular-nums">vence {dataBr(p.vencimento)}</span>
+        <section aria-labelledby="titulo-informes" className="mt-6">
+          <Alert role="status">
+            <HandCoins aria-hidden />
+            <AlertTitle id="titulo-informes">
+              {informes.length} {informes.length === 1 ? "pagamento aguardando" : "pagamentos aguardando"} sua
+              confirmação
+            </AlertTitle>
+            <AlertDescription>Os membros informaram. Confira no extrato antes de confirmar.</AlertDescription>
+          </Alert>
+          <ul className="mt-2 divide-y rounded-lg border">
+            {informes.map((i) => (
+              <Item asChild key={i.id}>
+                <li data-informe={i.nome} className="rounded-none not-first:border-t-border">
+                  <ItemContent className="min-w-0 basis-56">
+                    <ItemTitle>
+                      <Link href={`/admin/tesouraria/${i.usuarioId}`} className="underline-offset-2 hover:underline">
+                        {i.nome}
+                      </Link>
+                      <span className="tabular-nums">{formatarReal.format(i.valor)}</span>
+                    </ItemTitle>
+                    <ItemDescription className="line-clamp-none wrap-break-word">
+                      {[
+                        ROTULO_FORMA[i.forma],
+                        dataBr(i.pagoEm),
+                        i.pagoPor && `pago por ${i.pagoPor}`,
+                        i.referencia,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </ItemDescription>
+                  </ItemContent>
                   {editavel && (
-                    <span className="ml-auto">
-                      <FormDialog
-                        rotulo="Ajustar"
-                        icone={<Pencil aria-hidden />}
-                        titulo={`Ajustar parcela ${p.numero}`}
-                        descricao="A mudança vale para todos e fica registrada no histórico do plano."
-                        acao={atualizarParcela}
-                        campos={{ numero: String(p.numero) }}
-                        rotuloSubmit="Salvar parcela"
-                      >
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor={`parcela-valor-${p.numero}`} className="text-xs">Valor (R$)</Label>
-                          <Input
-                            id={`parcela-valor-${p.numero}`}
-                            name="valor"
-                            inputMode="decimal"
-                            defaultValue={p.valor.toFixed(2).replace(".", ",")}
-                            required
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor={`parcela-venc-${p.numero}`} className="text-xs">Vencimento</Label>
-                          <Input id={`parcela-venc-${p.numero}`} name="vencimento" type="date" defaultValue={p.vencimento} required />
-                        </div>
-                      </FormDialog>
-                    </span>
+                    <ItemActions>
+                      <AcoesInforme id={i.id} />
+                    </ItemActions>
                   )}
                 </li>
-              ))}
-            </ol>
-          )}
-          {editavel && (
-            <FormDialog
-              rotulo={plano.length === 0 ? "Montar plano" : "Refazer plano"}
-              icone={<CalendarRange aria-hidden />}
-              variante={plano.length === 0 ? "default" : "outline"}
-              titulo={plano.length === 0 ? "Montar plano de parcelas" : "Refazer o plano"}
-              descricao={
-                plano.length === 0
-                  ? "Parcelas mensais de mesmo valor. Depois dá para ajustar uma por uma."
-                  : "Troca todas as parcelas. Os pagamentos já lançados continuam e são recalculados no plano novo."
-              }
-              acao={salvarPlano}
-              rotuloSubmit="Salvar plano"
-            >
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="plano-quantidade" className="text-xs">Quantas parcelas</Label>
-                  <Input id="plano-quantidade" name="quantidade" type="number" min={1} max={60} inputMode="numeric" defaultValue={plano.length || 10} required />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="plano-valor" className="text-xs">Valor de cada uma (R$)</Label>
-                  <Input id="plano-valor" name="valor" inputMode="decimal" placeholder="150,00" required />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="plano-primeira" className="text-xs">Vencimento da primeira</Label>
-                <Input id="plano-primeira" name="primeira" type="date" defaultValue={plano[0]?.vencimento ?? hoje} required />
-                <p className="text-xs text-muted-foreground">As outras vencem no mesmo dia dos meses seguintes.</p>
-              </div>
-            </FormDialog>
-          )}
-        </CardContent>
-      </Card>
-
-      {editavel && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileUp className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Importar da planilha
-            </CardTitle>
-            <CardDescription className="text-pretty">
-              Traga de uma vez os pagamentos que já estão na sua planilha. Entram como confirmados. Com
-              qualquer linha com problema, nada é importado.{" "}
-              <a href="/admin/turma/exportar?tipo=membros" download className="underline underline-offset-4">
-                Baixar a lista de membros com os emails
-              </a>
-              .
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <FormImportarPagamentos />
-            <a
-              href="/admin/turma/exportar?tipo=situacao"
-              download
-              className={buttonVariants({ variant: "outline", size: "sm", className: "self-start" })}
-            >
-              <FileDown aria-hidden /> Situação por pessoa (planilha)
-            </a>
-          </CardContent>
-        </Card>
+              </Item>
+            ))}
+          </ul>
+        </section>
       )}
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <ScrollText className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Caixa e regras
-          </CardTitle>
-          <CardDescription className="text-pretty tabular-nums">
-            Pagamentos confirmados pela tesouraria: {formatarReal.format(caixa.arrecadado)} de {formatarReal.format(caixa.previsto)} previstos. A
-            turma vê só estes totais, sem nomes.
-            {caixa.qtdSaidas > 0 &&
-              ` Saídas lançadas: ${formatarReal.format(caixa.saidas)}. Saldo: ${formatarReal.format(caixa.saldo)}.`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {/* ADR-0022: o que foi pago em nome da turma. */}
-          <Link href="/admin/tesouraria/saidas" className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit" })}>
-            <Receipt aria-hidden /> Saídas do caixa
-          </Link>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground wrap-break-word">
-            {caixa.regrasDinheiro || "Nenhuma regra de desistência, devolução ou multa escrita ainda."}
-          </p>
-          {editavel && (
-            <FormDialog
-              rotulo={caixa.regrasDinheiro ? "Editar regras do dinheiro" : "Escrever regras do dinheiro"}
-              icone={<ScrollText aria-hidden />}
-              titulo="Regras do dinheiro"
-              descricao="Desistência, devolução e multa. A turma lê este texto em “Minha situação”."
-              acao={salvarRegrasDinheiro}
-              rotuloSubmit="Salvar regras"
-              dialogClassName="sm:max-w-xl"
-            >
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="regras-dinheiro" className="text-xs">Texto</Label>
-                <Textarea
-                  id="regras-dinheiro"
-                  name="regras"
-                  rows={8}
-                  maxLength={2000}
-                  defaultValue={caixa.regrasDinheiro}
-                  placeholder="Ex.: quem desistir até 31/03 recebe de volta o que pagou, menos a parte já gasta com o espaço."
-                />
-              </div>
-            </FormDialog>
-          )}
-        </CardContent>
-      </Card>
-
-      <form action="/admin/tesouraria" className="mt-6 flex gap-2" role="search">
-        {filtro !== "todos" && <input type="hidden" name="filtro" value={filtro} />}
-        <Label htmlFor="busca-tesouraria" className="sr-only">Buscar membro</Label>
-        <Input id="busca-tesouraria" name="busca" defaultValue={busca} placeholder="Buscar por nome ou email" className="h-10" />
-        <Button type="submit" variant="outline" className="h-10">
-          <Search aria-hidden /> Buscar
-        </Button>
-      </form>
-
-      <nav
-        aria-label="Filtrar por situação"
-        className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {FILTROS.map((f) => {
-          const ativo = f.valor === filtro;
-          return (
-            <Link
-              key={f.valor}
-              href={link(f.valor)}
-              aria-current={ativo ? "true" : undefined}
-              className={
-                ativo
-                  ? "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--vitrine-a)]/40 bg-[color-mix(in_oklch,var(--vitrine-a)_10%,transparent)] px-3 py-1 text-sm font-medium"
-                  : "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              {f.rotulo}
-              <span className="text-xs tabular-nums text-muted-foreground">{contagem[f.valor]}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {itens.length === 0 ? (
-        <EstadoVazio
-          className="mt-4"
-          descricao={busca ? "Tente outro nome ou limpe a busca." : "Escolha outro filtro para ver os demais."}
-          ilustracao={<EquipeAmico />}
-          titulo="Ninguém aqui"
+      <section aria-label="Membros" className="mt-8 flex flex-col gap-3">
+        <CampoBusca
+          acao="/admin/tesouraria"
+          valor={busca}
+          placeholder="Buscar por nome ou email"
+          rotulo="Buscar membro por nome ou email"
+          manter={{ filtro: filtro === "todos" ? undefined : filtro }}
         />
-      ) : (
-        <ul data-grupo className="mt-4 grid gap-3">
-          {itens.map((m) => (
-            <li key={m.usuarioId} data-membro={m.nome}>
-              <Card>
-                <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
+        <FiltrosPilula
+          rotulo="Filtrar por situação"
+          filtros={FILTROS.map((f) => ({
+            rotulo: f.rotulo,
+            href: link(f.valor),
+            ativo: f.valor === filtro,
+            contagem: contagem[f.valor],
+          }))}
+        />
+
+        {itens.length === 0 ? (
+          <EstadoVazio
+            titulo="Ninguém aqui"
+            descricao={busca ? "Tente outro nome ou limpe a busca." : "Escolha outro filtro para ver os demais."}
+          />
+        ) : (
+          <ul data-grupo className="divide-y rounded-lg border">
+            {itens.map((m) => (
+              <Item asChild key={m.usuarioId}>
+                <li data-membro={m.nome} className="rounded-none not-first:border-t-border">
+                  <ItemMedia>
                     <AvatarUsuario nome={m.nome} imagem={m.imagem} className="size-10" />
-                    <div className="min-w-0">
+                  </ItemMedia>
+                  <ItemContent className="min-w-0 basis-40">
+                    <ItemTitle className="max-w-full">
                       <Link
                         href={`/admin/tesouraria/${m.usuarioId}`}
-                        className="block truncate text-sm font-medium underline-offset-2 hover:underline"
+                        className="truncate underline-offset-2 hover:underline"
                       >
                         {m.nome}
                       </Link>
-                      <p className="truncate text-xs text-muted-foreground tabular-nums">
-                        pagou {formatarReal.format(Math.max(0, m.situacao.pago))}
-                        {m.situacao.falta > 0 && ` · falta ${formatarReal.format(m.situacao.falta)}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                    </ItemTitle>
+                    <ItemDescription className="tabular-nums">
+                      pagou {formatarReal.format(Math.max(0, m.situacao.pago))}
+                      {m.situacao.falta > 0 && ` · falta ${formatarReal.format(m.situacao.falta)}`}
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions className="flex-wrap">
                     {m.situacao.estado !== "sem_plano" && (
-                      <Badge
-                        variant={m.situacao.estado === "atrasado" ? "outline" : "secondary"}
-                        className={m.situacao.estado === "atrasado" ? "text-amber-700 dark:text-amber-400" : ""}
-                      >
+                      <Badge variant={m.situacao.estado === "atrasado" ? "warning" : "secondary"}>
                         {ROTULO_ESTADO[m.situacao.estado]}
                       </Badge>
                     )}
@@ -345,13 +209,13 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
                         <CamposLancamento prefixo={`lancar-${m.usuarioId}`} hoje={hoje} />
                       </FormDialog>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
-      )}
+                  </ItemActions>
+                </li>
+              </Item>
+            ))}
+          </ul>
+        )}
+      </section>
       <Paginacao
         pagina={pagina}
         totalPaginas={totalPaginas}

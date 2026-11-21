@@ -1,9 +1,14 @@
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import type { Fornecedor, Saida } from "@/lib/saidas-regras";
 
 // Campos do formulário de saída do caixa (ADR-0022), para lançar e editar.
+// Mesmo Field e mesmo tamanho de rótulo do CamposLancamento: os dois forms são
+// irmãos e devem parecer. O "só da comissão" é um Checkbox do Radix; ele manda
+// "on" por um input oculto quando marcado e nada quando não, que é o que a
+// action já lê (soComissao !== "").
 export function CamposSaida({
   prefixo,
   hoje,
@@ -17,8 +22,8 @@ export function CamposSaida({
 }) {
   return (
     <>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${prefixo}-descricao`}>Descrição</Label>
+      <Field>
+        <FieldLabel htmlFor={`${prefixo}-descricao`}>Descrição</FieldLabel>
         <Input
           id={`${prefixo}-descricao`}
           name="descricao"
@@ -27,10 +32,10 @@ export function CamposSaida({
           placeholder="Ex.: Sinal do buffet"
           required
         />
-      </div>
+      </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${prefixo}-valor`}>Valor (R$)</Label>
+        <Field>
+          <FieldLabel htmlFor={`${prefixo}-valor`}>Valor (R$)</FieldLabel>
           <Input
             id={`${prefixo}-valor`}
             name="valor"
@@ -39,14 +44,14 @@ export function CamposSaida({
             placeholder="1500,00"
             required
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${prefixo}-data`}>Data do pagamento</Label>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor={`${prefixo}-data`}>Data do pagamento</FieldLabel>
           <Input id={`${prefixo}-data`} name="pagoEm" type="date" defaultValue={inicial?.pagoEm ?? hoje} required />
-        </div>
+        </Field>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${prefixo}-fornecedor`}>Fornecedor (opcional)</Label>
+      <Field>
+        <FieldLabel htmlFor={`${prefixo}-fornecedor`}>Fornecedor (opcional)</FieldLabel>
         <NativeSelect id={`${prefixo}-fornecedor`} name="fornecedorId" defaultValue={inicial?.fornecedorId ?? ""}>
           <option value="">Sem fornecedor</option>
           {fornecedores.map((f) => (
@@ -55,9 +60,9 @@ export function CamposSaida({
             </option>
           ))}
         </NativeSelect>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${prefixo}-referencia`}>Referência (opcional)</Label>
+      </Field>
+      <Field>
+        <FieldLabel htmlFor={`${prefixo}-referencia`}>Referência (opcional)</FieldLabel>
         <Input
           id={`${prefixo}-referencia`}
           name="referencia"
@@ -66,29 +71,25 @@ export function CamposSaida({
           placeholder="Código do Pix ou número do documento"
           aria-describedby={`${prefixo}-referencia-ajuda`}
         />
-        <p id={`${prefixo}-referencia-ajuda`} className="text-xs text-muted-foreground">
+        <FieldDescription id={`${prefixo}-referencia-ajuda`} className="text-xs">
           Só a tesouraria vê. Serve para casar com o extrato.
-        </p>
-      </div>
-      <div className="flex items-start gap-2.5 rounded-lg border bg-muted/50 p-3">
-        <Input
+        </FieldDescription>
+      </Field>
+      <Field orientation="horizontal" className="rounded-lg border p-3">
+        <Checkbox
           id={`${prefixo}-so-comissao`}
           name="soComissao"
-          type="checkbox"
           defaultChecked={inicial?.soComissao}
-          className="mt-0.5 size-5 shrink-0 sm:size-4"
           aria-describedby={`${prefixo}-so-comissao-ajuda`}
         />
-        <div className="flex flex-col gap-1">
-          <Label htmlFor={`${prefixo}-so-comissao`} className="text-sm">
-            Descrição só para a comissão
-          </Label>
-          <p id={`${prefixo}-so-comissao-ajuda`} className="text-xs text-muted-foreground text-pretty">
+        <FieldContent>
+          <FieldLabel htmlFor={`${prefixo}-so-comissao`}>Descrição só para a comissão</FieldLabel>
+          <FieldDescription id={`${prefixo}-so-comissao-ajuda`} className="text-xs text-pretty">
             A turma vê “Outras despesas”, sem a descrição e sem o fornecedor. O valor aparece para todos e entra no
             total.
-          </p>
-        </div>
-      </div>
+          </FieldDescription>
+        </FieldContent>
+      </Field>
     </>
   );
 }
