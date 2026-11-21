@@ -67,6 +67,19 @@ describe("descreverAcao", () => {
     ).toMatch(/^montou o plano de parcelas: 2 × R\$\s100,00, a partir de 10\/10\/2026\.$/);
   });
 
+  it("saídas do caixa: valor, data e fornecedor (ADR-0022)", () => {
+    expect(
+      descreverAcao("saida.lancada", { descricao: "Sinal do buffet", valor: 1500, pagoEm: "2026-11-10", fornecedor: "Buffet Sabor" }).frase,
+    ).toBe("lançou a saída “Sinal do buffet”: R$\u00a01.500,00 em 10/11/2026 para Buffet Sabor.");
+    const editada = descreverAcao("saida.editada", {
+      antes: { descricao: "Sinal", valor: 1000, pagoEm: "2026-11-10", fornecedor: null },
+      depois: { descricao: "Sinal do buffet", valor: 1500, pagoEm: "2026-11-10", fornecedor: null },
+    });
+    expect(editada.frase).toBe("corrigiu a saída “Sinal do buffet”.");
+    expect(editada.detalhes[0]).toContain("Era “Sinal”");
+    expect(descreverAcao("saida.excluida", { descricao: "Outras despesas", valor: 12, pagoEm: "2026-11-10" }).alerta).toBe(true);
+  });
+
   it("votação avisada diz a pergunta e quantos receberam (ADR-0018)", () => {
     expect(descreverAcao("votacao.avisada", { pergunta: "Qual buffet?", avisados: 12 })).toEqual({
       frase: "avisou a turma por email da votação “Qual buffet?”.",

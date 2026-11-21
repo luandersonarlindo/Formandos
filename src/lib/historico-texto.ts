@@ -4,6 +4,7 @@
 
 import type { AcaoAuditoria } from "./auditoria-acoes";
 import { TEXTO_MOTIVO, type MotivoForaDaRegra } from "./decisao-regras";
+import { formatarReal } from "./orcamento";
 
 export type FraseHistorico = { frase: string; detalhes: string[]; alerta?: boolean };
 
@@ -12,6 +13,15 @@ const reais = (v: unknown) =>
     ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v)
     : "sem valor";
 const aspas = (t: unknown) => `“${String(t ?? "")}”`;
+// "R$ 1.500,00 em 10/11/2026, para Buffet Sabor" (ADR-0022).
+const saidaTexto = (s: { valor?: unknown; pagoEm?: unknown; fornecedor?: unknown }) =>
+  [
+    typeof s.valor === "number" ? formatarReal.format(s.valor) : null,
+    typeof s.pagoEm === "string" ? `em ${s.pagoEm.split("-").reverse().join("/")}` : null,
+    typeof s.fornecedor === "string" && s.fornecedor ? `para ${s.fornecedor}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 const lista = (itens: unknown) =>
   Array.isArray(itens) ? itens.map(aspas).join(", ") : aspas(itens);
 const dataBr = (iso: string) => iso.split("-").reverse().join("/");
@@ -149,6 +159,18 @@ export function descreverAcao(
         frase: "arquivou a turma.",
         detalhes: typeof d.excluirEm === "string" ? [`Tudo será excluído em ${dataBr(d.excluirEm)}.`] : [],
       };
+    case "saida.lancada":
+      return { frase: `lançou a saída ${aspas(d.descricao)}: ${saidaTexto(d)}.`, detalhes: [] };
+    case "saida.editada": {
+      const a = d.antes ?? {};
+      const n = d.depois ?? {};
+      return {
+        frase: `corrigiu a saída ${aspas(n.descricao)}.`,
+        detalhes: [`Era ${aspas(a.descricao)}, ${saidaTexto(a)}. Agora é ${saidaTexto(n)}.`],
+      };
+    }
+    case "saida.excluida":
+      return { frase: `excluiu a saída ${aspas(d.descricao)} (${saidaTexto(d)}).`, detalhes: [], alerta: true };
     case "votacao.avisada":
       return {
         frase: `avisou a turma por email da votação ${aspas(d.pergunta)}.`,

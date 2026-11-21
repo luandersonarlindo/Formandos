@@ -1557,6 +1557,92 @@ await grupo("admin", async () => {
       sql("delete from usuarios where email='teste-tmp@example.invalid'");
     }
   });
+  await passo("ADR-0022: saídas do caixa, saldo, só da comissão e por fornecedor", async () => {
+    const turma = turmaTeste();
+    const maria = "(select id from usuarios where email='teste-sh@example.invalid')";
+    const base = process.env.BASE_URL ?? "http://localhost:3000";
+    sql(`update membros set tesouraria=true where turma_id='${turma}' and usuario_id=${maria}`);
+    sql(`insert into parcelas (turma_id,numero,valor,vencimento) values ('${turma}',1,100,'2027-01-10')`);
+    sql(`insert into fornecedores (turma_id,nome,categoria,status,valor_orcado) values ('${turma}','Buffet E2E','Buffet','contratado',5000)`);
+    const forn = sql(`select id from fornecedores where turma_id='${turma}' and nome='Buffet E2E'`);
+    const qtd = () => sql(`select count(*) from saidas where turma_id='${turma}'`);
+    const lancar = async (descricao, valor, { fornecedor = "", soComissao = false } = {}) => {
+      const antes = Number(qtd());
+      await nav.abrir("/admin/tesouraria/saidas");
+      await nav.clicar("Lançar saída", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #nova-saida-descricao')", 10000, "formulário da saída");
+      await preencherEm("@[role=dialog]", "#nova-saida-descricao", descricao);
+      await preencherEm("@[role=dialog]", "#nova-saida-valor", valor);
+      await preencherEm("@[role=dialog]", "#nova-saida-data", "2026-11-10");
+      if (fornecedor) await preencherEm("@[role=dialog]", "#nova-saida-fornecedor", fornecedor);
+      if (soComissao) await nav.ev("document.querySelector('[role=dialog] #nova-saida-so-comissao').click()");
+      await nav.clicar("Lançar saída", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      for (let i = 0; i < 20 && Number(qtd()) === antes; i++) await dormir(500);
+      igual(Number(qtd()), antes + 1, `saída "${descricao}" no banco`);
+    };
+    try {
+      await lancar("Sinal do buffet E2E", "1500", { fornecedor: forn });
+      await lancar("Tarifa do banco E2E", "12,50", { soComissao: true });
+      // Histórico da turma: a só da comissão vai como "Outras despesas".
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='saida.lancada'`), "2", "duas saídas no histórico");
+      igual(
+        sql(`select count(*) from auditoria where turma_id='${turma}' and acao like 'saida.%' and detalhe::text like '%Tarifa%'`),
+        "0",
+        "descrição só da comissão fora do histórico",
+      );
+      // Tesouraria: saldo e contratado, pago e falta.
+      await nav.abrir("/admin/tesouraria/saidas");
+      await nav.esperarTexto("Por fornecedor");
+      await nav.esperarTexto("Tarifa do banco E2E");
+      const linha = await nav.ev(`[...document.querySelectorAll('tr')].find(t => t.textContent.includes('Buffet E2E'))?.innerText ?? ''`);
+      verdade(/5\.000,00[\s\S]*1\.500,00[\s\S]*3\.500,00/.test(linha), `contratado, pago e falta: ${linha}`);
+
+      // Participante: saldo e cada saída, sem a descrição da só da comissão.
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/minha-situacao");
+      await nav.esperarTexto("Saídas lançadas");
+      await nav.esperarTexto("Não é o saldo do banco");
+      await nav.ev("document.querySelector('main details')?.setAttribute('open', '')");
+      await nav.esperarTexto("Sinal do buffet E2E");
+      await nav.esperarTexto("Outras despesas");
+      verdade(!(await nav.tem("Tarifa do banco E2E")), "participante não vê a descrição só da comissão");
+      verdade(!(await nav.tem("ref.")), "participante não vê referência");
+      await nav.abrir("/registro");
+      await nav.esperarTexto("Saídas lançadas:");
+      verdade(!(await nav.tem("Tarifa do banco E2E")), "registro sem a descrição só da comissão");
+
+      // Tesouraria corrige e exclui; planilha da comissão traz tudo.
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      const sinal = sql(`select id from saidas where turma_id='${turma}' and descricao='Sinal do buffet E2E'`);
+      const tarifa = sql(`select id from saidas where turma_id='${turma}' and descricao='Tarifa do banco E2E'`);
+      await nav.abrir("/admin/tesouraria/saidas");
+      await nav.clicar("Editar", { escopo: `@li[data-saida='${sinal}']`, seletor: "button" });
+      await nav.esperar(`!!document.querySelector("[role=dialog] #editar-${sinal}-valor")`, 10000, "formulário de edição");
+      await preencherEm("@[role=dialog]", `#editar-${sinal}-valor`, "1600");
+      await nav.clicar("Salvar saída", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      for (let i = 0; i < 20 && sql(`select valor from saidas where id='${sinal}'`) !== "1600.00"; i++) await dormir(500);
+      igual(sql(`select valor from saidas where id='${sinal}'`), "1600.00", "saída corrigida");
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='saida.editada'`), "1", "correção no histórico");
+      await nav.abrir("/admin/tesouraria/saidas");
+      await excluir("Excluir", { escopo: `@li[data-saida='${tarifa}']` });
+      for (let i = 0; i < 20 && qtd() !== "1"; i++) await dormir(500);
+      igual(qtd(), "1", "saída excluída");
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='saida.excluida'`), "1", "exclusão no histórico");
+      const r = await fetch(`${base}/admin/turma/exportar?tipo=saidas`, {
+        headers: { cookie: `better-auth.session_token=${lerCookie("cookie-admin.txt")}` },
+        redirect: "manual",
+      });
+      igual(r.status, 200, "planilha de saídas");
+      verdade((await r.text()).includes("Sinal do buffet E2E"), "planilha com a saída");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`delete from saidas where turma_id='${turma}'`);
+      sql(`delete from fornecedores where turma_id='${turma}' and nome='Buffet E2E'`);
+      sql(`delete from parcelas where turma_id='${turma}'`);
+      sql(`delete from auditoria where turma_id='${turma}' and acao in ('saida.lancada','saida.editada','saida.excluida','turma.exportada')`);
+      sql(`update membros set tesouraria=false where turma_id='${turma}'`);
+    }
+  });
   await passo("ADR-0014: importar pagamentos da planilha, sem duplicar, e planilha de situação", async () => {
     const turma = turmaTeste();
     const joao = sql("select id from usuarios where email='teste-jl@example.invalid'");

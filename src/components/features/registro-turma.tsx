@@ -5,6 +5,8 @@ import { HistoricoDecisoes } from "@/components/features/historico-decisoes";
 import { MudancasPlano } from "@/components/features/mudancas-plano";
 import { formatarDataHora } from "@/lib/datas";
 import { formatarReal } from "@/lib/orcamento";
+import { FRASE_SALDO } from "@/lib/saidas-regras";
+import { SaidasDaTurma } from "@/components/features/saidas-da-turma";
 import type { getRegistroTurma } from "@/lib/registro";
 
 // Registro da turma para imprimir ou salvar como PDF (ADR-0007). Sem dado
@@ -140,12 +142,23 @@ export function RegistroTurma({
         <p className="mt-1 text-xs text-muted-foreground">Total contratado por categoria.</p>
       </Secao>
 
-      {r.caixa.previsto > 0 && (
+      {(r.caixa.previsto > 0 || r.saidas.length > 0) && (
         <Secao titulo="Caixa da turma">
           <p className="tabular-nums">
             Pagamentos confirmados pela tesouraria: <strong>{formatarReal.format(r.caixa.arrecadado)}</strong> de{" "}
             {formatarReal.format(r.caixa.previsto)} previstos ({pct(r.caixa.arrecadado, r.caixa.previsto)}).
           </p>
+          {r.saidas.length > 0 && (
+            <>
+              <p className="mt-1 tabular-nums">
+                Saídas lançadas: <strong>{formatarReal.format(r.caixa.saidas)}</strong>. Saldo:{" "}
+                <strong>{formatarReal.format(r.caixa.saldo)}</strong>. {FRASE_SALDO}
+              </p>
+              <div className="mt-2">
+                <SaidasDaTurma saidas={r.saidas} />
+              </div>
+            </>
+          )}
           {r.caixa.regrasDinheiro && (
             <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
               Regras do dinheiro: {r.caixa.regrasDinheiro}

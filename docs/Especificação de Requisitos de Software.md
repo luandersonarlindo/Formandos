@@ -437,7 +437,7 @@ Origem: `docs/simulacoes/levantamento-rodada-2.md`, seções 3 e 4. São **espec
 | RF-61 | O "valor por pessoa" DEVE dizer se é o total ou por mês. | S | 0.3 | tema 5 | Proposto |
 | RF-62 | A tela de votação DEVE dizer: "Ninguém da comissão muda o seu voto; mudanças em decisões ficam no histórico". | C | 0.4 | tema 10 | Atendido (ADR-0017) |
 | RF-63 | Um link público trocado DEVE abrir uma página que diga "Este link foi trocado. Peça o novo a quem mandou". | C | 0.5 | tema 9 | Atendido (ADR-0017) |
-| RF-64 | O caixa DEVE registrar saídas (pagamentos a fornecedor), com totais para a turma. | C | 2.1 | temas 2, 6 | Proposto |
+| RF-64 | O caixa DEVE registrar saídas (pagamentos a fornecedor), com totais para a turma. | C | 2.1 | temas 2, 6 | Atendido (ADR-0022) |
 | RF-65 | Decisão e fornecedor DEVEM aceitar um link de documento (contrato, orçamento) no lugar de anexo. | C | 2.6 | temas 2, 6, 10 | Proposto |
 | RF-66 | A tesouraria DEVE poder gerar um recibo (página para imprimir) de um lançamento confirmado. | C | 2.2 | temas 4, 6 | Proposto |
 | RF-67 | O formando DEVE poder ligar a ele o email de quem paga (pai, mãe), para a importação casar a linha. | C | 2.3 | tema 10 | Proposto |

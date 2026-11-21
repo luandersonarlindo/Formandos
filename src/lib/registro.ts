@@ -5,6 +5,7 @@ import { catalogoVisivelSql, enqueteVisivelSql } from "./catalogo-visibilidade";
 import { listarDecisoes } from "./dashboard";
 import { getResumoPresenca } from "./presenca";
 import { getCaixa } from "./pagamentos";
+import { listarSaidasDaTurma } from "./saidas";
 import { listarHistoricoDecisoes, listarMudancasPlano } from "./auditoria";
 
 // "Registro da turma" (ADR-0007): tudo o que a comissão leva para prestar
@@ -13,7 +14,7 @@ import { listarHistoricoDecisoes, listarMudancasPlano } from "./auditoria";
 
 export async function getRegistroTurma(membro: Membro) {
   const turmaId = membro.turmaId;
-  const [turma, comissao, resultados, fornecedores, decisoes, presenca, caixa, historico, plano] =
+  const [turma, comissao, resultados, fornecedores, decisoes, presenca, caixa, historico, plano, saidas] =
     await Promise.all([
       pool.query(
         `select nome, data_evento as "dataEvento", local_evento as local, endereco
@@ -53,6 +54,7 @@ export async function getRegistroTurma(membro: Membro) {
       getCaixa(turmaId),
       listarHistoricoDecisoes(turmaId),
       listarMudancasPlano(turmaId),
+      listarSaidasDaTurma(turmaId),
     ]);
 
   // Agrupa resultados por pergunta.
@@ -89,6 +91,8 @@ export async function getRegistroTurma(membro: Membro) {
     fornecedores: [...porCategoria].map(([categoria, c]) => ({ categoria, ...c })),
     presenca,
     caixa,
+    // ADR-0022: como a turma vê (sem referência; "Outras despesas" nas só da comissão).
+    saidas,
     historico,
     plano,
   };

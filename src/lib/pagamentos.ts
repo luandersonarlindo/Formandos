@@ -255,7 +255,7 @@ export async function listarInformados(turmaId: string): Promise<Informe[]> {
   return rows;
 }
 
-// Caixa da turma (ADR-0005, parte 3): só totais, para todos os membros. Entra
+// Caixa da turma (ADR-0005, parte 3; saídas na ADR-0022): só totais, para todos os membros. Entra
 // tudo o que foi confirmado, inclusive de quem já saiu (usuario_id nulo).
 // Nunca nomes nem quantas pessoas estão em atraso: numa turma pequena, a
 // contagem identifica quem deve.
@@ -265,6 +265,8 @@ export async function getCaixa(turmaId: string) {
        coalesce((select sum(case when tipo = 'devolucao' then -valor else valor end)
                    from pagamentos where turma_id = $1 and status = 'confirmado'), 0)::float8 as arrecadado,
        coalesce((select sum(valor) from parcelas where turma_id = $1), 0)::float8 as "planoPorPessoa",
+       coalesce((select sum(valor) from saidas where turma_id = $1), 0)::float8 as saidas,
+       (select count(*) from saidas where turma_id = $1)::int as "qtdSaidas",
        (select count(*) from membros where turma_id = $1 and ${contaComoFormandoSql()})::int as membros,
        (select regras_dinheiro from turmas where id = $1) as "regrasDinheiro"`,
     [turmaId],
@@ -272,6 +274,11 @@ export async function getCaixa(turmaId: string) {
   const r = rows[0];
   return {
     arrecadado: r.arrecadado as number,
+    // ADR-0022: saídas lançadas e saldo (confirmados menos saídas). Sem
+    // nenhuma saída, as telas mostram o caixa como antes.
+    saidas: r.saidas as number,
+    qtdSaidas: r.qtdSaidas as number,
+    saldo: Math.round((r.arrecadado - r.saidas) * 100) / 100,
     previsto: Math.round(r.planoPorPessoa * r.membros * 100) / 100,
     membros: r.membros as number,
     regrasDinheiro: (r.regrasDinheiro as string | null) ?? "",

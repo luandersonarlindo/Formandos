@@ -490,3 +490,22 @@ create table if not exists avisos_encerramento (
   usuario_id uuid primary key references usuarios(id) on delete cascade,
   created_at timestamptz not null default now()
 );
+
+-- Saídas do caixa (ADR-0022): o que a tesouraria pagou a fornecedor ou gastou
+-- em nome da turma. Sem dado de pessoa. A turma vê cada saída; a marcada
+-- `so_comissao` aparece como "Outras despesas", sem descrição nem fornecedor,
+-- mas o valor sempre entra no total.
+create table if not exists saidas (
+  id            uuid primary key default gen_random_uuid(),
+  turma_id      uuid not null references turmas(id) on delete cascade,
+  fornecedor_id uuid references fornecedores(id) on delete set null,
+  descricao     varchar(200) not null,
+  valor         numeric(10,2) not null check (valor > 0),
+  pago_em       date not null,
+  referencia    varchar(120),
+  so_comissao   boolean not null default false,
+  lancado_por   uuid references usuarios(id) on delete set null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+create index if not exists idx_saidas_turma on saidas (turma_id, pago_em desc);

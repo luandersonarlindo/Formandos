@@ -36,6 +36,10 @@ export const ACOES_AUDITORIA = [
   "presenca.prazo",
   // ADR-0018: a comissão avisou a turma por email de uma votação aberta.
   "votacao.avisada",
+  // ADR-0022: saídas do caixa.
+  "saida.lancada",
+  "saida.editada",
+  "saida.excluida",
 ] as const;
 export type AcaoAuditoria = (typeof ACOES_AUDITORIA)[number];
 
@@ -60,6 +64,11 @@ export const ACOES_VISIVEIS_TURMA = [
   "presenca.prazo",
   // ADR-0018: detalhe só com a pergunta, o prazo e quantos foram avisados.
   "votacao.avisada",
+  // ADR-0022: dinheiro da turma, não de pessoa. A saída "só da comissão" vai
+  // como "Outras despesas" (detalheAuditoria em saidas-regras.ts).
+  "saida.lancada",
+  "saida.editada",
+  "saida.excluida",
 ] as const satisfies readonly AcaoAuditoria[];
 
 // Pagamentos individuais: só a tesouraria vê no histórico (ADR-0005). Os

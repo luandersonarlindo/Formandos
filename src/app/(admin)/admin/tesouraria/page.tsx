@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarRange, FileDown, FileUp, HandCoins, Lock, Pencil, Plus, ScrollText, Search } from "lucide-react";
+import { CalendarRange, FileDown, FileUp, HandCoins, Lock, Pencil, Plus, Receipt, ScrollText, Search } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { AcoesInforme } from "@/components/features/acoes-informe";
 import { atualizarParcela, lancarPagamento, salvarPlano, salvarRegrasDinheiro } from "@/actions/tesouraria";
@@ -222,9 +222,15 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
           <CardDescription className="text-pretty tabular-nums">
             Pagamentos confirmados pela tesouraria: {formatarReal.format(caixa.arrecadado)} de {formatarReal.format(caixa.previsto)} previstos. A
             turma vê só estes totais, sem nomes.
+            {caixa.qtdSaidas > 0 &&
+              ` Saídas lançadas: ${formatarReal.format(caixa.saidas)}. Saldo: ${formatarReal.format(caixa.saldo)}.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {/* ADR-0022: o que foi pago em nome da turma. */}
+          <Link href="/admin/tesouraria/saidas" className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit" })}>
+            <Receipt aria-hidden /> Saídas do caixa
+          </Link>
           <p className="whitespace-pre-wrap text-sm text-muted-foreground wrap-break-word">
             {caixa.regrasDinheiro || "Nenhuma regra de desistência, devolução ou multa escrita ainda."}
           </p>

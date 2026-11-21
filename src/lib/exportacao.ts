@@ -16,6 +16,8 @@ export const TIPOS_EXPORTACAO = [
   "presenca",
   "portaria",
   "fornecedores",
+  // ADR-0022: saídas do caixa, com descrição e referência (planilha da comissão).
+  "saidas",
   "pagamentos",
   "situacao",
 ] as const;
@@ -31,6 +33,7 @@ export const ROTULO_EXPORTACAO: Record<TipoExportacao, string> = {
   presenca: "Presença",
   portaria: "Lista da portaria",
   fornecedores: "Fornecedores",
+  saidas: "Saídas do caixa",
   pagamentos: "Pagamentos",
   situacao: "Situação por pessoa",
 };
@@ -136,6 +139,20 @@ export async function montarPlanilha(tipo: TipoExportacao, turmaId: string): Pro
       );
       return {
         cabecalho: ["Fornecedor", "Categoria", "Contato", "Situação", "Valor (R$)", "Descrição"],
+        linhas: rows.map((r) => Object.values(r) as Celula[]),
+      };
+    }
+    case "saidas": {
+      const { rows } = await pool.query(
+        `select to_char(s.pago_em, 'DD/MM/YYYY') as c1, s.descricao as c2, s.valor::float8 as c3,
+                f.nome as c4, s.referencia as c5,
+                case when s.so_comissao then 'sim' else 'não' end as c6
+           from saidas s left join fornecedores f on f.id = s.fornecedor_id
+          where s.turma_id = $1 order by s.pago_em, s.created_at`,
+        [turmaId],
+      );
+      return {
+        cabecalho: ["Data", "Descrição", "Valor (R$)", "Fornecedor", "Referência", "Só da comissão"],
         linhas: rows.map((r) => Object.values(r) as Celula[]),
       };
     }

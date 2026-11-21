@@ -17,6 +17,9 @@ import { exigirMembro } from "@/lib/dal";
 import { formatarDataHora } from "@/lib/datas";
 import { formatarReal } from "@/lib/orcamento";
 import { ROTULO_FORMA, ROTULO_TIPO, getCaixa, getMinhaSituacao } from "@/lib/pagamentos";
+import { listarSaidasDaTurma } from "@/lib/saidas";
+import { FRASE_SALDO } from "@/lib/saidas-regras";
+import { SaidasDaTurma } from "@/components/features/saidas-da-turma";
 import { ROTULO_ESTADO, ROTULO_PARCELA, dataBr, hojeBrasil, type EstadoGeral } from "@/lib/situacao-regras";
 
 export const metadata: Metadata = { title: "Minha situação" };
@@ -42,10 +45,11 @@ export default async function MinhaSituacaoPage() {
   // Observador não tem parcelas nem pagamentos (ADR-0012).
   if (membro.papel === "observador") redirect("/dashboard");
   const hoje = hojeBrasil();
-  const [{ situacao: s, lancamentos, ultimaAtualizacao, tesouraria }, caixa, mudancas] = await Promise.all([
+  const [{ situacao: s, lancamentos, ultimaAtualizacao, tesouraria }, caixa, mudancas, saidas] = await Promise.all([
     getMinhaSituacao(membro.turmaId, membro.usuarioId, hoje),
     getCaixa(membro.turmaId),
     listarMudancasPlano(membro.turmaId),
+    listarSaidasDaTurma(membro.turmaId),
   ]);
   const editavel = !membro.arquivadaEm;
   const pct = s.totalPlano > 0 ? Math.min(100, Math.max(0, (s.pago / s.totalPlano) * 100)) : 0;
@@ -237,6 +241,26 @@ export default async function MinhaSituacaoPage() {
               Previsto = plano de {formatarReal.format(caixa.previsto / caixa.membros)} por pessoa ×{" "}
               {caixa.membros} {caixa.membros === 1 ? "membro" : "membros"}.
             </p>
+            {/* ADR-0022: com saídas lançadas, o caixa mostra o gasto e o saldo. */}
+            {caixa.qtdSaidas > 0 && (
+              <div className="mt-2 border-t pt-3">
+                <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm tabular-nums">
+                  <dt className="text-muted-foreground">Saídas lançadas</dt>
+                  <dd>{formatarReal.format(caixa.saidas)}</dd>
+                  <dt className="font-medium">Saldo</dt>
+                  <dd className="font-semibold">{formatarReal.format(caixa.saldo)}</dd>
+                </dl>
+                <p className="mt-1 text-xs text-muted-foreground">{FRASE_SALDO}</p>
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Ver as saídas ({caixa.qtdSaidas})
+                  </summary>
+                  <div className="mt-2">
+                    <SaidasDaTurma saidas={saidas} />
+                  </div>
+                </details>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
