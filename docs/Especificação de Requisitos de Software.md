@@ -442,7 +442,7 @@ Origem: `docs/simulacoes/levantamento-rodada-2.md`, seções 3 e 4. São **espec
 | RF-66 | A tesouraria DEVE poder gerar um recibo (página para imprimir) de um lançamento confirmado. | C | 2.2 | temas 4, 6 | Proposto |
 | RF-67 | O formando DEVE poder ligar a ele o email de quem paga (pai, mãe), para a importação casar a linha. | C | 2.3 | tema 10 | Proposto |
 | RF-68 | O formando DEVE poder gerar um link só de leitura da própria situação para quem paga, sem que a pessoa vire membro. | C | 2.4 | tema 10 | Proposto |
-| RF-69 | O evento DEVE ter campos de acessibilidade do local (rampa, estacionamento perto, banheiro adaptado), mostrados na página pública. | C | 2.5 | temas 7, 9 | Proposto |
+| RF-69 | O evento DEVE ter campos de acessibilidade do local (rampa, estacionamento perto, banheiro adaptado), mostrados na página pública. | C | 2.5 | temas 7, 9 | Atendido (ADR-0024) |
 | RF-70 | O encarregado de dados DEVE ter um email próprio do projeto, no lugar do Gmail pessoal. | S | 0.6 | tema 8 | Descartado (ADR-0017) |
 
 **Decisões de produto pendentes** (não são requisitos até a equipe decidir):

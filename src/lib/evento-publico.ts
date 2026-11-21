@@ -1,5 +1,6 @@
 import "server-only";
 import { pool } from "./db";
+import { SQL_ACESSIBILIDADE, acessibilidadeDaLinha, type Acessibilidade } from "./acessibilidade";
 
 // Página pública do evento (ADR-0008): só leitura, sem login. Só sai daqui o
 // que já iria num convite impresso: nada de membros, comissão, presença,
@@ -35,6 +36,7 @@ export type EventoPublico = {
   traje: string | null;
   observacoesLocal: string | null;
   entrada: string | null;
+  acessibilidade: Acessibilidade;
   descricao: string | null;
   atualizadoEm: Date | null;
   encerrado: boolean;
@@ -48,7 +50,8 @@ export async function getEventoPublico(token: string): Promise<EventoPublico | n
   if (!TOKEN.test(token)) return null;
   const { rows } = await pool.query(
     `select id, nome, data_evento, data_fim_evento, local_evento, endereco, link_mapa,
-            traje, observacoes_local, entrada, descricao, evento_atualizado_em, arquivada_em
+            traje, observacoes_local, entrada, descricao, evento_atualizado_em, arquivada_em,
+            ${SQL_ACESSIBILIDADE}
        from turmas where token_publico = $1`,
     [token],
   );
@@ -71,6 +74,7 @@ export async function getEventoPublico(token: string): Promise<EventoPublico | n
     traje: t.traje,
     observacoesLocal: t.observacoes_local,
     entrada: t.entrada,
+    acessibilidade: acessibilidadeDaLinha(t),
     descricao: t.descricao,
     atualizadoEm: t.evento_atualizado_em,
     encerrado: t.arquivada_em !== null,

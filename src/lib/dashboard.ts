@@ -4,6 +4,7 @@ import { pool } from "./db";
 import type { EventoAdmin } from "./admin";
 import { enqueteVisivelSql } from "./catalogo-visibilidade";
 import type { Membro } from "./dal";
+import { SQL_ACESSIBILIDADE, acessibilidadeDaLinha, type Acessibilidade } from "./acessibilidade";
 
 export type ItemProgramacao = {
   id: string;
@@ -20,6 +21,8 @@ export type DetalhesEvento = {
   observacoesLocal: string | null;
   // ADR-0019: portão ou acesso, mostrado logo abaixo do local.
   entrada: string | null;
+  // ADR-0024: acessibilidade do local.
+  acessibilidade: Acessibilidade;
   dataFim: Date | null;
 };
 
@@ -152,6 +155,7 @@ export async function getDadosEvento(
   const { rows } = await pool.query(
     `select descricao, endereco, link_mapa as "linkMapa", traje,
             observacoes_local as "observacoesLocal", entrada, data_fim_evento as "dataFim",
+            ${SQL_ACESSIBILIDADE},
             nome,
             coalesce(to_char(data_evento at time zone 'America/Sao_Paulo',
                              'YYYY-MM-DD"T"HH24:MI'), '') as "dataLocal",
@@ -170,6 +174,7 @@ export async function getDadosEvento(
     traje: r.traje,
     observacoesLocal: r.observacoesLocal,
     entrada: r.entrada,
+    acessibilidade: acessibilidadeDaLinha(r),
     dataFim: r.dataFim,
   };
   return {
@@ -187,6 +192,7 @@ export async function getDadosEvento(
             traje: r.traje ?? "",
             observacoesLocal: r.observacoesLocal ?? "",
             entrada: r.entrada ?? "",
+            acessibilidade: acessibilidadeDaLinha(r),
             tokenPublico: r.tokenPublico ?? null,
           }
         : null,

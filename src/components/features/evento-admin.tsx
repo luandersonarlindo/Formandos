@@ -1,4 +1,5 @@
 import {
+  Accessibility,
   CalendarDays,
   CalendarClock,
   DoorOpen,
@@ -30,6 +31,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
+import { ACESSIBILIDADE_OBS_MAX, ITENS_ACESSIBILIDADE, valorDoSelect } from "@/lib/acessibilidade";
 import type { EventoAdmin as DadosEvento } from "@/lib/admin";
 import { MandarParaGrupo } from "@/components/features/mandar-para-grupo";
 import { LinkPublicoEvento } from "@/components/features/link-publico-evento";
@@ -132,6 +135,41 @@ export function EventoAdmin({
                 Se mudar, a turma recebe o aviso “Mudou”, como acontece com o horário e o local.
               </p>
             </div>
+            {/* ADR-0024: "Não informado" é o padrão; nunca vira "não". */}
+            <fieldset className="flex flex-col gap-3 rounded-lg border p-3">
+              <legend className={`${rotulo} px-1 text-sm font-medium`}>
+                <Accessibility className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Acessibilidade do local
+              </legend>
+              <div className="grid gap-3 sm:grid-cols-3 [&>*]:min-w-0">
+                {ITENS_ACESSIBILIDADE.map((item) => {
+                  const nome = `acess${item.campo[0].toUpperCase()}${item.campo.slice(1)}`;
+                  return (
+                    <div key={item.campo} className="flex flex-col gap-1.5">
+                      <Label htmlFor={nome} className="text-xs">{item.rotulo}</Label>
+                      <NativeSelect id={nome} name={nome} defaultValue={valorDoSelect(evento.acessibilidade[item.campo])}>
+                        <option value="">Não informado</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </NativeSelect>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="acessObs" className="text-xs">Observação (opcional)</Label>
+                <Input
+                  id="acessObs"
+                  name="acessObs"
+                  defaultValue={evento.acessibilidade.obs ?? ""}
+                  maxLength={ACESSIBILIDADE_OBS_MAX}
+                  placeholder="Ex.: elevador pela entrada lateral"
+                  className="h-10"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-pretty">
+                Só marque “Sim” ou “Não” se alguém conferiu. Sem resposta, a turma e a família leem “não informada”.
+              </p>
+            </fieldset>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="linkMapa" className={rotulo}>
                 <Link2 className="size-4 text-[var(--vitrine-a)]" aria-hidden /> Link do mapa (opcional)

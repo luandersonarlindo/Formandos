@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ContagemRegressiva } from "@/components/features/contagem-regressiva";
+import { AcessibilidadeLocal } from "@/components/features/acessibilidade-local";
 import { EventoAdmin } from "@/components/features/evento-admin";
 import { FormPresenca } from "@/components/features/form-presenca";
 import { FormSairTurma } from "@/components/features/form-sair-turma";
@@ -241,6 +242,10 @@ export default async function DashboardPage() {
             </div>
           )}
         </dl>
+        {/* ADR-0024: acessibilidade do local, sempre em texto. */}
+        <div className="mt-3 rounded-xl border bg-background/80 p-3">
+          <AcessibilidadeLocal a={detalhes.acessibilidade} compacto />
+        </div>
       </section>
 
       <Card className="mt-4">

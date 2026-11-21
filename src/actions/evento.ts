@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
+import { lerResposta } from "@/lib/acessibilidade";
 import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { ehLinkHttps } from "@/lib/evento";
@@ -48,6 +49,11 @@ const esquemaEvento = z.object({
   traje: opcional(100, "O traje pode ter no máximo 100 caracteres."),
   observacoesLocal: opcional(500, "As observações podem ter no máximo 500 caracteres."),
   entrada: opcional(120, "A entrada pode ter no máximo 120 caracteres."),
+  // ADR-0024: "sim", "nao" ou "" (não informado).
+  acessRampa: z.string().optional(),
+  acessEstacionamento: z.string().optional(),
+  acessBanheiro: z.string().optional(),
+  acessObs: opcional(200, "A observação de acessibilidade pode ter no máximo 200 caracteres."),
 });
 
 const esquemaItem = z.object({
@@ -84,6 +90,12 @@ export async function salvarEvento(
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal, entrada } =
     dados.data;
+  const acess = {
+    rampa: lerResposta(dados.data.acessRampa),
+    estacionamento: lerResposta(dados.data.acessEstacionamento),
+    banheiro: lerResposta(dados.data.acessBanheiro),
+    obs: dados.data.acessObs,
+  };
   if (dataFimEvento && !dataEvento) {
     return { erro: "Informe a data de início para usar um horário de término." };
   }
@@ -109,19 +121,25 @@ export async function salvarEvento(
         `update turmas
             set evento_atualizado_em = case
                   when (nome, data_evento, data_fim_evento, local_evento, descricao, endereco,
-                        link_mapa, traje, observacoes_local, entrada)
+                        link_mapa, traje, observacoes_local, entrada,
+                        acess_rampa, acess_estacionamento, acess_banheiro, acess_obs)
                        is distinct from
                        ($1::varchar, $2::timestamp at time zone 'America/Sao_Paulo',
                         $3::timestamp at time zone 'America/Sao_Paulo', $4::varchar, $5::text,
-                        $6::varchar, $7::varchar, $8::varchar, $9::text, $11::varchar)
+                        $6::varchar, $7::varchar, $8::varchar, $9::text, $11::varchar,
+                        $12::boolean, $13::boolean, $14::boolean, $15::varchar)
                   then now() else evento_atualizado_em end,
                 nome = $1,
                 data_evento = $2::timestamp at time zone 'America/Sao_Paulo',
                 data_fim_evento = $3::timestamp at time zone 'America/Sao_Paulo',
                 local_evento = $4, descricao = $5, endereco = $6, link_mapa = $7,
-                traje = $8, observacoes_local = $9, entrada = $11
+                traje = $8, observacoes_local = $9, entrada = $11,
+                acess_rampa = $12, acess_estacionamento = $13, acess_banheiro = $14, acess_obs = $15
           where id = $10`,
-        [nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal, admin.turmaId, entrada],
+        [
+          nome, dataEvento, dataFimEvento, localEvento, descricao, endereco, linkMapa, traje, observacoesLocal,
+          admin.turmaId, entrada, acess.rampa, acess.estacionamento, acess.banheiro, acess.obs,
+        ],
       );
       const depois: EstadoEvento = {
         inicio: dataEvento ?? "",

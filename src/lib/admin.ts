@@ -4,6 +4,7 @@ import { pool } from "./db";
 import { catalogoVisivelSql } from "./catalogo-visibilidade";
 import { padraoBusca, sqlNormalizado } from "./busca";
 import { calcularPaginas, deslocamento, limitarPagina } from "./paginacao";
+import { SQL_ACESSIBILIDADE, acessibilidadeDaLinha, type Acessibilidade } from "./acessibilidade";
 
 export type EventoAdmin = {
   nome: string;
@@ -17,6 +18,8 @@ export type EventoAdmin = {
   traje: string;
   observacoesLocal: string;
   entrada: string;
+  // ADR-0024: acessibilidade do local; null = não informado.
+  acessibilidade: Acessibilidade;
   // Código da página pública do evento (ADR-0008); nulo = desligada.
   tokenPublico: string | null;
 };
@@ -111,11 +114,12 @@ export async function getEventoAdmin(turmaId: string): Promise<EventoAdmin> {
             coalesce(traje, '') as traje,
             coalesce(observacoes_local, '') as "observacoesLocal",
             coalesce(entrada, '') as entrada,
+            ${SQL_ACESSIBILIDADE},
             token_publico as "tokenPublico"
        from turmas where id = $1`,
     [turmaId],
   );
-  return rows[0];
+  return { ...rows[0], acessibilidade: acessibilidadeDaLinha(rows[0]) };
 }
 
 export async function listarCatalogosAdmin(turmaId: string): Promise<CatalogoAdmin[]> {

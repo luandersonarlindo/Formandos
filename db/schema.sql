@@ -514,3 +514,9 @@ create index if not exists idx_saidas_turma on saidas (turma_id, pago_em desc);
 -- arquivo. Na decisão, a turma vê; no fornecedor, só a comissão.
 alter table decisoes add column if not exists link_documento varchar(500);
 alter table fornecedores add column if not exists link_documento varchar(500);
+
+-- Acessibilidade do local (ADR-0024): nulo = "não informado", nunca "não".
+alter table turmas add column if not exists acess_rampa boolean;
+alter table turmas add column if not exists acess_estacionamento boolean;
+alter table turmas add column if not exists acess_banheiro boolean;
+alter table turmas add column if not exists acess_obs varchar(200);

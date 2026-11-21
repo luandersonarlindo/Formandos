@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AcessibilidadeLocal } from "@/components/features/acessibilidade-local";
 import { CalendarDays, Clock, Info, MapPin, Navigation, Shirt, TriangleAlert } from "lucide-react";
 import { formatarDataHora, formatarDiaCurto, formatarHora } from "@/lib/datas";
 import { linkComoChegar } from "@/lib/evento";
@@ -110,6 +111,11 @@ export default async function EventoPublicoPage(props: PageProps<"/evento/[token
           </div>
         )}
       </dl>
+
+      {/* ADR-0024: sempre em texto; sem resposta, "não informada". */}
+      <div className="mt-5">
+        <AcessibilidadeLocal a={e.acessibilidade} />
+      </div>
 
       {e.descricao && <p className="mt-6 whitespace-pre-wrap text-muted-foreground text-pretty">{e.descricao}</p>}
 

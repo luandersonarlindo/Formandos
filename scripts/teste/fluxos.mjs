@@ -2135,6 +2135,47 @@ await grupo("admin", async () => {
       sql(`update turmas set entrada=null where id='${turma}'`);
     }
   });
+  await passo("ADR-0024: acessibilidade do local, com não informado e fora do \"Mudou\"", async () => {
+    const turma = turmaTeste();
+    const token = "acessE2E0123456789abcd";
+    const alterado = () => sql(`select count(*) from auditoria where turma_id='${turma}' and acao='evento.alterado'`);
+    sql(`update turmas set token_publico='${token}', acess_rampa=null, acess_estacionamento=null, acess_banheiro=null, acess_obs=null where id='${turma}'`);
+    try {
+      // Sem resposta: a família lê "não informada", nunca "não tem".
+      await nav.cookie(null);
+      await nav.abrir(`/evento/${token}`);
+      await nav.esperarTexto("Acessibilidade do local: não informada. Pergunte à comissão.");
+
+      // A comissão marca rampa "sim" e banheiro "não"; estacionamento fica sem resposta.
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      const antes = alterado();
+      await nav.abrir("/dashboard");
+      await abrirDadosDoEvento();
+      await nav.esperar("!!document.querySelector('[role=dialog] #acessRampa')", 10000, "campos de acessibilidade");
+      await preencherEm("@[role=dialog]", "#acessRampa", "sim");
+      await preencherEm("@[role=dialog]", "#acessBanheiro", "nao");
+      await preencherEm("@[role=dialog]", "#acessObs", "Elevador pela entrada lateral");
+      await nav.clicar("Salvar", { seletor: "button", contem: false });
+      for (let i = 0; i < 20 && sql(`select coalesce(acess_rampa::text,'') from turmas where id='${turma}'`) !== "true"; i++) await dormir(500);
+      igual(
+        sql(`select concat_ws('|', acess_rampa::text, coalesce(acess_estacionamento::text,'nulo'), acess_banheiro::text, acess_obs) from turmas where id='${turma}'`),
+        "true|nulo|false|Elevador pela entrada lateral",
+        "respostas no banco",
+      );
+      igual(alterado(), antes, "acessibilidade não entra no Mudou");
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Rampa ou entrada sem degrau: sim");
+      await nav.esperarTexto("Estacionamento perto da entrada: não informado");
+      await nav.cookie(null);
+      await nav.abrir(`/evento/${token}`);
+      await nav.esperarTexto("Banheiro adaptado: não");
+      await nav.esperarTexto("Estacionamento perto da entrada: não informado");
+      await nav.esperarTexto("Elevador pela entrada lateral");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`update turmas set token_publico=null, acess_rampa=null, acess_estacionamento=null, acess_banheiro=null, acess_obs=null where id='${turma}'`);
+    }
+  });
   await passo("relatório: vários catálogos e empate no topo", async () => {
     // Monta o empate aqui: o passo da ADR-0003 apaga os votos desta pergunta
     // no fim, então não dá para contar com o voto da Maria do grupo "app".
