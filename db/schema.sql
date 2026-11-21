@@ -509,3 +509,8 @@ create table if not exists saidas (
   updated_at    timestamptz not null default now()
 );
 create index if not exists idx_saidas_turma on saidas (turma_id, pago_em desc);
+
+-- Link de documento (ADR-0023): contrato ou orçamento no Drive, sem guardar
+-- arquivo. Na decisão, a turma vê; no fornecedor, só a comissão.
+alter table decisoes add column if not exists link_documento varchar(500);
+alter table fornecedores add column if not exists link_documento varchar(500);

@@ -409,6 +409,19 @@ export default async function DashboardPage() {
                         Motivo da comissão: “{d.justificativa}”
                       </dd>
                     )}
+                    {d.linkDocumento && (
+                      <dd className="mt-1 text-xs">
+                        <a
+                          href={d.linkDocumento}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-4"
+                        >
+                          Ver documento
+                          <span className="sr-only"> de {d.pergunta} (abre em nova aba)</span>
+                        </a>
+                      </dd>
+                    )}
                   </div>
                 ))}
               </dl>

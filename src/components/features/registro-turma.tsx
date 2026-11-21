@@ -77,6 +77,15 @@ export function RegistroTurma({
                   {d.foraDaRegra ? "Fixada fora da regra." : d.votantes !== null ? "Dentro da regra." : ""}
                   {d.justificativa && ` Motivo da comissão: “${d.justificativa}”`}
                 </p>
+                {/* ADR-0023: no papel, o endereço inteiro, para quem imprime. */}
+                {d.linkDocumento && (
+                  <p className="text-xs break-all">
+                    Documento:{" "}
+                    <a href={d.linkDocumento} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+                      {d.linkDocumento}
+                    </a>
+                  </p>
+                )}
               </li>
             ))}
           </ul>

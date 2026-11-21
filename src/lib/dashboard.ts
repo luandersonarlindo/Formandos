@@ -33,6 +33,8 @@ export type Decisao = {
   membros: number | null;
   foraDaRegra: boolean;
   justificativa: string | null;
+  // ADR-0023: contrato ou orçamento no Drive.
+  linkDocumento: string | null;
 };
 
 export type ResumoTurma = {
@@ -198,7 +200,8 @@ export async function listarDecisoes(membro: Membro): Promise<Decisao[]> {
             array_agg(o.texto order by o.ordem) as escolhas,
             max(d.votantes) as votantes, max(d.membros) as membros,
             coalesce(max(cardinality(d.fora_da_regra)), 0) > 0 as "foraDaRegra",
-            max(d.justificativa) as justificativa
+            max(d.justificativa) as justificativa,
+            max(d.link_documento) as "linkDocumento"
        from decisoes d
        join enquetes e on e.id = d.enquete_id
        join categorias ca on ca.id = e.categoria_id

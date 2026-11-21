@@ -35,9 +35,11 @@ export type Fornecedor = {
   // recebem esses dois campos na consulta.
   valorOrcado: number | null;
   status: StatusOrcamento;
+  // ADR-0023: contrato ou orçamento no Drive. Também só para a comissão.
+  linkDocumento: string | null;
 };
 
-export type FornecedorParticipante = Omit<Fornecedor, "valorOrcado" | "status">;
+export type FornecedorParticipante = Omit<Fornecedor, "valorOrcado" | "status" | "linkDocumento">;
 
 export type ResumoOrcamento = {
   orcado: number;
@@ -70,7 +72,7 @@ async function contarPorCategoria(turmaId: string): Promise<Record<string, numbe
   return totais;
 }
 
-// Participante: sem valor orçado nem status (não passam pela consulta).
+// Participante: sem valor orçado, status e link de documento (não passam pela consulta).
 export async function listarFornecedores(
   membro: Membro,
   { categoria, pagina = 1 }: { categoria?: string; pagina?: number } = {},
@@ -115,7 +117,7 @@ export async function listarFornecedoresAdmin(
   const paginaAtual = limitarPagina(pagina, totalPaginas);
   const { rows } = await pool.query(
     `select id, nome, categoria, descricao, contato, imagem_url as "imagemUrl",
-            valor_orcado::float8 as "valorOrcado", status
+            valor_orcado::float8 as "valorOrcado", status, link_documento as "linkDocumento"
        from fornecedores
       where turma_id = $1 ${filtro}
       order by categoria, nome, id

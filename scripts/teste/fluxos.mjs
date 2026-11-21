@@ -1357,6 +1357,65 @@ await grupo("admin", async () => {
       limpar();
     }
   });
+  await passo("ADR-0023: link de documento na decisão (turma vê) e no fornecedor (só comissão)", async () => {
+    const turma = turmaTeste();
+    const enq = sql(`select e.id from enquetes e
+      where e.categoria_id = (select categoria_id from enquetes where id='${enqueteLocal()}')
+        and e.id <> '${enqueteLocal()}'
+        and not exists (select 1 from decisoes d where d.turma_id='${turma}' and d.enquete_id=e.id)
+        and not exists (select 1 from enquetes_ocultas eo where eo.turma_id='${turma}' and eo.enquete_id=e.id)
+      order by e.ordem desc limit 1`);
+    const link = "https://drive.google.com/file/d/contrato-e2e/view";
+    const forn = sql(`select id from fornecedores where turma_id='${turma}' and nome='Buffet Sabor & Arte'`);
+    const fixar = async (url) => {
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
+      await nav.clicar("Fixar decisão", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] input[name=opcaoId]')", 10000, "diálogo de fixar");
+      await nav.ev("document.querySelector('[role=dialog] input[name=opcaoId]').click()");
+      await nav.preencher("#justificativa", "Contrato fechado com o fornecedor.");
+      await nav.preencher("#linkDocumento", url);
+      await nav.clicar("Fixar decisão", { escopo: "@[role=dialog]", seletor: "button" });
+    };
+    try {
+      // Link sem https é recusado, e nada é fixado.
+      await fixar("http://drive.google.com/x");
+      await nav.esperarTexto("precisa começar com https://");
+      igual(sql(`select count(*) from decisoes where turma_id='${turma}' and enquete_id='${enq}'`), "0", "nada fixado com link inválido");
+      await fixar(link);
+      await nav.esperarTexto("Decisão fixada");
+      igual(sql(`select distinct link_documento from decisoes where turma_id='${turma}' and enquete_id='${enq}'`), link, "link no banco");
+      // A turma vê no dashboard.
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/dashboard");
+      await nav.esperarTexto("Ver documento");
+      verdade(await nav.ev(`!!document.querySelector('a[href="${link}"][target=_blank]')`), "link do documento no dashboard");
+      // Fornecedor: participante não vê o link.
+      sql(`update fornecedores set link_documento='https://drive.google.com/orcamento-e2e' where id='${forn}'`);
+      await nav.abrir("/terceiros");
+      await nav.esperarTexto("Buffet Sabor & Arte");
+      verdade(!(await nav.tem("orcamento-e2e")) && !(await nav.ev("!!document.querySelector('a[href*=orcamento-e2e]')")), "participante não vê o link do fornecedor");
+      // Comissão edita o link do fornecedor; vai para o histórico da comissão.
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      await nav.abrir("/terceiros");
+      await nav.clicar("Editar dados", { escopo: "Buffet Sabor & Arte", seletor: "button" });
+      await nav.esperar(`!!document.querySelector("[role=dialog] #linkDocumento-${forn}")`, 10000, "campo do link do fornecedor");
+      await preencherEm("@[role=dialog]", `#linkDocumento-${forn}`, "https://drive.google.com/contrato-buffet-e2e");
+      await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      for (let i = 0; i < 20 && sql(`select coalesce(link_documento,'') from fornecedores where id='${forn}'`) !== "https://drive.google.com/contrato-buffet-e2e"; i++) await dormir(500);
+      igual(sql(`select link_documento from fornecedores where id='${forn}'`), "https://drive.google.com/contrato-buffet-e2e", "link do fornecedor salvo");
+      verdade(
+        sql(`select count(*) from auditoria where turma_id='${turma}' and acao='fornecedor.alterado' and detalhe->>'linkDepois'='https://drive.google.com/contrato-buffet-e2e'`) === "1",
+        "troca do link no histórico da comissão",
+      );
+      await nav.abrir("/terceiros");
+      verdade(await nav.ev("!!document.querySelector('a[href*=contrato-buffet-e2e]')"), "comissão vê o link do fornecedor");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`delete from decisoes where turma_id='${turma}' and enquete_id='${enq}'`);
+      sql(`update fornecedores set link_documento=null where id='${forn}'`);
+      sql(`delete from auditoria where turma_id='${turma}' and acao in ('decisao.fixada','fornecedor.alterado') and (entidade_id='${enq}' or entidade_id='${forn}')`);
+    }
+  });
   await passo("ADR-0005: tesouraria monta o plano, lança e o formando vê a própria situação", async () => {
     const turma = turmaTeste();
     try {

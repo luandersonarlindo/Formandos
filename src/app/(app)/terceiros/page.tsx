@@ -32,6 +32,7 @@ import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
 import { CamposOrcamento } from "@/components/features/form-orcamento";
+import { AVISO_LINK_DOCUMENTO, LINK_DOCUMENTO_MAX } from "@/lib/link-documento";
 import { ImagemFornecedor } from "@/components/features/imagem-fornecedor";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
@@ -243,6 +244,19 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                         <Contato valor={f.contato} />
                       </p>
                     )}
+                    {ehAdmin && (f as Fornecedor).linkDocumento && (
+                      <p className="text-sm">
+                        <a
+                          href={(f as Fornecedor).linkDocumento!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-4"
+                        >
+                          Ver documento
+                          <span className="sr-only"> de {f.nome} (abre em nova aba)</span>
+                        </a>
+                      </p>
+                    )}
                     {ehAdmin && (
                       <div className="mt-auto flex gap-3 border-t pt-3">
                         <FormDialog
@@ -284,6 +298,21 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                             status={(f as Fornecedor).status}
                             valorOrcado={(f as Fornecedor).valorOrcado}
                           />
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`linkDocumento-${f.id}`} className="text-xs">Link do documento (opcional)</Label>
+                            <Input
+                              id={`linkDocumento-${f.id}`}
+                              name="linkDocumento"
+                              type="url"
+                              defaultValue={(f as Fornecedor).linkDocumento ?? ""}
+                              maxLength={LINK_DOCUMENTO_MAX}
+                              placeholder="https://drive.google.com/…"
+                              aria-describedby={`linkDocumento-ajuda-${f.id}`}
+                            />
+                            <p id={`linkDocumento-ajuda-${f.id}`} className="text-xs text-muted-foreground text-pretty">
+                              Contrato ou orçamento. Só a comissão vê. {AVISO_LINK_DOCUMENTO}
+                            </p>
+                          </div>
                         </FormDialog>
                         <ConfirmarExclusao
                           acao={excluirFornecedor}

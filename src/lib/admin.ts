@@ -89,6 +89,8 @@ export type VotosEnquete = {
   decisao: string[];
   // Justificativa gravada com a decisão atual (ADR-0003).
   justificativa: string | null;
+  // Link do documento da decisão (ADR-0023).
+  linkDocumento: string | null;
   // Fotografia do dia em que a decisão foi fixada (nula em decisões antigas).
   decisaoVotantes: number | null;
   decisaoMembros: number | null;
@@ -318,7 +320,7 @@ export async function getVotosEnquete(
       [turmaId, enqueteId],
     ),
     pool.query(
-      "select opcao_id, justificativa, votantes, membros from decisoes where turma_id = $1 and enquete_id = $2",
+      "select opcao_id, justificativa, votantes, membros, link_documento from decisoes where turma_id = $1 and enquete_id = $2",
       [turmaId, enqueteId],
     ),
   ]);
@@ -340,6 +342,7 @@ export async function getVotosEnquete(
     naoVotaram: ausentes.rows,
     decisao: decisoes.rows.map((d) => d.opcao_id),
     justificativa: decisoes.rows[0]?.justificativa ?? null,
+    linkDocumento: (decisoes.rows[0]?.link_documento as string | undefined) ?? null,
     decisaoVotantes: decisoes.rows[0]?.votantes ?? null,
     decisaoMembros: decisoes.rows[0]?.membros ?? null,
     regra,

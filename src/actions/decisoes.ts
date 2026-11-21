@@ -9,6 +9,7 @@ import { catalogoVisivelSql } from "@/lib/catalogo-visibilidade";
 import { transacao } from "@/lib/db";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { emailDecisao, urlDoSite } from "@/lib/email";
+import { ERRO_LINK_DOCUMENTO, lerLinkDocumento } from "@/lib/link-documento";
 import { destinatariosDaTurma, enviarParaTurma } from "@/lib/email-turma";
 import { avaliarDecisao, validarJustificativa, type MotivoForaDaRegra } from "@/lib/decisao-regras";
 import type { EstadoForm } from "./tipos";
@@ -53,6 +54,9 @@ export async function fixarDecisao(
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { enqueteId, opcaoIds } = dados.data;
   const justificativa = dados.data.justificativa.trim();
+  // ADR-0023: contrato ou orçamento no Drive; a turma vê junto da decisão.
+  const linkDocumento = lerLinkDocumento(formData.get("linkDocumento"));
+  if (linkDocumento === "invalido") return { erro: ERRO_LINK_DOCUMENTO, valores: { justificativa } };
 
   const resultado = await transacao(
     async (db) => {
@@ -125,8 +129,8 @@ export async function fixarDecisao(
     ]);
     await db.query(
       `insert into decisoes
-         (turma_id, enquete_id, opcao_id, decidido_por, justificativa, votantes, membros, fora_da_regra)
-       select $1, $2, unnest($3::uuid[]), $4, $5, $6, $7, $8::text[]`,
+         (turma_id, enquete_id, opcao_id, decidido_por, justificativa, votantes, membros, fora_da_regra, link_documento)
+       select $1, $2, unnest($3::uuid[]), $4, $5, $6, $7, $8::text[], $9`,
       [
         admin.turmaId,
         enqueteId,
@@ -136,6 +140,7 @@ export async function fixarDecisao(
         votantes,
         membros,
         motivos,
+        linkDocumento,
       ],
     );
     // Guarda textos, não só ids: a opção pode ser renomeada ou apagada depois.
@@ -153,6 +158,7 @@ export async function fixarDecisao(
         membros,
         foraDaRegra: motivos,
         justificativa: justificativa || null,
+        linkDocumento,
       },
     });
     return {

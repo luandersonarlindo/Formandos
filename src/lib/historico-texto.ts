@@ -79,6 +79,7 @@ export function descreverAcao(
       if (d.votantes != null) detalhes.push(`Votaram ${d.votantes} de ${d.membros}.`);
       if (motivos.length) detalhes.push(`Fora da regra: ${motivos.map((m) => TEXTO_MOTIVO[m]).join(" ")}`);
       if (d.justificativa) detalhes.push(`Motivo da comissão: ${aspas(d.justificativa)}`);
+      if (typeof d.linkDocumento === "string" && d.linkDocumento) detalhes.push(`Documento: ${d.linkDocumento}`);
       return { frase: `fixou ${lista(d.escolhidas)} em ${aspas(d.pergunta)}.`, detalhes, alerta: motivos.length > 0 };
     }
     case "decisao.reaberta":
@@ -132,6 +133,8 @@ export function descreverAcao(
       if (d.statusAntes !== d.statusDepois) {
         mud.push(`situação de ${SITUACAO[d.statusAntes] ?? d.statusAntes} para ${SITUACAO[d.statusDepois] ?? d.statusDepois}`);
       }
+      // ADR-0023: link do documento colocado, trocado ou tirado.
+      if ("linkDepois" in d) mud.push(d.linkDepois ? `link do documento: ${d.linkDepois}` : "tirou o link do documento");
       return { frase: `mudou o fornecedor ${aspas(d.fornecedor)}: ${mud.join("; ")}.`, detalhes: [] };
     }
     case "papel.trocado":

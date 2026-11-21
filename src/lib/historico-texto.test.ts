@@ -67,6 +67,26 @@ describe("descreverAcao", () => {
     ).toMatch(/^montou o plano de parcelas: 2 × R\$\s100,00, a partir de 10\/10\/2026\.$/);
   });
 
+  it("link de documento na decisão e no fornecedor (ADR-0023)", () => {
+    const fixada = descreverAcao("decisao.fixada", {
+      pergunta: "Qual buffet?",
+      escolhidas: ["Buffet B"],
+      linkDocumento: "https://drive.google.com/x",
+    });
+    expect(fixada.detalhes).toContain("Documento: https://drive.google.com/x");
+    expect(
+      descreverAcao("fornecedor.alterado", {
+        fornecedor: "Buffet",
+        valorAntes: 100,
+        valorDepois: 100,
+        statusAntes: "cotando",
+        statusDepois: "cotando",
+        linkAntes: null,
+        linkDepois: "https://drive.google.com/c",
+      }).frase,
+    ).toBe("mudou o fornecedor “Buffet”: link do documento: https://drive.google.com/c.");
+  });
+
   it("saídas do caixa: valor, data e fornecedor (ADR-0022)", () => {
     expect(
       descreverAcao("saida.lancada", { descricao: "Sinal do buffet", valor: 1500, pagoEm: "2026-11-10", fornecedor: "Buffet Sabor" }).frase,

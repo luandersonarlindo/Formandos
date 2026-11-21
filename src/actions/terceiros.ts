@@ -6,6 +6,7 @@ import { exigirAdminEditavel } from "@/lib/dal";
 import { pool, transacao } from "@/lib/db";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { ehLinkHttps } from "@/lib/evento";
+import { ERRO_LINK_DOCUMENTO, lerLinkDocumento } from "@/lib/link-documento";
 import { lerValorOrcado, STATUS_ORCAMENTO } from "@/lib/orcamento";
 import { CATEGORIAS_FORNECEDOR } from "@/lib/terceiros";
 import type { EstadoForm } from "./tipos";
@@ -34,6 +35,8 @@ const esquemaFornecedor = z.object({
     .refine((v) => v === "" || ehLinkHttps(v), "O link da imagem precisa começar com https://.")
     .transform((v) => v || null),
   valorOrcado: z.string().max(20, "O valor pode ter no máximo 20 caracteres.").optional(),
+  // ADR-0023: contrato ou orçamento no Drive; só a comissão vê.
+  linkDocumento: z.string().optional(),
 });
 
 export async function criarFornecedor(
@@ -73,6 +76,8 @@ export async function atualizarFornecedor(
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { id, nome, categoria, descricao, contato, imagemUrl, valorOrcado, status } =
     dados.data;
+  const link = lerLinkDocumento(dados.data.linkDocumento);
+  if (link === "invalido") return { erro: ERRO_LINK_DOCUMENTO };
 
   const valor = lerValorOrcado(valorOrcado ?? "");
   if ((valorOrcado ?? "").trim() !== "" && valor === null) {
@@ -82,7 +87,7 @@ export async function atualizarFornecedor(
   // Valor e situação ficam no histórico da comissão (ADR-0008).
   const achou = await transacao(async (db) => {
     const { rows } = await db.query(
-      `select valor_orcado::float8 as valor, status from fornecedores
+      `select valor_orcado::float8 as valor, status, link_documento as link from fornecedores
         where id = $1 and turma_id = $2 for update`,
       [id, admin.turmaId],
     );
@@ -90,11 +95,11 @@ export async function atualizarFornecedor(
     await db.query(
       `update fornecedores
          set nome = $1, categoria = $2, descricao = $3, contato = $4,
-             imagem_url = $5, status = $6, valor_orcado = $7
+             imagem_url = $5, status = $6, valor_orcado = $7, link_documento = $10
        where id = $8 and turma_id = $9`,
-      [nome, categoria, descricao, contato, imagemUrl, status, valor, id, admin.turmaId],
+      [nome, categoria, descricao, contato, imagemUrl, status, valor, id, admin.turmaId, link],
     );
-    if (rows[0].valor !== valor || rows[0].status !== status) {
+    if (rows[0].valor !== valor || rows[0].status !== status || rows[0].link !== link) {
       await registrarAuditoria(db, {
         usuarioId: admin.usuarioId,
         turmaId: admin.turmaId,
@@ -107,6 +112,7 @@ export async function atualizarFornecedor(
           valorDepois: valor,
           statusAntes: rows[0].status,
           statusDepois: status,
+          ...(rows[0].link !== link ? { linkAntes: rows[0].link, linkDepois: link } : {}),
         },
       });
     }

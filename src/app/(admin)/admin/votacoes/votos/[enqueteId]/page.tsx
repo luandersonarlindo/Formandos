@@ -152,6 +152,7 @@ export default async function VotosEnquetePage(
               prazo={dados.regra.prazo ? dados.regra.prazo.toISOString() : null}
               quorumPct={dados.regra.quorumPct}
               justificativaAtual={dados.justificativa}
+              linkAtual={dados.linkDocumento}
             />
           </FormDialog>
           {decidida && (

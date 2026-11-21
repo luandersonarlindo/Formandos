@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AVISO_LINK_DOCUMENTO, LINK_DOCUMENTO_MAX } from "@/lib/link-documento";
 import { Textarea } from "@/components/ui/textarea";
 import {
   avaliarDecisao,
@@ -24,6 +26,7 @@ export function CamposFixarDecisao({
   prazo,
   quorumPct,
   justificativaAtual,
+  linkAtual = null,
 }: {
   tipo: "unica" | "multipla";
   opcoes: { id: string; texto: string; votos: number }[];
@@ -33,6 +36,7 @@ export function CamposFixarDecisao({
   prazo: string | null;
   quorumPct: number | null;
   justificativaAtual: string | null;
+  linkAtual?: string | null;
 }) {
   // Escolha única com empate: o rádio só envia uma opção, então o estado
   // também começa com uma só (senão o aviso de empate não aparecia).
@@ -127,6 +131,25 @@ export function CamposFixarDecisao({
         />
         <p className="text-xs text-muted-foreground">
           A turma vê este texto junto com a decisão e no histórico.
+        </p>
+      </div>
+
+      {/* ADR-0023: contrato ou orçamento no Drive, sem guardar arquivo. */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="linkDocumento" className="text-xs">
+          Link do documento (opcional)
+        </Label>
+        <Input
+          id="linkDocumento"
+          name="linkDocumento"
+          type="url"
+          defaultValue={linkAtual ?? ""}
+          maxLength={LINK_DOCUMENTO_MAX}
+          placeholder="https://drive.google.com/…"
+          aria-describedby="linkDocumento-ajuda"
+        />
+        <p id="linkDocumento-ajuda" className="text-xs text-muted-foreground text-pretty">
+          Contrato ou orçamento. A turma inteira abre este link. {AVISO_LINK_DOCUMENTO}
         </p>
       </div>
     </>
