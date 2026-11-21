@@ -486,6 +486,51 @@ await grupo("participante", async () => {
       await nav.tamanho(1280, 900);
     }
   });
+  await passo("ADR-0020: registro da turma para o participante e nome da turma no convite", async () => {
+    // Registro: o participante abre pelo menu, sem pedir à comissão.
+    await nav.abrir("/dashboard");
+    await nav.clicar("Registro da turma", { seletor: "a" });
+    await nav.esperar("location.pathname === '/registro'", 15000, "página do registro");
+    await nav.esperarTexto("Registro da turma · gerado em");
+    await nav.esperarTexto("Sistemas de Informação 2026");
+    await nav.esperarTexto("Decisões (");
+    await nav.tamanho(360, 800, true);
+    try {
+      const problemas = await problemasDeLeitura(nav);
+      igual(problemas.length, 0, `leitura de /registro: ${problemas.join("; ")}`);
+    } finally {
+      await nav.tamanho(1280, 900);
+    }
+
+    // Convite. Participante com turma volta para o dashboard ao abrir
+    // /convite: só quem é admin entra em outra turma, então esta parte usa a
+    // sessão da Maria. O proxy guarda o código do link num cookie de reserva,
+    // que também conta como "veio do link": apaga antes e depois.
+    const maria = "(select id from usuarios where email='teste-sh@example.invalid')";
+    const codigo = sql(`select codigo_convite from turmas where id='${turmaTeste()}'`);
+    const semCookieDeConvite = () => nav.cdp("Network.deleteCookies", { name: "convite_pendente", url: nav.base });
+    sql(`delete from tentativas_convite where usuario_id=${maria}`);
+    await semCookieDeConvite();
+    await nav.cookie(lerCookie("cookie-admin.txt"));
+    try {
+      // Sem código no link, nada de nome.
+      await nav.abrir("/convite");
+      await nav.esperarTexto("Tenho um código de convite");
+      verdade(!(await nav.tem("Você foi convidado para a turma")), "sem código, sem nome da turma");
+      // Código errado no link não mostra turma e conta no limite do convite.
+      await nav.abrir("/convite?codigo=TESTEERRADO1");
+      await nav.esperarTexto("Tenho um código de convite");
+      verdade(!(await nav.tem("Você foi convidado para a turma")), "código errado não mostra turma");
+      igual(sql(`select count(*) from tentativas_convite where usuario_id=${maria}`), "1", "tentativa errada contada");
+      // O código certo mostra a turma e quem criou.
+      await nav.abrir(`/convite?codigo=${codigo}`);
+      await nav.esperarTexto("Você foi convidado para a turma Sistemas de Informação 2026, criada por Maria Souza.");
+    } finally {
+      sql(`delete from tentativas_convite where usuario_id=${maria}`);
+      await semCookieDeConvite();
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+    }
+  });
   await passo("participante responsável atualiza o andamento da própria tarefa", async () => {
     await nav.abrir("/tarefas");
     await nav.clicar("Atualizar andamento", { escopo: "Fechar o buffet", seletor: "button" });

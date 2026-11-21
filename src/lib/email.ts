@@ -653,7 +653,7 @@ export function emailExclusaoTurma(d: {
   const some =
     "Nesse dia somem votos, dúvidas, decisões, pagamentos, presença, histórico e a página pública do evento. Não dá para recuperar depois.";
   const fazer =
-    "Se quiser guardar algo, baixe seus dados em Minha conta antes dessa data. O registro completo da turma (decisões, votações, caixa) fica com a comissão: peça a ela.";
+    `Se quiser guardar algo, baixe antes dessa data seus dados em Minha conta e o registro da turma (decisões, votações, caixa), para imprimir ou salvar como PDF: ${urlDoSite("/registro")}`;
   const motivo = `Você recebe este email porque é da turma ${d.turma} no Formandos. Ele chega mesmo com os emails da turma desligados, porque é sobre os seus dados.`;
   return {
     assunto,

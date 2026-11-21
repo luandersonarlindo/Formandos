@@ -70,3 +70,17 @@
 - Passo no E2E: o link de convite mostra o nome da turma; o código digitado não mostra.
 - Passo no E2E: o participante abre `/registro`.
 - A sonda de leitor de tela (`leitor.mjs`, ADR-0015) na tela nova.
+
+### Andamento (2026-11-20)
+
+Feita. Diferenças em relação ao texto acima:
+
+- **Limite de tentativas em `src/lib/convite-turma.ts`:** o limite que ficava dentro de `entrarPorConvite` (constantes, IP do cliente, conferência e registro do erro) mudou de lugar, sem mudar de comportamento. A tela de convite e a ação de entrar usam as mesmas funções. A leitura nova chama `getTurmaDoConvite`, e não `getTurmaPorCodigo`.
+- **"Veio do link" inclui o cookie de reserva** que o proxy grava ao abrir `/convite?codigo=` (ADR-0002). É o mesmo código do link, guardado para depois do login.
+- **Com o limite esgotado, ou com a turma arquivada,** a tela não mostra nome nenhum. Código certo não conta como tentativa, como em `entrarPorConvite`.
+- **Participante com turma não chega a `/convite`:** o layout manda de volta ao dashboard, porque só admin entra em outra turma. O nome aparece para quem ainda não tem turma e para admin.
+- **Link no menu lateral** ("Registro da turma"), além da faixa e do email. Como o registro fica liberado sempre, sem o link no menu ele só seria achado com a turma arquivada.
+- **Email de exclusão da turma:** deixou de dizer "peça à comissão" e leva ao `/registro`.
+- **Imprimir com a turma arquivada:** `/registro` e `/admin/turma/registro` entraram nos caminhos livres da faixa. Antes, o `<fieldset disabled>` da turma arquivada desligava o botão de imprimir até na página da comissão.
+- `/registro` entrou no `matcher` do proxy, para o link do email voltar a ele depois do login.
+- Testes: `typecheck`, `npm test` (342; o teste do email de exclusão foi ajustado ao texto novo). Passo novo "ADR-0020" no grupo `participante` de `fluxos.mjs`: o participante abre o registro pelo menu, a sonda de leitor de tela passa a 360 px; com a sessão da comissão, `/convite` sem código não mostra turma, código errado no link não mostra e conta a tentativa, código certo mostra a turma e quem criou. Grupo `participante` no Docker, 9 de 9.

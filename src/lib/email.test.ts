@@ -413,7 +413,8 @@ describe("aviso de exclusão da turma (ADR-0009)", () => {
   it("explica o que some, o que fazer e por que chega com emails desligados", () => {
     const e = emailExclusaoTurma({ ...base, momento: "arquivada" });
     expect(e.texto).toContain("Maria, da comissão, arquivou");
-    expect(e.texto).toContain("baixe seus dados em Minha conta");
+    expect(e.texto).toContain("seus dados em Minha conta e o registro da turma");
+    expect(e.texto).toContain("/registro");
     expect(e.texto).toContain("mesmo com os emails da turma desligados");
     expect(e.texto).not.toContain("desligue em Minha conta");
   });

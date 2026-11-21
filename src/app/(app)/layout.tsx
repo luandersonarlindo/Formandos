@@ -2,6 +2,7 @@ import {
   BarChart3,
   CircleHelp,
   ClipboardList,
+  FileText,
   LayoutDashboard,
   Megaphone,
   Store,
@@ -19,6 +20,8 @@ const itens: ItemMenu[] = [
   { href: "/tarefas", rotulo: "Tarefas", icone: ClipboardList },
   { href: "/votacoes", rotulo: "Votações", icone: Vote, exato: true },
   { href: "/votacoes/relatorio", rotulo: "Relatório", icone: BarChart3 },
+  // ADR-0020: todo membro guarda o registro da turma, não só a comissão.
+  { href: "/registro", rotulo: "Registro da turma", icone: FileText },
   { href: "/duvidas", rotulo: "Dúvidas", icone: CircleHelp },
   { href: "/terceiros", rotulo: "Terceiros", icone: Store },
 ];

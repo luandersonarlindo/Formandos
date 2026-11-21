@@ -430,10 +430,10 @@ Origem: `docs/simulacoes/levantamento-rodada-2.md`, seções 3 e 4. São **espec
 |---|---|---|---|---|---|
 | RF-55 | O sistema DEVE enviar email "Votação nova aberta" aos membros quando a comissão abrir uma pergunta com prazo. | S | 1.1 | temas 1, 2, 3, 5, 10 | Atendido (ADR-0018) |
 | RF-56 | O texto pronto do evento DEVE começar com "MUDOU: [campo] era X, agora é Y" quando houver mudança dos últimos 14 dias. | S | 0.1 | temas 7, 9 | Atendido (ADR-0017) |
-| RF-57 | O evento DEVE ter um campo "Entrada / portão" que entra no "Mudou em", no EM-14 e no texto pronto. | S | 1.2 | temas 7, 9 | Proposto |
-| RF-58 | Todo membro DEVE poder baixar o Registro da turma em PDF, pelo menos com a turma arquivada. | S | 1.3 | tema 8 | Proposto |
+| RF-57 | O evento DEVE ter um campo "Entrada / portão" que entra no "Mudou em", no EM-14 e no texto pronto. | S | 1.2 | temas 7, 9 | Atendido (ADR-0019) |
+| RF-58 | Todo membro DEVE poder baixar o Registro da turma em PDF, pelo menos com a turma arquivada. | S | 1.3 | tema 8 | Atendido (ADR-0020: sempre, em `/registro`) |
 | RF-59 | O sistema DEVE ter a faixa no site e o email a todos os usuários para o encerramento com 60 dias de aviso, prometidos nos Termos. | S | 1.4 | tema 8; ADR-0009 | Pendente |
-| RF-60 | A tela de convite DEVE mostrar o nome da turma e de quem convidou. | S | 0.2 | tema 3 | Proposto |
+| RF-60 | A tela de convite DEVE mostrar o nome da turma e de quem convidou. | S | 0.2 | tema 3 | Atendido (ADR-0020) |
 | RF-61 | O "valor por pessoa" DEVE dizer se é o total ou por mês. | S | 0.3 | tema 5 | Proposto |
 | RF-62 | A tela de votação DEVE dizer: "Ninguém da comissão muda o seu voto; mudanças em decisões ficam no histórico". | C | 0.4 | tema 10 | Atendido (ADR-0017) |
 | RF-63 | Um link público trocado DEVE abrir uma página que diga "Este link foi trocado. Peça o novo a quem mandou". | C | 0.5 | tema 9 | Atendido (ADR-0017) |

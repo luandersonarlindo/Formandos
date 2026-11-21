@@ -50,5 +50,7 @@ export const config = {
     // Links dos emails da turma (ADR-0006) voltam para cá depois do login.
     "/minha-situacao/:path*",
     "/avisos/:path*",
+    // ADR-0020: o email de exclusão da turma leva ao registro.
+    "/registro/:path*",
   ],
 };

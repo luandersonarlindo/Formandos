@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import {
@@ -19,6 +19,7 @@ import {
 } from "@/lib/email";
 import { gerarCodigoConvite, normalizarCodigo } from "@/lib/convite";
 import { COOKIE_CONVITE } from "@/lib/convite-link";
+import { ipDoCliente, registrarTentativaErrada, tentativasEsgotadas } from "@/lib/convite-turma";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
 import type { EstadoForm } from "./tipos";
 
@@ -36,21 +37,6 @@ const esquemaCodigo = z.object({
     .transform(normalizarCodigo)
     .pipe(z.string().min(6, "Informe o código de convite.").max(20)),
 });
-
-const MAX_TENTATIVAS = 10;
-const JANELA_MINUTOS = 15;
-// Teto por endereço (todas as contas juntas): 50 erros/15min só bate em força
-// bruta distribuída em várias contas. Usuário normal erra poucas vezes.
-const MAX_TENTATIVAS_POR_IP = 50;
-
-// IP do cliente atrás de proxy (Vercel encadeia em x-forwarded-for, o real
-// é o primeiro). Sem header, volta null e só vale o limite por usuário.
-async function ipDoCliente(): Promise<string | null> {
-  const cabecalhos = await headers();
-  const cadeia = cabecalhos.get("x-forwarded-for") ?? cabecalhos.get("x-real-ip") ?? "";
-  const primeiro = cadeia.split(",")[0]?.trim();
-  return primeiro ? primeiro.slice(0, 45) : null;
-}
 
 type ErroPg = { code?: string; constraint?: string };
 
@@ -131,23 +117,8 @@ export async function entrarPorConvite(
       async (db) => {
         // Limite de tentativas erradas por usuário, para não dar para adivinhar
         // o código de convite por força bruta.
-        const recentes = await db.query(
-          `select count(*)::int as n from tentativas_convite
-            where usuario_id = $1
-              and created_at > now() - make_interval(mins => $2)`,
-          [usuario.id, JANELA_MINUTOS],
-        );
-        if (recentes.rows[0].n >= MAX_TENTATIVAS) return "bloqueado" as const;
         // Mesmo teto por endereço: várias contas do mesmo IP dividem a janela.
-        if (ip) {
-          const porIp = await db.query(
-            `select count(*)::int as n from tentativas_convite
-              where ip = $1
-                and created_at > now() - make_interval(mins => $2)`,
-            [ip, JANELA_MINUTOS],
-          );
-          if (porIp.rows[0].n >= MAX_TENTATIVAS_POR_IP) return "bloqueado" as const;
-        }
+        if (await tentativasEsgotadas(db, usuario.id, ip)) return "bloqueado" as const;
 
       // `nome` vem junto para o email de boas-vindas à turma.
       const { rows } = await db.query(
@@ -155,15 +126,7 @@ export async function entrarPorConvite(
         [dados.data.codigo],
       );
       if (rows.length === 0) {
-        await db.query(
-          "insert into tentativas_convite (usuario_id, ip) values ($1, $2)",
-          [usuario.id, ip],
-        );
-        // Aproveita para descartar tentativas antigas deste usuário.
-        await db.query(
-          "delete from tentativas_convite where usuario_id = $1 and created_at < now() - interval '1 day'",
-          [usuario.id],
-        );
+        await registrarTentativaErrada(db, usuario.id, ip);
         return "invalido" as const;
       }
       // Já ser membro desta turma não conta como "outra turma".

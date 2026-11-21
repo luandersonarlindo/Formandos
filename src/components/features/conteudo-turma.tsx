@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import { Archive } from "lucide-react";
 
 // Caminhos que continuam funcionando com a turma arquivada: é de onde o admin
-// desarquiva ou exclui.
-const CAMINHOS_LIVRES = ["/admin/turma"];
+// desarquiva ou exclui, e os registros para imprimir (o botão de imprimir
+// ficaria desligado dentro do fieldset).
+const CAMINHOS_LIVRES = ["/admin/turma", "/admin/turma/registro", "/registro"];
 
 // Em turma arquivada, mostra a faixa de aviso e desativa todos os campos e
 // botões de envio da página (`<fieldset disabled>`). É só a parte visível: quem
@@ -46,11 +47,21 @@ export function ConteudoTurma({
               Para guardar seus dados, baixe em{" "}
               <Link href="/conta" className="underline underline-offset-4">
                 Minha conta
+              </Link>{" "}
+              e o{" "}
+              <Link href="/registro" className="underline underline-offset-4">
+                registro da turma
               </Link>
               .
             </>
           ) : (
-            "Todo o registro continua disponível."
+            <>
+              Todo o{" "}
+              <Link href="/registro" className="underline underline-offset-4">
+                registro da turma
+              </Link>{" "}
+              continua disponível.
+            </>
           )}
         </p>
       </div>
