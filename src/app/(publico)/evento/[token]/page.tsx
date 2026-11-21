@@ -5,6 +5,7 @@ import { CalendarDays, Clock, Info, MapPin, Navigation, Shirt, TriangleAlert } f
 import { formatarDataHora, formatarDiaCurto, formatarHora } from "@/lib/datas";
 import { linkComoChegar } from "@/lib/evento";
 import { getEventoPublico } from "@/lib/evento-publico";
+import { Button } from "@/components/ui/button";
 
 // Página pública do evento (ADR-0008): para a família, os convidados e os
 // fornecedores, sem login. Só o que iria num convite impresso. Fora do
@@ -38,9 +39,9 @@ export default async function EventoPublicoPage(props: PageProps<"/evento/[token
       {e.ultimaMudanca && !e.encerrado && (
         <div
           role="status"
-          className="mt-4 flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+          className="mt-4 flex gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
         >
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
           <div>
             <p className="font-medium">Mudou em {formatarDataHora.format(e.ultimaMudanca.quando)}</p>
             <ul className="mt-0.5">
@@ -55,9 +56,12 @@ export default async function EventoPublicoPage(props: PageProps<"/evento/[token
         </div>
       )}
 
+      {/* Ordem de quem abre no celular, a caminho da festa: quando, onde e o
+          botão do mapa logo abaixo. Ícones em cinza: a página é um convite, não
+          uma vitrine (DESIGN.md). Tudo no servidor, sem JS de cliente. */}
       <dl className="mt-6 grid gap-4 text-[15px]">
         <div className="flex gap-3">
-          <CalendarDays className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
+          <CalendarDays className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
           <div>
             <dt className="text-xs text-muted-foreground">Quando</dt>
             <dd className="font-medium">
@@ -67,7 +71,7 @@ export default async function EventoPublicoPage(props: PageProps<"/evento/[token
           </div>
         </div>
         <div className="flex gap-3">
-          <MapPin className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
+          <MapPin className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
           <div className="min-w-0">
             <dt className="text-xs text-muted-foreground">Onde</dt>
             <dd className="font-medium wrap-break-word">{e.local || "Local a definir"}</dd>
@@ -77,40 +81,41 @@ export default async function EventoPublicoPage(props: PageProps<"/evento/[token
                 <span className="text-muted-foreground">Entrada:</span> {e.entrada}
               </dd>
             )}
-            {comoChegar && (
-              <dd className="mt-1">
-                <a
-                  href={comoChegar}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm hover:bg-muted"
-                >
-                  <Navigation className="size-4" aria-hidden /> Como chegar
-                  <span className="sr-only">(abre o mapa em outra aba)</span>
-                </a>
-              </dd>
-            )}
           </div>
         </div>
-        {e.traje && (
-          <div className="flex gap-3">
-            <Shirt className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
-            <div>
-              <dt className="text-xs text-muted-foreground">Traje</dt>
-              <dd className="font-medium">{e.traje}</dd>
-            </div>
-          </div>
-        )}
-        {e.observacoesLocal && (
-          <div className="flex gap-3">
-            <Info className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
-            <div className="min-w-0">
-              <dt className="text-xs text-muted-foreground">Bom saber</dt>
-              <dd className="whitespace-pre-wrap wrap-break-word">{e.observacoesLocal}</dd>
-            </div>
-          </div>
-        )}
       </dl>
+
+      {comoChegar && (
+        <Button asChild variant="outline" className="mt-4 w-full sm:w-auto pointer-coarse:min-h-11">
+          <a href={comoChegar} target="_blank" rel="noopener noreferrer">
+            <Navigation aria-hidden /> Como chegar
+            <span className="sr-only">(abre o mapa em outra aba)</span>
+          </a>
+        </Button>
+      )}
+
+      {(e.traje || e.observacoesLocal) && (
+        <dl className="mt-6 grid gap-4 text-[15px]">
+          {e.traje && (
+            <div className="flex gap-3">
+              <Shirt className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+              <div>
+                <dt className="text-xs text-muted-foreground">Traje</dt>
+                <dd className="font-medium">{e.traje}</dd>
+              </div>
+            </div>
+          )}
+          {e.observacoesLocal && (
+            <div className="flex gap-3">
+              <Info className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+              <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">Bom saber</dt>
+                <dd className="whitespace-pre-wrap wrap-break-word">{e.observacoesLocal}</dd>
+              </div>
+            </div>
+          )}
+        </dl>
+      )}
 
       {/* ADR-0024: sempre em texto; sem resposta, "não informada". */}
       <div className="mt-5">
@@ -122,13 +127,13 @@ export default async function EventoPublicoPage(props: PageProps<"/evento/[token
       {e.programacao.length > 0 && (
         <section className="mt-8">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Clock className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Programação
+            <Clock className="size-5 text-muted-foreground" aria-hidden /> Programação
           </h2>
           <ol className="mt-3 ml-1.5 border-l">
             {e.programacao.map((item) => (
               <li key={item.id} className="relative pb-5 pl-6 last:pb-0">
-                <span aria-hidden className="absolute top-1.5 -left-[5px] size-2.5 rounded-full bg-[var(--vitrine-a)]" />
-                <p className="text-sm font-semibold text-[var(--vitrine-a)]">
+                <span aria-hidden className="absolute top-1.5 -left-[5px] size-2.5 rounded-full bg-foreground" />
+                <p className="text-sm font-semibold">
                   {formatarHora.format(item.horario)}{" "}
                   <span className="font-normal text-muted-foreground">· {formatarDiaCurto.format(item.horario)}</span>
                 </p>

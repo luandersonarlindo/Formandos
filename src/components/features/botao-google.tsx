@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
 import { DESTINO_PADRAO } from "@/lib/redirecionamento";
 
@@ -18,8 +18,34 @@ function IconeGoogle() {
   );
 }
 
-// `destino` já passou por destinoSeguro na página de login.
-export function BotaoGoogle({ destino = DESTINO_PADRAO }: { destino?: string }) {
+// Termos e Política abrem em outra aba: na mesma aba, quem estava no meio do
+// cadastro perdia o que já tinha digitado.
+export function LinkLegal({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      rel="noopener"
+      className="underline underline-offset-4 hover:text-foreground"
+    >
+      {children}
+      <span className="sr-only"> (abre em outra aba)</span>
+    </Link>
+  );
+}
+
+// `destino` já passou por destinoSeguro na página de login. `aviso` mostra o
+// texto legal do Google (a aba Entrar); na aba Criar conta quem cobre o aceite
+// é a caixa do formulário, que também libera este botão (`desabilitado`).
+export function BotaoGoogle({
+  destino = DESTINO_PADRAO,
+  aviso = false,
+  desabilitado = false,
+}: {
+  destino?: string;
+  aviso?: boolean;
+  desabilitado?: boolean;
+}) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -44,22 +70,18 @@ export function BotaoGoogle({ destino = DESTINO_PADRAO }: { destino?: string }) 
         variant="outline"
         className="h-10 w-full text-sm"
         onClick={entrar}
-        disabled={carregando}
+        disabled={carregando || desabilitado}
       >
-        {carregando ? <LoaderCircle className="animate-spin" aria-hidden /> : <IconeGoogle />}
+        {carregando ? <Spinner /> : <IconeGoogle />}
         {carregando ? "Redirecionando…" : "Continuar com o Google"}
       </Button>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Ao entrar com o Google, você declara ter 18 anos ou mais e aceita os{" "}
-        <Link href="/termos" className="underline underline-offset-4 hover:text-foreground">
-          Termos de Uso
-        </Link>{" "}
-        e a{" "}
-        <Link href="/privacidade" className="underline underline-offset-4 hover:text-foreground">
-          Política de Privacidade
-        </Link>
-        .
-      </p>
+      {aviso && (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Ao entrar com o Google, você declara ter 18 anos ou mais e aceita os{" "}
+          <LinkLegal href="/termos">Termos de Uso</LinkLegal> e a{" "}
+          <LinkLegal href="/privacidade">Política de Privacidade</LinkLegal>.
+        </p>
+      )}
       {erro && (
         <p role="alert" className="text-sm text-destructive">
           {erro}

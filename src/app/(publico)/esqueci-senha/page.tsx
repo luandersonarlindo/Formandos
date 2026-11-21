@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { FormPedirSenha } from "@/components/features/form-senha";
 import { LayoutAuth } from "@/components/features/layout-auth";
 
-export const metadata: Metadata = { title: "Definir senha" };
+export const metadata: Metadata = { title: "Esqueci a senha" };
 
 export default function EsqueciSenhaPage() {
   return (

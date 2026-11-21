@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, BarChart3, CircleHelp, ClipboardList, Store } from "lucide-react";
+import { BarChart3, CircleHelp, ClipboardList, Store } from "lucide-react";
 import { AnimarPagina } from "@/components/animacao/animar-pagina";
 import { AlternadorTema } from "./alternador-tema";
+import { LinkVoltar } from "./link-voltar";
 
 const BENEFICIOS = [
   { icone: BarChart3, titulo: "Votações com resultado", texto: "A comissão vê o que a turma prefere, com números." },
@@ -50,16 +51,13 @@ export function LayoutAuth({
 
       <section className="flex flex-col p-6 md:p-10">
         <div className="flex items-center gap-2">
-          <Link
-            href={voltar.href}
-            className="inline-flex items-center gap-1.5 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground pointer-coarse:py-2.5"
-          >
-            <ArrowLeft className="size-4" aria-hidden /> {voltar.rotulo}
-          </Link>
+          <LinkVoltar href={voltar.href}>{voltar.rotulo}</LinkVoltar>
           <span className="flex-1 text-center text-lg font-semibold tracking-tight lg:hidden">
             Formandos <span aria-hidden>🎓</span>
           </span>
-          <AlternadorTema rotulo="Tema da página" />
+          <div className="ml-auto">
+            <AlternadorTema rotulo="Tema da página" />
+          </div>
         </div>
         <div className="flex flex-1 items-center justify-center py-8">
           <AnimarPagina className="w-full max-w-sm 2xl:max-w-md">{children}</AnimarPagina>

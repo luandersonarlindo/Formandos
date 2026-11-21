@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CircleCheck, LoaderCircle, MailCheck } from "lucide-react";
+import { CircleCheck, MailCheck, TriangleAlert } from "lucide-react";
 import { CampoSenha } from "@/components/features/campo-senha";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
 function Cabecalho({ titulo, texto }: { titulo: string; texto: string }) {
   return (
@@ -18,11 +21,47 @@ function Cabecalho({ titulo, texto }: { titulo: string; texto: string }) {
   );
 }
 
+// Os três desfechos do fluxo de senha (link enviado, senha salva, link
+// inválido) num só desenho: ícone, título, uma frase e uma ação.
+export function ResultadoSenha({
+  tipo,
+  titulo,
+  texto,
+  acao,
+}: {
+  tipo: "ok" | "email" | "erro";
+  titulo: string;
+  texto: string;
+  acao: { href: string; rotulo: string; variante?: "default" | "outline" };
+}) {
+  const Icone = tipo === "erro" ? TriangleAlert : tipo === "email" ? MailCheck : CircleCheck;
+  return (
+    <div data-grupo className="flex flex-col gap-5">
+      <span
+        className={cn(
+          "flex size-12 items-center justify-center rounded-full border",
+          tipo === "erro" ? "bg-destructive/10 text-destructive" : "bg-muted/50 text-foreground",
+        )}
+      >
+        <Icone className="size-5" aria-hidden />
+      </span>
+      <Cabecalho titulo={titulo} texto={texto} />
+      {/* Anuncia o desfecho para quem usa leitor de tela: o foco não muda. */}
+      <p role={tipo === "erro" ? "alert" : "status"} className="sr-only">
+        {titulo}.
+      </p>
+      <Button asChild variant={acao.variante ?? "default"} className="h-10 w-full text-sm">
+        <Link href={acao.href}>{acao.rotulo}</Link>
+      </Button>
+    </div>
+  );
+}
+
 function Erro({ children }: { children: React.ReactNode }) {
   return (
-    <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-      {children}
-    </p>
+    <Alert variant="destructive">
+      <AlertDescription>{children}</AlertDescription>
+    </Alert>
   );
 }
 
@@ -48,38 +87,29 @@ export function FormPedirSenha() {
   if (enviado) {
     // Mesma resposta exista o email ou não, para não revelar quem tem conta.
     return (
-      <div data-grupo className="flex flex-col gap-5">
-        <span className="flex size-12 items-center justify-center rounded-full border bg-muted/50">
-          <MailCheck className="size-5 text-[var(--vitrine-a)]" aria-hidden />
-        </span>
-        <Cabecalho
-          titulo="Confira o seu email"
-          texto="Se este email tiver cadastro, enviamos um link para definir a senha. O link vale por 1 hora."
-        />
-        <p role="status" className="sr-only">
-          Email enviado.
-        </p>
-        <Button asChild variant="outline" className="h-10 w-full text-sm">
-          <Link href="/entrar">Voltar para o login</Link>
-        </Button>
-      </div>
+      <ResultadoSenha
+        tipo="email"
+        titulo="Confira o seu email"
+        texto="Se este email tiver cadastro, enviamos um link para definir a senha. O link vale por 1 hora."
+        acao={{ href: "/entrar", rotulo: "Voltar para o login", variante: "outline" }}
+      />
     );
   }
 
   return (
     <div data-grupo className="flex flex-col gap-5">
-      <Cabecalho
-        titulo="Definir senha"
-        texto="Esqueceu a senha? Ou entrou com o Google e quer também usar email e senha? Informe o email da conta e enviamos um link. É a mesma conta, com os mesmos dados."
-      />
+      <Cabecalho titulo="Esqueci a senha" texto="Enviamos um link para você criar uma senha nova." />
       <form onSubmit={enviar} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email">Email</Label>
+        <Field>
+          <FieldLabel htmlFor="email">Email da conta</FieldLabel>
           <Input id="email" name="email" type="email" autoComplete="email" className="h-10" required />
-        </div>
+          <FieldDescription className="text-xs">
+            Entrou pelo Google e quer usar senha? Serve também.
+          </FieldDescription>
+        </Field>
         {erro && <Erro>{erro}</Erro>}
         <Button type="submit" disabled={carregando} className="h-10 w-full text-sm">
-          {carregando && <LoaderCircle className="animate-spin" aria-hidden />}
+          {carregando && <Spinner />}
           {carregando ? "Enviando…" : "Enviar link"}
         </Button>
       </form>
@@ -110,18 +140,12 @@ export function FormNovaSenha({ token }: { token: string }) {
 
   if (pronto) {
     return (
-      <div data-grupo className="flex flex-col gap-5">
-        <span className="flex size-12 items-center justify-center rounded-full border bg-muted/50">
-          <CircleCheck className="size-5 text-[var(--vitrine-a)]" aria-hidden />
-        </span>
-        <Cabecalho titulo="Senha salva" texto="Agora você já pode entrar com email e senha." />
-        <p role="status" className="sr-only">
-          Senha salva.
-        </p>
-        <Button asChild className="h-10 w-full text-sm">
-          <Link href="/entrar">Ir para o login</Link>
-        </Button>
-      </div>
+      <ResultadoSenha
+        tipo="ok"
+        titulo="Senha salva"
+        texto="Agora você já pode entrar com email e senha."
+        acao={{ href: "/entrar", rotulo: "Ir para o login" }}
+      />
     );
   }
 
@@ -129,14 +153,14 @@ export function FormNovaSenha({ token }: { token: string }) {
     <div data-grupo className="flex flex-col gap-5">
       <Cabecalho titulo="Nova senha" texto="Escolha a senha que você vai usar para entrar." />
       <form onSubmit={enviar} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="senha">Nova senha</Label>
+        <Field>
+          <FieldLabel htmlFor="senha">Nova senha</FieldLabel>
           <CampoSenha id="senha" name="senha" autoComplete="new-password" minLength={8} />
-          <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
-        </div>
+          <FieldDescription className="text-xs">Mínimo de 8 caracteres.</FieldDescription>
+        </Field>
         {erro && <Erro>{erro}</Erro>}
         <Button type="submit" disabled={carregando} className="h-10 w-full text-sm">
-          {carregando && <LoaderCircle className="animate-spin" aria-hidden />}
+          {carregando && <Spinner />}
           {carregando ? "Salvando…" : "Salvar senha"}
         </Button>
       </form>

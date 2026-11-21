@@ -1,7 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { LinkVoltar } from "@/components/features/link-voltar";
 import { DPO, EMPRESA } from "@/lib/empresa";
+
+// Os ids batem com os das seções abaixo.
+const SUMARIO: [string, string][] = [
+  ["quem-trata-seus-dados", "Quem trata seus dados"],
+  ["o-que-coletamos-e-para-que", "O que coletamos e para quê"],
+  ["menores-de-18-anos", "Menores de 18 anos"],
+  ["com-quem-compartilhamos", "Com quem compartilhamos"],
+  ["emails-da-turma", "Emails da turma"],
+  ["convites-por-email", "Convites por email"],
+  ["seus-direitos", "Seus direitos (LGPD, art. 18)"],
+  ["por-quanto-tempo-guardamos", "Por quanto tempo guardamos"],
+  ["seguranca", "Segurança"],
+  ["fale-conosco-e-reclame", "Fale conosco e reclame"],
+];
 
 export const metadata: Metadata = { title: "Política de Privacidade" };
 
@@ -11,27 +25,40 @@ export const metadata: Metadata = { title: "Política de Privacidade" };
 export default function PrivacidadePage() {
   return (
     <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-3xl px-4 py-10 outline-none">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground pointer-coarse:py-2.5"
-      >
-        <ArrowLeft className="size-4" aria-hidden /> Início
-      </Link>
+      <LinkVoltar href="/">Início</LinkVoltar>
       <h1 className="mt-4 text-2xl font-semibold tracking-tight md:text-3xl">
         Política de Privacidade
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">Versão 1.1 — 12/11/2026</p>
 
-      <div className="mt-6 flex flex-col gap-5 text-[15px] leading-relaxed">
-        <section>
-          <h2 className="font-semibold">Quem trata seus dados</h2>
+      {/* Sumário: no celular, chegar em "Seus direitos" exigia rolar a página
+          toda. O texto segue inteiro e visível (é texto legal e se imprime). */}
+      <nav aria-label="Nesta página" className="mt-6 rounded-lg border p-4 text-sm print:hidden">
+        <p className="font-medium">Nesta página</p>
+        <ol className="mt-2 grid gap-x-6 gap-y-1 text-muted-foreground sm:grid-cols-2">
+          {SUMARIO.map(([id, titulo]) => (
+            <li key={id}>
+              <a
+                href={`#${id}`}
+                className="inline-flex py-0.5 underline-offset-4 hover:text-foreground hover:underline pointer-coarse:min-h-11 pointer-coarse:items-center"
+              >
+                {titulo}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+
+      <div className="mt-8 flex flex-col gap-8 text-[15px] leading-relaxed">
+        <section id="quem-trata-seus-dados" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Quem trata seus dados</h2>
           <p className="mt-1 text-muted-foreground">
             {EMPRESA.razaoSocial} ({EMPRESA.nomeFantasia}), responsável {EMPRESA.responsavel}.
             Encarregado (DPO): {DPO.nome} — {DPO.email}.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">O que coletamos e para quê</h2>
+        <section id="o-que-coletamos-e-para-que" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">O que coletamos e para quê</h2>
           <p className="mt-1 text-muted-foreground">
             Nome, email e o conteúdo da sua formatura (turmas, votos, presenças,
             dúvidas, tarefas, fornecedores). Finalidade única: organizar a
@@ -53,8 +80,8 @@ export default function PrivacidadePage() {
             a sua resposta de presença.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">Menores de 18 anos</h2>
+        <section id="menores-de-18-anos" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Menores de 18 anos</h2>
           <p className="mt-1 text-muted-foreground">
             O {EMPRESA.nomeFantasia} é para quem tem 18 anos ou mais. Não
             coletamos dados de menores de propósito. Se soubermos de uma conta de
@@ -62,16 +89,16 @@ export default function PrivacidadePage() {
             email do DPO acima.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">Com quem compartilhamos</h2>
+        <section id="com-quem-compartilhamos" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Com quem compartilhamos</h2>
           <p className="mt-1 text-muted-foreground">
             Só operadores técnicos: hospedagem, banco de dados, login (Google,
             se você escolher) e envio de emails. Nada além do necessário para o
             app funcionar.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">Emails da turma</h2>
+        <section id="emails-da-turma" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Emails da turma</h2>
           <p className="mt-1 text-muted-foreground">
             Mandamos email só quando a comissão fixa uma decisão, quando muda a data,
             o horário ou o local da festa, e dois dias antes de uma votação fechar,
@@ -80,8 +107,8 @@ export default function PrivacidadePage() {
             exclusão da turma, porque são sobre os seus dados.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">Convites por email</h2>
+        <section id="convites-por-email" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Convites por email</h2>
           <p className="mt-1 text-muted-foreground">
             A comissão pode colar uma lista de emails para convidar a turma. Quem
             recebe o convite não ganha conta nem entra na turma sem tocar no link. O
@@ -89,8 +116,8 @@ export default function PrivacidadePage() {
             tirar da lista.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">Seus direitos (LGPD, art. 18)</h2>
+        <section id="seus-direitos" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Seus direitos (LGPD, art. 18)</h2>
           <p className="mt-1 text-muted-foreground">
             Confirmar, acessar, corrigir, anonimizar, bloquear, eliminar, levar
             seus dados (portabilidade) e revogar o consentimento. Como exercer:
@@ -99,8 +126,8 @@ export default function PrivacidadePage() {
             DPO acima. Excluir a conta revoga o consentimento e apaga seus dados.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">Por quanto tempo guardamos</h2>
+        <section id="por-quanto-tempo-guardamos" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Por quanto tempo guardamos</h2>
           <p className="mt-1 text-muted-foreground">
             Enquanto a conta existir. Conta excluída = dados apagados, sem
             recuperação. Registros de auditoria seguem retenção própria
@@ -118,18 +145,18 @@ export default function PrivacidadePage() {
             excluído some das cópias nesse prazo.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">Segurança</h2>
+        <section id="seguranca" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Segurança</h2>
           <p className="mt-1 text-muted-foreground">
             Senha com hash (nunca texto puro), email confirmado obrigatório,
             acesso por papéis (participante, administrador, master) e validação
-            de toda entrada. Incidentes seguem a Política de Segurança
-            (`docs/auditoria-direitos/PSI.md`), com comunicação à ANPD e aos titulares quando a lei
+            de toda entrada. Incidentes seguem a nossa Política de Segurança da
+            Informação, com comunicação à ANPD e aos titulares quando a lei
             exigir.
           </p>
         </section>
-        <section>
-          <h2 className="font-semibold">Fale conosco e reclame</h2>
+        <section id="fale-conosco-e-reclame" className="scroll-mt-6">
+          <h2 className="text-lg font-semibold">Fale conosco e reclame</h2>
           <p className="mt-1 text-muted-foreground">
             Dúvidas ou pedidos: {DPO.email}. Você também pode reclamar à ANPD
             (Autoridade Nacional de Proteção de Dados).

@@ -25,7 +25,7 @@ export function CampoSenha({
         type={mostrar ? "text" : "password"}
         autoComplete={autoComplete}
         minLength={minLength}
-        className="h-10 pr-10"
+        className="h-10 pr-10 pointer-coarse:h-11 pointer-coarse:pr-11"
         required
       />
       <button
@@ -33,7 +33,7 @@ export function CampoSenha({
         onClick={() => setMostrar(!mostrar)}
         aria-label={mostrar ? "Ocultar a senha" : "Mostrar a senha"}
         aria-pressed={mostrar}
-        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="absolute inset-y-0 right-0 flex w-10 items-center pointer-coarse:w-11 justify-center rounded-r-lg text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         {mostrar ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
       </button>
