@@ -220,7 +220,7 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
             <ScrollText className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Caixa e regras
           </CardTitle>
           <CardDescription className="text-pretty tabular-nums">
-            Arrecadado: {formatarReal.format(caixa.arrecadado)} de {formatarReal.format(caixa.previsto)} previstos. A
+            Pagamentos confirmados pela tesouraria: {formatarReal.format(caixa.arrecadado)} de {formatarReal.format(caixa.previsto)} previstos. A
             turma vê só estes totais, sem nomes.
           </CardDescription>
         </CardHeader>

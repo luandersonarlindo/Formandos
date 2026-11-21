@@ -143,7 +143,7 @@ export function RegistroTurma({
       {r.caixa.previsto > 0 && (
         <Secao titulo="Caixa da turma">
           <p className="tabular-nums">
-            Arrecadado: <strong>{formatarReal.format(r.caixa.arrecadado)}</strong> de{" "}
+            Pagamentos confirmados pela tesouraria: <strong>{formatarReal.format(r.caixa.arrecadado)}</strong> de{" "}
             {formatarReal.format(r.caixa.previsto)} previstos ({pct(r.caixa.arrecadado, r.caixa.previsto)}).
           </p>
           {r.caixa.regrasDinheiro && (

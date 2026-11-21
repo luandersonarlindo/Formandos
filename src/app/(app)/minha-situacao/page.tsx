@@ -225,13 +225,13 @@ export default async function MinhaSituacaoPage() {
             <p className="text-2xl font-semibold tabular-nums">
               {formatarReal.format(caixa.arrecadado)}{" "}
               <span className="text-base font-normal text-muted-foreground">
-                arrecadados de {formatarReal.format(caixa.previsto)} previstos
+                em pagamentos confirmados pela tesouraria, de {formatarReal.format(caixa.previsto)} previstos
               </span>
             </p>
             <Progress
               className="h-2"
               value={Math.min(100, Math.max(0, (caixa.arrecadado / caixa.previsto) * 100))}
-              aria-label="Quanto do previsto a turma já arrecadou"
+              aria-label="Quanto do previsto a tesouraria já confirmou"
             />
             <p className="text-xs text-muted-foreground">
               Previsto = plano de {formatarReal.format(caixa.previsto / caixa.membros)} por pessoa ×{" "}
