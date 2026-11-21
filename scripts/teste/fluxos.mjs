@@ -1226,7 +1226,7 @@ await grupo("admin", async () => {
       const opcao = sql(`select o.id from opcoes o join enquetes e on e.id=o.enquete_id join categorias ca on ca.id=e.categoria_id where ca.catalogo_id='${cat}' order by e.ordem, o.ordem limit 1`);
       sql(`update opcoes set valor_pessoa = 95, link = 'https://buffet.example.com/menu' where id='${opcao}'`);
       await nav.abrir(`/votacoes/${cat}`);
-      await nav.esperarTexto("95,00 por pessoa");
+      await nav.esperarTexto("95,00 por pessoa, no total");
       await nav.esperarTexto("ver detalhes");
 
       // Mudar o valor depois que já tem voto vai para o histórico da turma.

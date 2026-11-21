@@ -70,7 +70,7 @@ export function textoVotacao(v: DadosVotacao, origem: string): string {
     v.opcoes
       .map((o) =>
         o.valorPessoa != null
-          ? `- ${umaLinha(o.texto)} (${formatarReal.format(o.valorPessoa)} por pessoa)`
+          ? `- ${umaLinha(o.texto)} (${formatarReal.format(o.valorPessoa)} por pessoa, no total)`
           : `- ${umaLinha(o.texto)}`,
       )
       .join("\n"),

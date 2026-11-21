@@ -387,7 +387,7 @@ describe("emails da turma", () => {
 
   it("votação aberta lista as opções com o valor por pessoa (ADR-0018)", () => {
     const email = casos.find(([n]) => n === "votação aberta")![1];
-    expect(email.texto).toMatch(/- Buffet A \(R\$\s120,00 por pessoa\)/);
+    expect(email.texto).toMatch(/- Buffet A \(R\$\s120,00 por pessoa, no total\)/);
     expect(email.texto).toContain("- Buffet B\n");
     expect(email.texto).toContain("Vote aqui: https://formandos.app/dashboard");
     expect(email.html).toContain("Buffet A");

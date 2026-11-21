@@ -529,7 +529,7 @@ export function emailVotacaoAberta(d: {
 }): Omit<Email, "para"> {
   const quando = dataHoraBr(d.prazo);
   const opcao = (o: { texto: string; valorPessoa: number | null }) =>
-    o.valorPessoa != null ? `${o.texto} (${reais(o.valorPessoa)} por pessoa)` : o.texto;
+    o.valorPessoa != null ? `${o.texto} (${reais(o.valorPessoa)} por pessoa, no total)` : o.texto;
   return {
     assunto: `Votação aberta: ${d.pergunta}, fecha em ${quando}`,
     texto: [

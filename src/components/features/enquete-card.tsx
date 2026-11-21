@@ -137,7 +137,7 @@ export function EnqueteCard({
                   <span className="flex flex-wrap items-center gap-x-2 text-xs font-normal text-muted-foreground">
                     {o.valorPessoa != null && (
                       <span className="tabular-nums">
-                        {formatarReal.format(o.valorPessoa)} por pessoa
+                        {formatarReal.format(o.valorPessoa)} por pessoa, no total
                       </span>
                     )}
                     {o.link && (

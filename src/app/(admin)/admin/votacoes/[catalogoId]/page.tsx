@@ -311,7 +311,7 @@ export default async function CatalogoAdminPage(
                             {o.valorPessoa != null && (
                               <span className="text-muted-foreground tabular-nums">
                                 {" · "}
-                                {formatarReal.format(o.valorPessoa)}/pessoa
+                                {formatarReal.format(o.valorPessoa)} por pessoa, no total
                               </span>
                             )}
                           </li>

@@ -43,7 +43,7 @@ export type OpcaoExistente = {
 type Detalhe = { valor: string; link: string };
 const semDetalhe = (): Detalhe => ({ valor: "", link: "" });
 
-// "R$ 95 por pessoa" e o link do cardápio (ADR-0003). Os campos ficam sempre
+// "R$ 95 por pessoa, no total" e o link do cardápio (ADR-0003; total no item 0.3 da rodada 2). Os campos ficam sempre
 // no formulário (só escondidos quando a pessoa não abre "Valor e link"), para
 // salvar a pergunta sem apagar o valor que já existia.
 function CamposDetalhe({
@@ -63,14 +63,14 @@ function CamposDetalhe({
   return (
     <div className={visivel ? "grid grid-cols-[7rem_1fr] gap-2 pl-3" : "hidden"}>
       <div className="flex flex-col gap-1">
-        <Label className="text-xs text-muted-foreground">R$ por pessoa</Label>
+        <Label className="text-xs text-muted-foreground">R$ total por pessoa</Label>
         <Input
           name={nomes?.valor}
           inputMode="decimal"
           placeholder="95,00"
           maxLength={14}
           className="h-9 tabular-nums"
-          aria-label={`Valor por pessoa de ${rotulo}`}
+          aria-label={`Valor total por pessoa de ${rotulo}`}
           {...(controlado
             ? { value: valores.valor, onChange: (e) => aoMudar({ ...valores, valor: e.target.value }) }
             : { defaultValue: valores.valor })}
@@ -408,13 +408,20 @@ export function EditorOpcoes({
             checked={comDetalhes}
             onChange={(e) => setComDetalhes(e.target.checked)}
           />
-          Valor por pessoa e link
+          Valor total por pessoa e link
         </label>
         <p role="status" className="text-xs text-muted-foreground">
           {total()} {total() === 1 ? "opção" : "opções"}
           {aviso() ? ` · ${aviso()}` : ""}
         </p>
       </div>
+      {/* Item 0.3 da rodada 2 (RF-61): o valor é o total de cada um, não a parcela. */}
+      {comDetalhes && (
+        <p className="text-xs text-muted-foreground text-pretty">
+          O valor é o total que cada pessoa paga pela opção. Se for parcelado, diga no texto da opção, por exemplo
+          “Buffet A (12 × R$ 200)”.
+        </p>
+      )}
 
       {multipla && (
         <p className="text-xs text-muted-foreground">

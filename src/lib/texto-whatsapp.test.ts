@@ -51,7 +51,7 @@ describe("textoVotacao", () => {
     expect(textoVotacao(votacao(), ORIGEM)).toBe(
       [
         "*Votação: Qual buffet?*",
-        "- Buffet A (R$ 95,00 por pessoa)",
+        "- Buffet A (R$ 95,00 por pessoa, no total)",
         "- Buffet B",
         "Já votaram 22 de 38.",
         "Vote aqui: https://formandos.example.com/votacoes/cat1#enquete-enq1",
