@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { Pencil, Trash2 } from "lucide-react";
 import { atualizarAviso, excluirAviso } from "@/actions/avisos";
-import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovoAviso } from "@/components/features/form-novo-aviso";
 import { MandarParaGrupo } from "@/components/features/mandar-para-grupo";
+import { AcaoDialogo, AcaoExcluir, AcaoSeparador, MenuAcoes } from "@/components/features/menu-acoes";
 import { Paginacao } from "@/components/features/paginacao";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +19,9 @@ export const metadata: Metadata = { title: "Avisos" };
 
 const formatarData = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
+// Recados da comissão. A lista vem primeiro para todo mundo; o admin ganha o
+// "Novo aviso" no cabeçalho e, em cada recado, "Mandar para o grupo" (a ação
+// que ele mais usa) mais o "⋯" com Editar e Remover (D-05).
 export default async function AvisosPage({ searchParams }: PageProps<"/avisos">) {
   const membro = await exigirMembro();
   const { pagina: paginaParametro } = await searchParams;
@@ -30,74 +32,67 @@ export default async function AvisosPage({ searchParams }: PageProps<"/avisos">)
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Avisos</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
-        Recados da comissão sobre a organização do evento.
-      </p>
-
-      {ehAdmin && (
-        <Card className="mt-6">
-          <CardContent>
-            <FormNovoAviso />
-          </CardContent>
-        </Card>
-      )}
+      <CabecalhoPagina
+        titulo="Avisos"
+        descricao="Recados da comissão sobre a organização do evento."
+        acao={ehAdmin ? <FormNovoAviso /> : undefined}
+      />
 
       {total === 0 ? (
         <EstadoVazio
-          className="mt-4"
-          descricao={ehAdmin ? "Publique o primeiro recado no formulário acima." : "A comissão ainda não publicou nenhum recado."}
+          className="mt-6"
+          descricao={ehAdmin ? "Publique o primeiro recado em “Novo aviso”." : "A comissão ainda não publicou nenhum recado."}
           ilustracao={<ColaboracaoAmico />}
           titulo="Nenhum aviso ainda"
         />
       ) : (
-        <ul data-grupo className="mt-4 grid gap-3">
+        <ul data-grupo className="mt-6 divide-y rounded-xl border">
           {itens.map((a) => (
-            <li key={a.id}>
-              <Card>
-                <CardContent className="flex flex-col gap-2">
-                  <p className="font-medium wrap-break-word">{a.titulo}</p>
-                  <p className="wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">{a.conteudo}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {a.autor} · {formatarData.format(a.criadoEm)}
-                  </p>
-                  {ehAdmin && (
-                    <div className="mt-1 flex flex-wrap gap-2 border-t pt-3">
-                      <MandarParaGrupo
-                        conteudo={{ tipo: "aviso", dados: { titulo: a.titulo, conteudo: a.conteudo } }}
-                      />
-                      <FormDialog
-                        rotulo="Editar aviso"
-                        icone={<Pencil className="size-3.5" aria-hidden />}
-                        titulo="Editar aviso"
-                        descricao="Título e recado para a turma."
-                        acao={atualizarAviso}
-                        campos={{ id: a.id }}
-                        rotuloSubmit="Salvar"
-                        rotuloPendente="Salvando…"
-                      >
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor={`titulo-${a.id}`} className="text-xs">Título</Label>
-                          <Input id={`titulo-${a.id}`} name="titulo" defaultValue={a.titulo} maxLength={200} required />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor={`conteudo-${a.id}`} className="text-xs">Recado</Label>
-                          <Textarea id={`conteudo-${a.id}`} name="conteudo" defaultValue={a.conteudo} maxLength={2000} rows={3} required />
-                        </div>
-                      </FormDialog>
-                      <ConfirmarExclusao
-                        acao={excluirAviso}
-                        campos={{ id: a.id }}
-                        alvo="o aviso"
-                        nome={a.titulo}
-                        rotulo="Remover"
-                        descricao={`Remover o aviso ${a.titulo}`}
-                        icone={<Trash2 aria-hidden />}
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            <li key={a.id} className="flex flex-col gap-1.5 p-4">
+              <div className="flex items-start gap-2">
+                <p className="min-w-0 flex-1 font-medium wrap-break-word">{a.titulo}</p>
+                {ehAdmin && (
+                  <MenuAcoes nome={a.titulo} className="-mt-1 -mr-1">
+                    <AcaoDialogo
+                      rotulo="Editar aviso"
+                      icone={<Pencil aria-hidden />}
+                      titulo="Editar aviso"
+                      descricao="Título e recado para a turma."
+                      acao={atualizarAviso}
+                      campos={{ id: a.id }}
+                    >
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor={`titulo-${a.id}`}>Título</Label>
+                        <Input id={`titulo-${a.id}`} name="titulo" defaultValue={a.titulo} maxLength={200} required />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor={`conteudo-${a.id}`}>Recado</Label>
+                        <Textarea id={`conteudo-${a.id}`} name="conteudo" defaultValue={a.conteudo} maxLength={2000} rows={4} required />
+                      </div>
+                    </AcaoDialogo>
+                    <AcaoSeparador />
+                    <AcaoExcluir
+                      acao={excluirAviso}
+                      campos={{ id: a.id }}
+                      alvo="o aviso"
+                      nome={a.titulo}
+                      rotulo="Remover"
+                      descricao={`Remover o aviso ${a.titulo}`}
+                      icone={<Trash2 aria-hidden />}
+                      sucesso="Aviso removido."
+                    />
+                  </MenuAcoes>
+                )}
+              </div>
+              <p className="wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">{a.conteudo}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  {a.autor} · {formatarData.format(a.criadoEm)}
+                </p>
+                {ehAdmin && (
+                  <MandarParaGrupo conteudo={{ tipo: "aviso", dados: { titulo: a.titulo, conteudo: a.conteudo } }} />
+                )}
+              </div>
             </li>
           ))}
         </ul>

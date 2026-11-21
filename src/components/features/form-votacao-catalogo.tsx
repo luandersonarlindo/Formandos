@@ -1,11 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { salvarVotos } from "@/actions/votos";
 import type { EstadoForm } from "@/actions/tipos";
-import { Check, LoaderCircle, Save } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Save } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { EnqueteCard } from "@/components/features/enquete-card";
 import type {
   CatalogoVotacao,
@@ -68,6 +80,47 @@ export function FormVotacaoCatalogo({
   const sujo = enquetes.some(
     (e) => JSON.stringify(selecionadas[e.id] ?? []) !== JSON.stringify(salvas[e.id] ?? []),
   );
+  const router = useRouter();
+  // Para onde a pessoa queria ir quando clicou num link com votos não salvos.
+  const [destino, setDestino] = useState<string | null>(null);
+
+  // Aviso ao sair com votos não salvos (D-11). Fechar ou recarregar a aba cai
+  // no beforeunload, que só o navegador pode perguntar. Os links internos
+  // (menu, voltar, abas) são interceptados na fase de captura, antes do <Link>
+  // do Next, e abrem um AlertDialog nosso: com foco preso e "Continuar aqui"
+  // como saída segura, o que o confirm() nativo não garante no D-pad da TV.
+  // As âncoras da própria página (#cat-…) passam direto.
+  useEffect(() => {
+    if (!sujo || somenteLeitura) return;
+    function antesDeSair(evento: BeforeUnloadEvent) {
+      evento.preventDefault();
+      evento.returnValue = "";
+    }
+    function aoClicar(evento: MouseEvent) {
+      if (evento.defaultPrevented || evento.button !== 0) return;
+      if (evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+      const link = (evento.target as Element | null)?.closest?.("a[href]");
+      if (!(link instanceof HTMLAnchorElement)) return;
+      if (link.target === "_blank" || link.hasAttribute("download")) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      evento.preventDefault();
+      evento.stopPropagation();
+      setDestino(url.pathname + url.search + url.hash);
+    }
+    window.addEventListener("beforeunload", antesDeSair);
+    document.addEventListener("click", aoClicar, true);
+    return () => {
+      window.removeEventListener("beforeunload", antesDeSair);
+      document.removeEventListener("click", aoClicar, true);
+    };
+  }, [sujo, somenteLeitura]);
+
+  // Sucesso vira toast (D-06); o erro fica no rodapé, junto do botão.
+  useEffect(() => {
+    if (estado.ok) toast.success(estado.ok);
+  }, [estado]);
 
   // Sem action de formulário: o React 19 reseta o <form> depois da server
   // action e o checkbox controlado volta para a seleção antiga. Aqui o envio é
@@ -135,43 +188,56 @@ export function FormVotacaoCatalogo({
         </section>
       ))}
 
+      {/* Rodapé fixo: o único lugar com o progresso do catálogo. O
+          role="status" anuncia o número e o "não salvas" (ADR-0015). */}
       {enquetes.length > 0 && !somenteLeitura && (
         <div className="sticky bottom-3 z-20 mt-6">
-          <Card className="mx-auto max-w-3xl border bg-background/90 backdrop-blur">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur sm:p-4">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <p role="status" className="text-sm font-medium">
                 {respondidas} de {enquetes.length} respondidas
                 {!pendente && !estado.erro && sujo && (
-                  <span className="text-muted-foreground"> · alterações não salvas</span>
+                  <span className="text-warning"> · alterações não salvas</span>
                 )}
               </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button type="submit" size="sm" disabled={pendente}>
-                  {pendente ? (
-                    <LoaderCircle className="animate-spin" aria-hidden />
-                  ) : (
-                    <Save aria-hidden />
-                  )}
-                  {pendente ? "Salvando…" : "Salvar tudo"}
-                </Button>
-                <p
-                  role={estado.erro ? "alert" : "status"}
-                  className={
-                    estado.erro
-                      ? "text-sm text-destructive"
-                      : "flex items-center gap-1.5 text-sm text-muted-foreground"
-                  }
-                >
-                  {!estado.erro && estado.ok && (
-                    <Check className="size-4 text-emerald-600" aria-hidden />
-                  )}
-                  {estado.erro ?? estado.ok}
+              {estado.erro && (
+                <p role="alert" className="text-sm text-destructive">
+                  {estado.erro}
                 </p>
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+            <Button type="submit" disabled={pendente}>
+              {pendente ? <Spinner /> : <Save aria-hidden />}
+              {pendente ? "Salvando…" : "Salvar tudo"}
+            </Button>
+          </div>
         </div>
       )}
+
+      <AlertDialog open={destino !== null} onOpenChange={(aberto) => !aberto && setDestino(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair sem salvar os votos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você marcou respostas que ainda não foram salvas. Se sair agora, elas se perdem. Para guardar, use
+              “Salvar tudo” no fim da página.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar aqui</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                const ir = destino;
+                setDestino(null);
+                if (ir) router.push(ir);
+              }}
+            >
+              Sair sem salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 }

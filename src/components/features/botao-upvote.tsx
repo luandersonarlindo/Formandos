@@ -43,7 +43,7 @@ export function BotaoUpvote({
       aria-label={`${otimista.votei ? "Remover meu voto" : "Votar nesta dúvida"}: ${trecho}`}
       className={
         otimista.votei
-          ? "flex w-12 shrink-0 flex-col items-center gap-0.5 self-start rounded-xl border border-[var(--vitrine-a)]/40 bg-[color-mix(in_oklch,var(--vitrine-a)_12%,transparent)] py-2 text-[var(--vitrine-a)] transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          ? "flex w-12 shrink-0 flex-col items-center gap-0.5 self-start rounded-xl border border-primary/40 bg-primary/10 py-2 text-primary transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           : "flex w-12 shrink-0 flex-col items-center gap-0.5 self-start rounded-xl border py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       }
     >

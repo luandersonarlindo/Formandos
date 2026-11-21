@@ -1,29 +1,36 @@
-"use client";
-
-import { useActionState } from "react";
-import { LoaderCircle, Megaphone, Send } from "lucide-react";
+import { Plus } from "lucide-react";
 import { criarAviso } from "@/actions/avisos";
-import type { EstadoForm } from "@/actions/tipos";
-import { Button } from "@/components/ui/button";
+import { FormDialog } from "@/components/features/form-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-const inicial: EstadoForm = {};
-
+// "Novo aviso" no cabeçalho de /avisos. Antes o formulário ficava sempre
+// aberto acima da lista; agora a lista vem primeiro e o formulário abre num
+// diálogo (plano de UX, Fase 2). O sucesso fecha o diálogo e vira toast.
 export function FormNovoAviso() {
-  const [estado, acao, pendente] = useActionState(criarAviso, inicial);
-
   return (
-    <form action={acao} className="flex flex-col gap-3">
+    <FormDialog
+      rotulo="Novo aviso"
+      icone={<Plus aria-hidden />}
+      variante="default"
+      tamanho="default"
+      titulo="Novo aviso"
+      descricao="O recado aparece para toda a turma em Avisos e no Início."
+      acao={criarAviso}
+      rotuloSubmit="Publicar aviso"
+      rotuloPendente="Publicando…"
+    >
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="titulo-aviso" className="gap-2">
-          <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
-            <Megaphone className="size-4" aria-hidden />
-          </span>
-          Título
-        </Label>
-        <Input id="titulo-aviso" name="titulo" minLength={3} maxLength={200} placeholder="Ex.: Prazo do pagamento do buffet" required />
+        <Label htmlFor="titulo-aviso">Título</Label>
+        <Input
+          id="titulo-aviso"
+          name="titulo"
+          minLength={3}
+          maxLength={200}
+          placeholder="Ex.: Prazo do pagamento do buffet"
+          required
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="conteudo-aviso">Recado</Label>
@@ -32,20 +39,11 @@ export function FormNovoAviso() {
           name="conteudo"
           minLength={3}
           maxLength={2000}
-          rows={3}
+          rows={4}
           placeholder="Escreva o recado para a turma."
           required
         />
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={pendente}>
-          {pendente ? <LoaderCircle className="animate-spin" aria-hidden /> : <Send aria-hidden />}
-          {pendente ? "Publicando…" : "Publicar aviso"}
-        </Button>
-        <p role={estado.erro ? "alert" : "status"} className={estado.erro ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
-          {estado.erro ?? estado.ok}
-        </p>
-      </div>
-    </form>
+    </FormDialog>
   );
 }

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   Aperture,
   Award,
@@ -12,11 +11,9 @@ import {
   Globe,
   Lightbulb,
   Mail,
-  Wallet,
   Music,
   Pencil,
   Phone,
-  Plus,
   ShieldCheck,
   Sparkles,
   Store,
@@ -27,9 +24,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { atualizarFornecedor, excluirFornecedor } from "@/actions/terceiros";
-import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { FormDialog } from "@/components/features/form-dialog";
+import { FiltrosPilula } from "@/components/features/filtros-pilula";
+import { AcaoDialogo, AcaoExcluir, AcaoSeparador, MenuAcoes } from "@/components/features/menu-acoes";
 import { FormNovoFornecedor } from "@/components/features/form-novo-fornecedor";
 import { CamposOrcamento } from "@/components/features/form-orcamento";
 import { AVISO_LINK_DOCUMENTO, LINK_DOCUMENTO_MAX } from "@/lib/link-documento";
@@ -37,7 +35,6 @@ import { ImagemFornecedor } from "@/components/features/imagem-fornecedor";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { ColaboracaoAmico } from "@/components/ilustracoes/colaboracao-amico";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -53,9 +50,8 @@ import {
   listarFornecedoresAdmin,
   type Fornecedor,
 } from "@/lib/terceiros";
-import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Terceiros" };
+export const metadata: Metadata = { title: "Fornecedores" };
 
 const ICONE_CATEGORIA: Record<string, LucideIcon> = {
   Buffet: UtensilsCrossed,
@@ -77,7 +73,7 @@ const ICONE_CATEGORIA: Record<string, LucideIcon> = {
 // Só vira link o que é claramente um site, e-mail ou telefone; qualquer outro
 // texto aparece como texto puro.
 function Contato({ valor }: { valor: string }) {
-  const classe = "inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[var(--vitrine-a)]";
+  const classe = "inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-primary pointer-coarse:py-2";
   if (/^https?:\/\//i.test(valor)) {
     return (
       <a href={valor} target="_blank" rel="noopener noreferrer" className={classe}>
@@ -111,6 +107,11 @@ function Contato({ valor }: { valor: string }) {
   );
 }
 
+// Fornecedores (a URL /terceiros continua, D-10). A lista vem primeiro para
+// todo mundo. O admin ganha "Novo fornecedor" no cabeçalho, uma linha com o
+// orçamento (só ele vê valores) e o "⋯" com Editar e Remover em cada linha
+// (P-09, D-05). Só aparecem chips de categorias que têm fornecedor; o link
+// ?categoria= de uma categoria vazia continua funcionando.
 export default async function TerceirosPage(props: PageProps<"/terceiros">) {
   const membro = await exigirMembro();
   const { categoria: parametro, pagina: paginaParametro } = await props.searchParams;
@@ -129,74 +130,41 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
     ehAdmin ? getResumoOrcamento(membro.turmaId) : Promise.resolve(null),
   ]);
   const geral = Object.values(totais).reduce((n, c) => n + c, 0);
-
-  const contagem = (c?: string) => (c ? (totais[c] ?? 0) : geral);
+  const categoriasComItens = CATEGORIAS_FORNECEDOR.filter((c) => (totais[c] ?? 0) > 0 || c === categoriaAtiva);
 
   return (
-    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Terceiros</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
-        Fornecedores e prestadores de serviço indicados pela comissão
-        organizadora.
-      </p>
+    <div className="mx-auto w-full max-w-3xl">
+      <CabecalhoPagina
+        titulo="Fornecedores"
+        descricao="Fornecedores e prestadores de serviço indicados pela comissão."
+        acao={ehAdmin ? <FormNovoFornecedor categorias={CATEGORIAS_FORNECEDOR} /> : undefined}
+      />
 
       {ehAdmin && resumo && (
-        <Card className="vitrine-fundo-hero mt-6">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <Wallet className="size-4" aria-hidden /> Orçamento com fornecedores
-            </CardDescription>
-            <CardTitle className="text-3xl tabular-nums">{formatarReal.format(resumo.orcado)}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {formatarReal.format(resumo.contratado)} contratado · {formatarReal.format(resumo.cotando)} em
-              cotação. Só administradores veem valores.
-            </p>
-          </CardHeader>
-        </Card>
+        <p className="mt-4 text-sm text-muted-foreground tabular-nums text-pretty">
+          <span className="font-medium text-foreground">
+            Orçamento com fornecedores: {formatarReal.format(resumo.orcado)}
+          </span>{" "}
+          · {formatarReal.format(resumo.contratado)} contratado · {formatarReal.format(resumo.cotando)} em cotação. Só
+          administradores veem valores.
+        </p>
       )}
 
-      {ehAdmin && (
-        <Card className="mt-4">
-          <CardContent>
-            <PainelRecolhivel abertoInicial={geral === 0} className="group">
-              <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
-                  <Plus className="size-4 transition-transform group-open:rotate-45" aria-hidden />
-                </span>
-                Adicionar fornecedor
-              </summary>
-              <div className="mt-4">
-                <FormNovoFornecedor categorias={CATEGORIAS_FORNECEDOR} />
-              </div>
-            </PainelRecolhivel>
-          </CardContent>
-        </Card>
+      {geral > 0 && categoriasComItens.length > 1 && (
+        <FiltrosPilula
+          className="mt-6"
+          rotulo="Categorias"
+          filtros={[
+            { rotulo: "Todas", href: "/terceiros", ativo: !categoriaAtiva, contagem: geral },
+            ...categoriasComItens.map((c) => ({
+              rotulo: c,
+              href: `/terceiros?categoria=${encodeURIComponent(c)}`,
+              ativo: c === categoriaAtiva,
+              contagem: totais[c] ?? 0,
+            })),
+          ]}
+        />
       )}
-
-      <nav
-        aria-label="Categorias"
-        className="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {[undefined, ...CATEGORIAS_FORNECEDOR].map((c) => {
-          const ativo = c === categoriaAtiva;
-          return (
-            <Link
-              key={c ?? "todas"}
-              href={c ? `/terceiros?categoria=${encodeURIComponent(c)}` : "/terceiros"}
-              aria-current={ativo ? "page" : undefined}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
-                ativo
-                  ? "border-[var(--vitrine-a)]/40 bg-[color-mix(in_oklch,var(--vitrine-a)_10%,transparent)] font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              {c ?? "Todas"}
-              <span className="text-xs tabular-nums text-muted-foreground">{contagem(c)}</span>
-            </Link>
-          );
-        })}
-      </nav>
 
       {visiveis.length === 0 ? (
         <EstadoVazio
@@ -204,7 +172,7 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
           descricao={
             geral === 0
               ? ehAdmin
-                ? "Adicione o primeiro fornecedor no formulário acima."
+                ? "Adicione o primeiro em “Novo fornecedor”."
                 : "A comissão ainda não indicou fornecedores."
               : "Escolha outra categoria para ver os demais."
           }
@@ -212,109 +180,107 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
           titulo="Nenhum fornecedor por aqui"
         />
       ) : (
-        <ul data-grupo className="mt-4 grid gap-4 md:grid-cols-3">
+        <ul data-grupo className="mt-4 divide-y rounded-xl border">
           {visiveis.map((f) => {
             const Icone = ICONE_CATEGORIA[f.categoria] ?? Store;
+            const admin = ehAdmin ? (f as Fornecedor) : null;
             return (
-              <li key={f.id}>
-                <Card className="vitrine-cartao h-full">
-                  <CardContent className="flex h-full flex-col gap-3">
-                    {f.imagemUrl && <ImagemFornecedor src={f.imagemUrl} alt={f.nome} />}
-                    <div className="flex items-start gap-3">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-[var(--vitrine-a)]">
-                        <Icone className="size-5" aria-hidden />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="font-medium wrap-break-word">{f.nome}</p>
+              <li key={f.id} className="flex gap-3 p-4">
+                {f.imagemUrl ? (
+                  <ImagemFornecedor src={f.imagemUrl} alt={f.nome} className="h-14 w-14 shrink-0 sm:h-20 sm:w-20" />
+                ) : (
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
+                    <Icone className="size-5" aria-hidden />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium wrap-break-word">{f.nome}</p>
+                      {/* Com a categoria filtrada, o badge só repetiria o filtro. */}
+                      {(!categoriaAtiva || admin) && (
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <Badge variant="secondary">{f.categoria}</Badge>
-                          {ehAdmin && (
-                            <Badge variant="outline">{ROTULO_ORCAMENTO[(f as Fornecedor).status]}</Badge>
-                          )}
+                          {!categoriaAtiva && <Badge variant="secondary">{f.categoria}</Badge>}
+                          {admin && <Badge variant="outline">{ROTULO_ORCAMENTO[admin.status]}</Badge>}
                         </div>
-                      </div>
+                      )}
                     </div>
-                    {f.descricao && (
-                      <p className="wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">
-                        {f.descricao}
-                      </p>
-                    )}
-                    {f.contato && (
-                      <p className="wrap-break-word text-sm">
-                        <Contato valor={f.contato} />
-                      </p>
-                    )}
-                    {ehAdmin && (f as Fornecedor).linkDocumento && (
-                      <p className="text-sm">
-                        <a
-                          href={(f as Fornecedor).linkDocumento!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline underline-offset-4"
-                        >
-                          Ver documento
-                          <span className="sr-only"> de {f.nome} (abre em nova aba)</span>
-                        </a>
-                      </p>
-                    )}
-                    {ehAdmin && (
-                      <div className="mt-auto flex gap-3 border-t pt-3">
-                        <FormDialog
+                    {admin && (
+                      <MenuAcoes nome={f.nome} className="-mt-1 -mr-1">
+                        <AcaoDialogo
                           rotulo="Editar dados"
-                          icone={<Pencil className="size-3.5" aria-hidden />}
+                          icone={<Pencil aria-hidden />}
                           titulo="Editar fornecedor"
                           descricao="Dados do fornecedor e orçamento."
                           acao={atualizarFornecedor}
                           campos={{ id: f.id }}
-                          rotuloSubmit="Salvar"
-                          rotuloPendente="Salvando…"
                         >
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`nome-${f.id}`} className="text-xs">Nome</Label>
-                            <Input id={`nome-${f.id}`} name="nome" defaultValue={f.nome} maxLength={255} required />
+                          <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor={`nome-${f.id}`}>Nome</Label>
+                              <Input id={`nome-${f.id}`} name="nome" defaultValue={f.nome} maxLength={255} required />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor={`categoria-${f.id}`}>Categoria</Label>
+                              <NativeSelect id={`categoria-${f.id}`} name="categoria" defaultValue={f.categoria} required>
+                                {CATEGORIAS_FORNECEDOR.map((c) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                              </NativeSelect>
+                            </div>
+                            <div className="flex flex-col gap-1.5 sm:col-span-2">
+                              <Label htmlFor={`contato-${f.id}`}>Contato</Label>
+                              <Input id={`contato-${f.id}`} name="contato" defaultValue={f.contato ?? ""} maxLength={255} />
+                            </div>
+                            <CamposOrcamento fornecedorId={f.id} status={admin.status} valorOrcado={admin.valorOrcado} />
                           </div>
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`categoria-${f.id}`} className="text-xs">Categoria</Label>
-                            <NativeSelect id={`categoria-${f.id}`} name="categoria" defaultValue={f.categoria} required>
-                              {CATEGORIAS_FORNECEDOR.map((c) => (
-                                <option key={c} value={c}>{c}</option>
-                              ))}
-                            </NativeSelect>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`descricao-${f.id}`} className="text-xs">Descrição</Label>
-                            <Textarea id={`descricao-${f.id}`} name="descricao" defaultValue={f.descricao ?? ""} maxLength={1000} rows={2} />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`contato-${f.id}`} className="text-xs">Contato</Label>
-                            <Input id={`contato-${f.id}`} name="contato" defaultValue={f.contato ?? ""} maxLength={255} />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`imagemUrl-${f.id}`} className="text-xs">Imagem (link)</Label>
-                            <Input id={`imagemUrl-${f.id}`} name="imagemUrl" type="url" defaultValue={f.imagemUrl ?? ""} maxLength={500} />
-                          </div>
-                          <CamposOrcamento
-                            fornecedorId={f.id}
-                            status={(f as Fornecedor).status}
-                            valorOrcado={(f as Fornecedor).valorOrcado}
-                          />
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`linkDocumento-${f.id}`} className="text-xs">Link do documento (opcional)</Label>
-                            <Input
-                              id={`linkDocumento-${f.id}`}
-                              name="linkDocumento"
-                              type="url"
-                              defaultValue={(f as Fornecedor).linkDocumento ?? ""}
-                              maxLength={LINK_DOCUMENTO_MAX}
-                              placeholder="https://drive.google.com/…"
-                              aria-describedby={`linkDocumento-ajuda-${f.id}`}
-                            />
-                            <p id={`linkDocumento-ajuda-${f.id}`} className="text-xs text-muted-foreground text-pretty">
-                              Contrato ou orçamento. Só a comissão vê. {AVISO_LINK_DOCUMENTO}
-                            </p>
-                          </div>
-                        </FormDialog>
-                        <ConfirmarExclusao
+                          <PainelRecolhivel className="group">
+                            <summary className="cursor-pointer text-sm font-medium pointer-coarse:py-2.5">
+                              Mais detalhes
+                            </summary>
+                            <div className="mt-3 flex flex-col gap-3">
+                              <div className="flex flex-col gap-1.5">
+                                <Label htmlFor={`descricao-${f.id}`}>Descrição</Label>
+                                <Textarea
+                                  id={`descricao-${f.id}`}
+                                  name="descricao"
+                                  defaultValue={f.descricao ?? ""}
+                                  maxLength={1000}
+                                  rows={2}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <Label htmlFor={`imagemUrl-${f.id}`}>Imagem (link)</Label>
+                                <Input
+                                  id={`imagemUrl-${f.id}`}
+                                  name="imagemUrl"
+                                  type="url"
+                                  defaultValue={f.imagemUrl ?? ""}
+                                  maxLength={500}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <Label htmlFor={`linkDocumento-${f.id}`}>Link do documento</Label>
+                                <Input
+                                  id={`linkDocumento-${f.id}`}
+                                  name="linkDocumento"
+                                  type="url"
+                                  defaultValue={admin.linkDocumento ?? ""}
+                                  maxLength={LINK_DOCUMENTO_MAX}
+                                  placeholder="https://drive.google.com/…"
+                                  aria-describedby={`linkDocumento-ajuda-${f.id}`}
+                                />
+                                <p id={`linkDocumento-ajuda-${f.id}`} className="text-xs text-muted-foreground text-pretty">
+                                  Contrato ou orçamento. Só a comissão vê. {AVISO_LINK_DOCUMENTO}
+                                </p>
+                              </div>
+                            </div>
+                          </PainelRecolhivel>
+                        </AcaoDialogo>
+                        <AcaoSeparador />
+                        <AcaoExcluir
                           acao={excluirFornecedor}
                           campos={{ id: f.id }}
                           alvo="o fornecedor"
@@ -322,11 +288,31 @@ export default async function TerceirosPage(props: PageProps<"/terceiros">) {
                           rotulo="Remover"
                           descricao={`Remover o fornecedor ${f.nome}`}
                           icone={<Trash2 aria-hidden />}
+                          sucesso="Fornecedor removido."
                         />
-                      </div>
+                      </MenuAcoes>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                  {f.descricao && (
+                    <p className="mt-1.5 wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">{f.descricao}</p>
+                  )}
+                  {(f.contato || admin?.linkDocumento) && (
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm wrap-break-word">
+                      {f.contato && <Contato valor={f.contato} />}
+                      {admin?.linkDocumento && (
+                        <a
+                          href={admin.linkDocumento}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-4 pointer-coarse:py-2"
+                        >
+                          Ver documento
+                          <span className="sr-only"> de {f.nome} (abre em nova aba)</span>
+                        </a>
+                      )}
+                    </p>
+                  )}
+                </div>
               </li>
             );
           })}

@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { BotaoImprimir } from "@/components/features/botao-imprimir";
 import { HistoricoDecisoes } from "@/components/features/historico-decisoes";
+import { LinkVoltar } from "@/components/features/link-voltar";
 import { MudancasPlano } from "@/components/features/mudancas-plano";
 import { formatarDataHora } from "@/lib/datas";
 import { formatarReal } from "@/lib/orcamento";
@@ -34,12 +33,9 @@ export function RegistroTurma({
 
   return (
     <div className="mx-auto w-full max-w-3xl print:max-w-none">
-      <Link
-        href={voltar.href}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground print:hidden"
-      >
-        <ArrowLeft className="size-4" aria-hidden /> {voltar.rotulo}
-      </Link>
+      <LinkVoltar href={voltar.href} className="print:hidden">
+        {voltar.rotulo}
+      </LinkVoltar>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs text-muted-foreground">Registro da turma · gerado em {geradoEm}</p>

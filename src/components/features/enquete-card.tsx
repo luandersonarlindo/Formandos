@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { formatarDataHora } from "@/lib/datas";
 import { formatarReal } from "@/lib/orcamento";
 import type { EnqueteVotacao } from "@/lib/votacoes";
@@ -33,7 +32,6 @@ export function EnqueteCard({
   const decidida = decisao.length > 0;
   const fechada = decidida || encerrada;
   const respondida = selecionadas.length > 0;
-  const temRegra = Boolean(prazo || quorumPct);
 
   return (
     <Card>
@@ -53,21 +51,23 @@ export function EnqueteCard({
               </Badge>
             ) : (
               respondida && (
-                <Badge variant="secondary" className="shrink-0 text-emerald-700 dark:text-emerald-400">
+                <Badge variant="secondary" className="shrink-0">
                   <CircleCheck aria-hidden /> Respondida
                 </Badge>
               )
             )}
           </div>
-          <CardDescription>
-            {decidida
-              ? "A comissão já decidiu esta pergunta, então a votação está encerrada."
-              : encerrada
-                ? "O prazo terminou. Agora a comissão fixa a decisão."
-                : tipo === "unica"
-                  ? "Escolha uma opção."
+          {/* "Escolha uma opção." saiu: o botão redondo já diz isso. Só o
+              que muda o jeito de votar fica escrito. */}
+          {(fechada || tipo !== "unica") && (
+            <CardDescription>
+              {decidida
+                ? "A comissão já decidiu esta pergunta, então a votação está encerrada."
+                : encerrada
+                  ? "O prazo terminou. Agora a comissão fixa a decisão."
                   : "Você pode escolher várias opções."}
-          </CardDescription>
+            </CardDescription>
+          )}
           {decidida && enquete.justificativa && (
             <p className="mt-1 text-sm text-pretty">
               Motivo da comissão: “{enquete.justificativa}”
@@ -75,7 +75,7 @@ export function EnqueteCard({
           )}
           {/* Voto secreto (ADR-0010): a pessoa lê antes de votar. */}
           {secreto && (
-            <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+            <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
               <EyeOff className="mt-0.5 size-3.5 shrink-0" aria-hidden />
               <span>
                 <strong className="font-medium text-foreground">Voto secreto.</strong> Ninguém vê
@@ -83,43 +83,33 @@ export function EnqueteCard({
               </span>
             </p>
           )}
-          {/* Regra combinada e participação (ADR-0003): a turma vê antes de
-              votar quando fecha, quanto precisa e quantos já votaram. */}
-          {temRegra && !decidida && (
-            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {prazo && (
-                <span className="inline-flex items-center gap-1">
-                  <CalendarClock className="size-3.5" aria-hidden />
-                  {encerrada ? "fechou em " : "fecha em "}
-                  {formatarDataHora.format(new Date(prazo))}
-                </span>
-              )}
-              {quorumPct && <span>precisa de {quorumPct}% da turma votando</span>}
-            </p>
-          )}
-          <div className="mt-2 flex items-center gap-2">
-            <Progress
-              className="h-1.5 flex-1"
-              value={membros === 0 ? 0 : (votantes / membros) * 100}
-              // O texto ao lado diz o mesmo; a barra fica fora da leitura
-              // para não repetir em cada pergunta (ADR-0015).
-              aria-hidden
-            />
-            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+          {/* Regra combinada e participação (ADR-0003) numa linha só: quando
+              fecha, quanto precisa e quantos já votaram. */}
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {prazo && !decidida && (
+              <span className="inline-flex items-center gap-1">
+                <CalendarClock className="size-3.5" aria-hidden />
+                {encerrada ? "fechou em " : "fecha em "}
+                {formatarDataHora.format(new Date(prazo))}
+              </span>
+            )}
+            {quorumPct && !decidida && <span>precisa de {quorumPct}% da turma votando</span>}
+            <span className="tabular-nums">
               {votantes} de {membros} votaram
             </span>
-          </div>
+          </p>
         </CardHeader>
-        <CardContent className="mt-4 flex flex-col gap-2">
+        <CardContent className="mt-3 flex flex-col gap-2">
           {opcoes.map((o) => (
             <label
               key={o.id}
               className={
                 fechada
                   ? decisao.includes(o.id)
-                    ? "flex items-center gap-3 rounded-lg border border-[var(--vitrine-a)] bg-[color-mix(in_oklch,var(--vitrine-a)_8%,transparent)] px-3 py-2 text-sm font-medium"
-                    : "flex items-center gap-3 rounded-lg border px-3 py-2 text-sm text-muted-foreground"
-                  : "flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-[var(--vitrine-a)] has-checked:bg-[color-mix(in_oklch,var(--vitrine-a)_8%,transparent)] has-checked:font-medium"
+                    ? "flex min-h-11 items-center gap-3 rounded-lg border border-primary bg-primary/5 px-3 py-2 text-sm font-medium"
+                    : "flex min-h-11 items-center gap-3 rounded-lg border px-3 py-2 text-sm text-muted-foreground"
+                  : // 44px no toque (DESIGN.md): a linha inteira é o alvo do voto.
+                    "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-primary/5 has-checked:font-medium has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 pointer-coarse:py-3"
               }
             >
               <input
@@ -129,7 +119,7 @@ export function EnqueteCard({
                 checked={selecionadas.includes(o.id)}
                 onChange={() => aoAlternar(id, o.id)}
                 disabled={fechada || somenteLeitura}
-                className="size-4 accent-[var(--vitrine-a)]"
+                className="size-4 shrink-0 accent-primary"
               />
               <span className="flex min-w-0 flex-col">
                 <span>{o.texto}</span>
@@ -156,7 +146,7 @@ export function EnqueteCard({
                 )}
               </span>
               {decisao.includes(o.id) && (
-                <span className="ml-auto flex items-center gap-1 text-xs text-[var(--vitrine-a)]">
+                <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-primary">
                   <Gavel className="size-3.5" aria-hidden /> Escolha da turma
                 </span>
               )}

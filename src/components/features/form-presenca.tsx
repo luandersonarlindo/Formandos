@@ -28,16 +28,20 @@ type Inicial = {
 export function FormPresenca({
   inicial,
   limite,
+  variante = "outline",
 }: {
   inicial: Inicial;
   // Quantos acompanhantes a turma permite (escolha do administrador).
   limite: number;
+  // "default" quando a presença é a ação primária do Início (algo pendente).
+  variante?: "default" | "outline";
 }) {
   const semNome = inicial.status === "vou" ? Math.max(0, inicial.acompanhantes - inicial.lista.length) : 0;
   return (
     <FormDialog
       rotulo={semNome > 0 ? "Informar nomes" : inicial.status ? "Mudar resposta" : "Responder"}
       icone={<UserCheck aria-hidden />}
+      variante={variante}
       titulo="Você vai ao evento?"
       descricao={
         inicial.status
@@ -115,7 +119,7 @@ function CamposPresenca({ inicial, limite }: { inicial: Inicial; limite: number 
         {STATUS_PRESENCA.map((s) => (
           <label
             key={s}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-[var(--vitrine-a)] has-checked:bg-[color-mix(in_oklch,var(--vitrine-a)_8%,transparent)] has-checked:font-medium pointer-coarse:py-3"
+            className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-primary/5 has-checked:font-medium pointer-coarse:py-3"
           >
             <input
               type="radio"
@@ -124,7 +128,7 @@ function CamposPresenca({ inicial, limite }: { inicial: Inicial; limite: number 
               checked={status === s}
               onChange={() => setStatus(s)}
               required
-              className="size-4 accent-[var(--vitrine-a)]"
+              className="size-4 accent-primary"
             />
             {ROTULO_PRESENCA[s]}
           </label>

@@ -1,14 +1,11 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { FormVotacaoCatalogo } from "@/components/features/form-votacao-catalogo";
 import { EstadoVazio } from "@/components/features/estado-vazio";
+import { LinkVoltar } from "@/components/features/link-voltar";
 import { ChecklistAmico } from "@/components/ilustracoes/checklist-amico";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { exigirMembro } from "@/lib/dal";
 import { AVISO_VISIBILIDADE_VOTO } from "@/lib/empresa";
 import { getCatalogoParaVotar, getNomeCatalogo } from "@/lib/votacoes";
@@ -36,64 +33,34 @@ export default async function CatalogoPage(
   if (!catalogo) notFound();
 
   const enquetes = catalogo.categorias.flatMap((c) => c.enquetes);
-  const respondidas = enquetes.filter((e) => e.selecionadas.length > 0).length;
 
   return (
     <div className="mx-auto w-full max-w-3xl 2xl:max-w-5xl">
-      <Link
-        href="/votacoes"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden /> Todos os catálogos
-      </Link>
-
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          {catalogo.nome}
-        </h1>
-        <Badge variant={catalogo.padrao ? "secondary" : "default"}>
-          {catalogo.padrao ? "Padrão" : "Personalizado"}
-        </Badge>
-      </div>
+      <LinkVoltar href="/votacoes">Votações</LinkVoltar>
+      {/* Sem o bloco de progresso: o número fica só no rodapé fixo do
+          formulário, que acompanha a pessoa enquanto ela vota. */}
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-balance md:text-3xl">{catalogo.nome}</h1>
 
       {observador ? (
-        <p role="status" className="mt-4 flex items-start gap-2 rounded-xl border bg-muted/50 p-3 text-sm">
+        <p role="status" className="mt-3 flex items-start gap-2 rounded-xl border bg-muted/50 p-3 text-sm">
           <Eye className="mt-0.5 size-4 shrink-0" aria-hidden />
           Você acompanha esta turma como observador e não vota. As perguntas e a
           participação aparecem abaixo.
         </p>
       ) : (
-        <>
-        <Card className="vitrine-fundo-hero mt-4">
-          <CardHeader>
-            <CardDescription>Seu progresso neste catálogo</CardDescription>
-            <CardTitle role="status" className="text-2xl tabular-nums">
-              <span data-contar={respondidas}>{respondidas}</span>{" "}
-              <span className="text-base font-normal text-muted-foreground">
-                de {enquetes.length} respondidas
-              </span>
-            </CardTitle>
-            <Progress
-              className="mt-2 h-2"
-              value={enquetes.length === 0 ? 0 : (respondidas / enquetes.length) * 100}
-              aria-label="Seu progresso neste catálogo"
-            />
-          </CardHeader>
-        </Card>
-
-        {/* Repetido aqui, onde a pessoa vota, e não só na lista (ADR-0001). */}
-        <p className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+        // Aqui, onde a pessoa vota, e não só na lista (ADR-0001).
+        <p className="mt-2 flex max-w-2xl items-start gap-2 text-sm text-muted-foreground text-pretty">
           <Eye className="mt-0.5 size-4 shrink-0" aria-hidden />
           {AVISO_VISIBILIDADE_VOTO}
         </p>
-        </>
       )}
 
       {/* top-14, e nao top-0: o cabecalho do painel (app-shell.tsx) e
           sticky em top-0 e tem a mesma altura. Com top-0 as duas barras
           grudavam no mesmo lugar e, tendo o mesmo z-index, a de baixo
-          cobria o cabecalho. */}
-      {catalogo.categorias.length > 1 && (
+          cobria o cabecalho. Com até duas categorias a página é curta e a
+          barra fixa só ocuparia tela. */}
+      {catalogo.categorias.length > 2 && (
         <nav
           aria-label="Categorias"
           className="sticky top-14 z-10 mt-4 flex gap-2 overflow-x-auto border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-background/85 py-2 backdrop-blur"
@@ -102,7 +69,7 @@ export default async function CatalogoPage(
             <a
               key={c.id}
               href={`#cat-${c.id}`}
-              className="shrink-0 rounded-full border px-3 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:h-11 pointer-coarse:px-4"
             >
               {c.nome}
             </a>

@@ -1,31 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import {
-  CircleCheck,
-  CircleDot,
-  MessageSquareReply,
-  Pencil,
-  RotateCcw,
-  Star,
-  StarOff,
-  Trash2,
-} from "lucide-react";
-import {
-  alternarDestaque,
-  alternarRespondida,
-  apagarDuvida,
-  responderDuvida,
-} from "@/actions/admin";
+import { CircleCheck, MessageSquareReply, Pencil, RotateCcw, Star, StarOff, Trash2 } from "lucide-react";
+import { alternarDestaque, alternarRespondida, apagarDuvida, responderDuvida } from "@/actions/admin";
 import { editarDuvida, excluirDuvida } from "@/actions/duvidas";
 import { BotaoUpvote } from "@/components/features/botao-upvote";
-import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
 import { EstadoVazio } from "@/components/features/estado-vazio";
+import { FiltrosPilula } from "@/components/features/filtros-pilula";
 import { FormDialog } from "@/components/features/form-dialog";
 import { FormNovaDuvida } from "@/components/features/form-nova-duvida";
+import { AcaoDialogo, AcaoExcluir, AcaoForm, AcaoSeparador, MenuAcoes } from "@/components/features/menu-acoes";
 import { Paginacao } from "@/components/features/paginacao";
 import { PerguntasAmico } from "@/components/ilustracoes/perguntas-amico";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { exigirMembro } from "@/lib/dal";
 import { listarDuvidas } from "@/lib/duvidas";
@@ -45,6 +32,12 @@ const FILTROS = [
   { valor: "respondidas", rotulo: "Respondidas" },
 ] as const;
 
+const trecho = (texto: string) => (texto.length > 60 ? `${texto.slice(0, 60).trimEnd()}…` : texto);
+
+// Dúvidas: a caixa de perguntar no topo e a lista logo depois, com as mais
+// apoiadas primeiro. O admin vê a mesma tela; "Responder" fica visível (é o
+// que ele mais faz) e o resto vai para o "⋯" (D-05). Destacar e marcar como
+// respondida são reversíveis, então rodam num clique, com toast (P-10).
 export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas">) {
   const membro = await exigirMembro();
   const ehAdmin = membro.papel === "admin";
@@ -56,212 +49,124 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
     filtro,
     pagina: lerPagina(paginaParametro),
   });
-  const contagem = (v: keyof typeof contagens) => contagens[v];
 
   return (
-    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Dúvidas</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
-        Envie perguntas sobre o evento e vote nas dúvidas dos colegas. As mais
-        votadas aparecem primeiro, e a comissão responde oficialmente.
-      </p>
-      {ehAdmin && (
-        <p className="mt-2 max-w-2xl rounded-xl border bg-muted/50 p-3 text-sm text-muted-foreground">
-          Você é administrador: responda e destaque as dúvidas direto aqui, na
-          mesma lista com que a turma já interage.
-        </p>
-      )}
+    <div className="mx-auto w-full max-w-3xl">
+      <CabecalhoPagina
+        titulo="Dúvidas"
+        descricao="Pergunte e apoie as dúvidas dos colegas. As mais apoiadas aparecem primeiro, e a comissão responde."
+      />
 
       {observador ? (
         <p role="status" className="mt-6 rounded-xl border bg-muted/50 p-3 text-sm text-muted-foreground">
-          Você acompanha esta turma como observador: vê as dúvidas e as
-          respostas, mas não envia nem apoia.
+          Você acompanha esta turma como observador: vê as dúvidas e as respostas, mas não envia nem apoia.
         </p>
       ) : (
-        <Card className="mt-6">
-          <CardContent>
-            <FormNovaDuvida />
-          </CardContent>
-        </Card>
+        <div className="mt-6 rounded-xl border p-4">
+          <FormNovaDuvida />
+        </div>
       )}
 
-      <nav
-        aria-label="Filtrar dúvidas"
-        className="mt-8 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {FILTROS.map((f) => {
-          const ativo = f.valor === filtro;
-          return (
-            <Link
-              key={f.valor}
-              href={f.valor === "todas" ? "/duvidas" : `/duvidas?filtro=${f.valor}`}
-              aria-current={ativo ? "true" : undefined}
-              className={
-                ativo
-                  ? "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--vitrine-a)]/40 bg-[color-mix(in_oklch,var(--vitrine-a)_10%,transparent)] px-3 py-1 text-sm font-medium"
-                  : "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              {f.rotulo}
-              <span className="text-xs tabular-nums text-muted-foreground">{contagem(f.valor)}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      <FiltrosPilula
+        className="mt-8"
+        rotulo="Filtrar dúvidas"
+        filtros={FILTROS.map((f) => ({
+          rotulo: f.rotulo,
+          href: f.valor === "todas" ? "/duvidas" : `/duvidas?filtro=${f.valor}`,
+          ativo: f.valor === filtro,
+          contagem: contagens[f.valor],
+        }))}
+      />
 
       {visiveis.length === 0 ? (
         <EstadoVazio
           className="mt-4"
           descricao={
-            contagens.todas === 0
-              ? "Seja a primeira pessoa a perguntar."
-              : "Escolha outro filtro para ver as demais."
+            contagens.todas === 0 ? "Seja a primeira pessoa a perguntar." : "Escolha outro filtro para ver as demais."
           }
           ilustracao={<PerguntasAmico />}
           titulo={contagens.todas === 0 ? "Nenhuma dúvida ainda" : "Nenhuma dúvida neste filtro"}
         />
       ) : (
-        <ul data-grupo className="mt-4 grid gap-3">
-          {visiveis.map((d) => (
-            <li key={d.id} data-duvida={d.id}>
-              <Card
-                className={
-                  d.destaque
-                    ? "border border-[var(--vitrine-a)]/30 bg-[color-mix(in_oklch,var(--vitrine-a)_4%,var(--card))]"
-                    : undefined
-                }
-              >
-                <CardContent className="flex gap-4">
-                  <BotaoUpvote duvidaId={d.id} duvida={d.conteudo} votos={d.votos} votei={d.votei} somenteLeitura={observador} />
-                  <div className="min-w-0 flex-1">
-                    {(d.destaque || d.respondida) && (
-                      <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                        {d.destaque && (
-                          <Badge>
-                            <Star aria-hidden /> Em destaque
-                          </Badge>
-                        )}
-                        {d.respondida ? (
-                          <Badge variant="secondary" className="text-emerald-700 dark:text-emerald-400">
-                            <CircleCheck aria-hidden /> Respondida
-                          </Badge>
-                        ) : (
-                          ehAdmin && (
-                            <Badge variant="outline">
-                              <CircleDot aria-hidden /> Aberta
+        <ul data-grupo className="mt-4 divide-y rounded-xl border">
+          {visiveis.map((d) => {
+            const minha = !observador && d.autorId === membro.usuarioId;
+            const temMenu = ehAdmin || minha;
+            return (
+              <li key={d.id} data-duvida={d.id} className={d.destaque ? "flex gap-4 bg-primary/5 p-4" : "flex gap-4 p-4"}>
+                <BotaoUpvote
+                  duvidaId={d.id}
+                  duvida={d.conteudo}
+                  votos={d.votos}
+                  votei={d.votei}
+                  somenteLeitura={observador}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      {(d.destaque || d.respondida || ehAdmin) && (
+                        <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                          {d.destaque && (
+                            <Badge>
+                              <Star aria-hidden /> Em destaque
                             </Badge>
-                          )
-                        )}
-                      </div>
-                    )}
-                    <p className="wrap-break-word whitespace-pre-wrap">{d.conteudo}</p>
-                    <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <span
-                        aria-hidden
-                        className="flex size-5 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--vitrine-a),var(--vitrine-b))] text-[10px] font-semibold text-white"
-                      >
-                        {(d.autor.trim()[0] ?? "?").toUpperCase()}
-                      </span>
-                      {d.autor} · {formatarData.format(d.criadaEm)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {!observador && d.autorId === membro.usuarioId && (
-                        <FormDialog
-                          rotulo="Editar dúvida"
-                          icone={<Pencil className="size-3.5" aria-hidden />}
-                          titulo="Editar dúvida"
-                          descricao="A resposta já dada pela comissão não muda."
-                          acao={editarDuvida}
-                          campos={{ duvidaId: d.id }}
-                          rotuloSubmit="Salvar"
-                          rotuloPendente="Salvando…"
-                        >
-                          <Textarea
-                            name="conteudo"
-                            aria-label="Conteúdo da dúvida"
-                            defaultValue={d.conteudo}
-                            maxLength={500}
-                            rows={2}
-                            required
-                          />
-                        </FormDialog>
+                          )}
+                          {d.respondida ? (
+                            <Badge variant="secondary">
+                              <CircleCheck aria-hidden /> Respondida
+                            </Badge>
+                          ) : (
+                            ehAdmin && <Badge variant="outline">Aberta</Badge>
+                          )}
+                        </div>
                       )}
-                      {!ehAdmin && !observador && d.autorId === membro.usuarioId && (
-                        <ConfirmarExclusao
-                          acao={excluirDuvida}
-                          campos={{ duvidaId: d.id }}
-                          alvo="a dúvida"
-                          nome={d.conteudo}
-                          aviso="A dúvida e os votos que ela recebeu somem para todos."
-                          rotulo="Excluir dúvida"
-                          descricao="Excluir dúvida"
-                          icone={<Trash2 className="size-3.5" aria-hidden />}
-                        />
-                      )}
-                      {ehAdmin && (
-                        <>
-                          <FormDialog
-                            rotulo={d.resposta ? "Editar resposta" : "Responder"}
-                            icone={<MessageSquareReply className="size-4" aria-hidden />}
-                            titulo="Resposta oficial"
-                            descricao="Deixe em branco para remover a resposta."
-                            acao={responderDuvida}
+                      <p className="wrap-break-word whitespace-pre-wrap">{d.conteudo}</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        {d.autor} · {formatarData.format(d.criadaEm)}
+                      </p>
+                    </div>
+                    {temMenu && (
+                      <MenuAcoes nome={trecho(d.conteudo)} className="-mt-1 -mr-1">
+                        {minha && (
+                          <AcaoDialogo
+                            rotulo="Editar dúvida"
+                            icone={<Pencil aria-hidden />}
+                            titulo="Editar dúvida"
+                            descricao="A resposta já dada pela comissão não muda."
+                            acao={editarDuvida}
                             campos={{ duvidaId: d.id }}
-                            rotuloSubmit="Salvar resposta"
-                            rotuloPendente="Salvando…"
                           >
                             <Textarea
-                              name="resposta"
-                              aria-label="Resposta oficial"
-                              maxLength={1000}
+                              name="conteudo"
+                              aria-label="Conteúdo da dúvida"
+                              defaultValue={d.conteudo}
+                              maxLength={500}
                               rows={3}
-                              defaultValue={d.resposta ?? ""}
-                              placeholder="Deixe em branco para remover a resposta."
+                              required
                             />
-                          </FormDialog>
-                          <FormDialog
-                            rotulo={d.destaque ? "Tirar destaque" : "Destacar"}
-                            icone={
-                              d.destaque ? (
-                                <StarOff className="size-3.5" aria-hidden />
-                              ) : (
-                                <Star className="size-3.5" aria-hidden />
-                              )
-                            }
-                            titulo={d.destaque ? "Tirar destaque" : "Destacar dúvida"}
-                            descricao={
-                              d.destaque
-                                ? "A dúvida deixa de aparecer em destaque para a turma."
-                                : "A dúvida passa a aparecer em destaque para a turma."
-                            }
+                          </AcaoDialogo>
+                        )}
+                        {ehAdmin && (
+                          <AcaoForm
                             acao={alternarDestaque}
                             campos={{ duvidaId: d.id }}
-                            rotuloSubmit={d.destaque ? "Tirar" : "Destacar"}
-                            rotuloPendente="Salvando…"
-                          />
-                          <FormDialog
-                            rotulo={d.respondida ? "Reabrir" : "Marcar como respondida"}
-                            icone={
-                              d.respondida ? (
-                                <RotateCcw className="size-3.5" aria-hidden />
-                              ) : (
-                                <CircleCheck className="size-3.5" aria-hidden />
-                              )
-                            }
-                            titulo={
-                              d.respondida ? "Reabrir dúvida" : "Marcar como respondida"
-                            }
-                            descricao={
-                              d.respondida
-                                ? "A dúvida volta a aparecer como aberta."
-                                : "A dúvida passa a aparecer como respondida, com ou sem resposta oficial."
-                            }
+                            icone={d.destaque ? <StarOff aria-hidden /> : <Star aria-hidden />}
+                          >
+                            {d.destaque ? "Tirar destaque" : "Destacar"}
+                          </AcaoForm>
+                        )}
+                        {ehAdmin && (
+                          <AcaoForm
                             acao={alternarRespondida}
                             campos={{ duvidaId: d.id }}
-                            rotuloSubmit={d.respondida ? "Reabrir" : "Marcar respondida"}
-                            rotuloPendente="Salvando…"
-                          />
-                          <ConfirmarExclusao
+                            icone={d.respondida ? <RotateCcw aria-hidden /> : <CircleCheck aria-hidden />}
+                          >
+                            {d.respondida ? "Reabrir" : "Marcar como respondida"}
+                          </AcaoForm>
+                        )}
+                        <AcaoSeparador />
+                        {ehAdmin ? (
+                          <AcaoExcluir
                             acao={apagarDuvida}
                             campos={{ duvidaId: d.id }}
                             alvo="a dúvida"
@@ -269,27 +174,64 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                             aviso="A dúvida e os votos que ela recebeu somem para todos."
                             rotulo="Apagar"
                             descricao={`Apagar a dúvida de ${d.autor}`}
-                            icone={<Trash2 className="size-3.5" aria-hidden />}
+                            icone={<Trash2 aria-hidden />}
+                            sucesso="Dúvida apagada."
                           />
-                        </>
-                      )}
-                    </div>
-                    {d.resposta && (
-                      <div className="mt-3 rounded-lg border-l-2 border-[var(--vitrine-a)] bg-muted/60 p-3 text-sm">
-                        <p className="flex items-center gap-1.5 font-medium">
-                          <MessageSquareReply className="size-4 text-[var(--vitrine-a)]" aria-hidden />
-                          Resposta da comissão
-                        </p>
-                        <p className="mt-1 wrap-break-word whitespace-pre-wrap">
-                          {d.resposta}
-                        </p>
-                      </div>
+                        ) : (
+                          <AcaoExcluir
+                            acao={excluirDuvida}
+                            campos={{ duvidaId: d.id }}
+                            alvo="a dúvida"
+                            nome={d.conteudo}
+                            aviso="A dúvida e os votos que ela recebeu somem para todos."
+                            rotulo="Excluir dúvida"
+                            descricao="Excluir dúvida"
+                            icone={<Trash2 aria-hidden />}
+                            sucesso="Dúvida excluída."
+                          />
+                        )}
+                      </MenuAcoes>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
+                  {d.resposta && (
+                    <div className="mt-3 rounded-lg border-l-2 border-primary bg-muted/60 p-3 text-sm">
+                      <p className="flex items-center gap-1.5 font-medium">
+                        <MessageSquareReply className="size-4" aria-hidden />
+                        Resposta da comissão
+                      </p>
+                      <p className="mt-1 wrap-break-word whitespace-pre-wrap">{d.resposta}</p>
+                    </div>
+                  )}
+                  {ehAdmin && (
+                    <div className="mt-3">
+                      <FormDialog
+                        rotulo={d.resposta ? "Editar resposta" : "Responder"}
+                        icone={<MessageSquareReply aria-hidden />}
+                        titulo="Resposta oficial"
+                        descricao="Deixe em branco para remover a resposta."
+                        acao={responderDuvida}
+                        campos={{ duvidaId: d.id }}
+                        rotuloSubmit="Salvar resposta"
+                        rotuloPendente="Salvando…"
+                      >
+                        <Label htmlFor={`resposta-${d.id}`} className="sr-only">
+                          Resposta oficial
+                        </Label>
+                        <Textarea
+                          id={`resposta-${d.id}`}
+                          name="resposta"
+                          maxLength={1000}
+                          rows={4}
+                          defaultValue={d.resposta ?? ""}
+                          placeholder="Deixe em branco para remover a resposta."
+                        />
+                      </FormDialog>
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
       <Paginacao

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 // A imagem é um link externo (sem upload no app): se o link morrer ou não
 // carregar, esconde a imagem em vez de mostrar o ícone de link quebrado.
-export function ImagemFornecedor({ src, alt }: { src: string; alt: string }) {
+export function ImagemFornecedor({ src, alt, className }: { src: string; alt: string; className?: string }) {
   const [erro, setErro] = useState(false);
   if (erro) return null;
 
@@ -14,7 +15,7 @@ export function ImagemFornecedor({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       onError={() => setErro(true)}
       loading="lazy"
-      className="h-36 w-full rounded-lg border object-cover"
+      className={cn("h-36 w-full rounded-lg border object-cover", className)}
     />
   );
 }

@@ -44,7 +44,7 @@ export function HistoricoDecisoes({
                 key={d}
                 className={
                   alerta && d.startsWith("Fora da regra")
-                    ? "text-amber-700 dark:text-amber-400"
+                    ? "text-warning"
                     : "text-muted-foreground wrap-break-word"
                 }
               >

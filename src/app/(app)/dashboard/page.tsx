@@ -2,38 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   CalendarDays,
-  CircleHelp,
-  ClipboardCheck,
-  ClipboardList,
-  CalendarClock,
+  ChevronRight,
+  CircleCheck,
   MapPin,
-  Gavel,
-  LayoutList,
-  Megaphone,
   Navigation,
-  Shirt,
-  StickyNote,
+  Pencil,
   TriangleAlert,
   UserCheck,
-  Users,
   Vote,
-  type LucideIcon,
+  Wallet,
 } from "lucide-react";
 import { ContagemRegressiva } from "@/components/features/contagem-regressiva";
 import { AcessibilidadeLocal } from "@/components/features/acessibilidade-local";
-import { EventoAdmin } from "@/components/features/evento-admin";
 import { FormPresenca } from "@/components/features/form-presenca";
-import { FormSairTurma } from "@/components/features/form-sair-turma";
 import { HistoricoDecisoes } from "@/components/features/historico-decisoes";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { listarHistoricoDecisoes } from "@/lib/auditoria";
 import { getUltimaMudancaEvento } from "@/lib/evento-publico";
@@ -41,70 +27,83 @@ import { exigirMembro } from "@/lib/dal";
 import { getDadosEvento, getResumosDashboard, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
 import { listarUltimosAvisos } from "@/lib/avisos";
 import { linkComoChegar } from "@/lib/evento";
+import { formatarReal } from "@/lib/orcamento";
+import { getMinhaSituacao } from "@/lib/pagamentos";
 import { getMinhaPresenca } from "@/lib/presenca";
 import { presencaFechada, ROTULO_PRESENCA } from "@/lib/presenca-regras";
-import {
-  formatarDataHora,
-  formatarDiaCurto,
-  formatarHora,
-} from "@/lib/datas";
-import { ROTULO_PAPEL } from "@/lib/papeis";
+import { dataBr, hojeBrasil } from "@/lib/situacao-regras";
+import { formatarDataHora, formatarDiaCurto, formatarHora } from "@/lib/datas";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Início" };
 
-function Indicador({
-  titulo,
-  valor,
-  total,
-  href,
-  icone: Icone,
-}: {
-  titulo: string;
-  valor: number;
-  total?: number;
-  href: string;
-  icone: LucideIcon;
-}) {
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+
+// Indicador da comissão: um link com o número e, quando há total, a barra.
+// Só três, e todos levam a uma tela onde dá para agir (P-06).
+function Indicador({ titulo, valor, total, href }: { titulo: string; valor: number; total?: number; href: string }) {
   return (
-    <Link href={href} className="block">
-      <Card className="vitrine-cartao h-full">
-        <CardHeader>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="flex size-7 items-center justify-center rounded-md border bg-muted/50 text-[var(--vitrine-a)]">
-              <Icone className="size-4" aria-hidden />
-            </span>
-            <CardDescription>{titulo}</CardDescription>
-          </div>
-          <CardTitle className="mt-1 text-3xl tabular-nums">
-            <span data-contar={valor}>{valor}</span>
-            {/* O espaço separa "1" de "de 3" no nome lido pelo leitor de tela. */}
-            {total !== undefined && " "}
-            {total !== undefined && (
-              <span className="ml-1.5 text-base font-normal text-muted-foreground">de {total}</span>
-            )}
-          </CardTitle>
-          {total !== undefined && (
-            <Progress
-              className="mt-2"
-              value={total === 0 ? 0 : (valor / total) * 100}
-              // O número ao lado ("1 de 3") já diz o mesmo: a barra fica fora
-              // da leitura para a informação não sair duas vezes (ADR-0015).
-              aria-hidden
-            />
-          )}
-        </CardHeader>
-      </Card>
-    </Link>
+    <li>
+      <Link
+        href={href}
+        className="flex h-full flex-col gap-1 rounded-lg border p-2.5 transition-colors sm:p-3 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        <span className="text-xs leading-tight text-muted-foreground sm:text-sm">{titulo}</span>
+        <span className="text-xl font-semibold tabular-nums">
+          <span data-contar={valor}>{valor}</span>
+          {/* O espaço separa "1" de "de 3" no nome lido pelo leitor de tela. */}
+          {total !== undefined && " "}
+          {total !== undefined && <span className="text-sm font-normal text-muted-foreground">de {total}</span>}
+        </span>
+        {total !== undefined && (
+          // O número já diz o mesmo: a barra fica fora da leitura (ADR-0015).
+          <Progress className="mt-1" value={total === 0 ? 0 : (valor / total) * 100} aria-hidden />
+        )}
+      </Link>
+    </li>
   );
 }
 
+// Uma linha de "Para você fazer": o que é, um detalhe curto e a ação.
+function Pendencia({
+  icone,
+  titulo,
+  descricao,
+  feito = false,
+  children,
+}: {
+  icone: React.ReactNode;
+  titulo: React.ReactNode;
+  descricao?: React.ReactNode;
+  feito?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-3 py-3 first:pt-0 last:pb-0">
+      <span className={feito ? "mt-0.5 text-muted-foreground" : "mt-0.5 text-primary"} aria-hidden>
+        {feito ? <CircleCheck className="size-5" /> : icone}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-pretty">{titulo}</p>
+          {descricao && <div className="mt-0.5 text-sm text-muted-foreground text-pretty">{descricao}</div>}
+        </div>
+        {children && <div className="flex shrink-0 flex-wrap gap-2">{children}</div>}
+      </div>
+    </li>
+  );
+}
+
+// Início (D-03): primeiro o que mudou, depois quando e onde, e logo em seguida
+// o que a pessoa precisa fazer. Decisões, avisos e os detalhes do evento vêm
+// depois, recolhidos quando são longos. O admin vê a mesma tela, mais três
+// indicadores e o link para editar o evento (P-06); a gestão do evento mora em
+// /admin/evento, e "Sair da turma" foi para Minha conta (P-05).
 export default async function DashboardPage() {
   const membro = await exigirMembro();
+  const ehAdmin = membro.papel === "admin";
+  const ehObservador = membro.papel === "observador";
   const presencaTravada = presencaFechada(membro.presencaAte, new Date());
-  // Uma única leva de queries (programacao uma vez, resumos e evento em 1
-  // roundtrip cada): antes, o EventoAdmin buscava programacao de novo +
-  // exigirAdmin, os resumos eram 2 queries e os dados do evento outras 2.
-  const [programacao, { resumo, admin: resumoAdmin }, { detalhes, evento }, decisoes, historico, presenca, avisos, mudancaEvento] =
+  const [programacao, { resumo, admin: resumoAdmin }, { detalhes }, decisoes, historico, presenca, avisos, mudancaEvento, minha] =
     await Promise.all([
       listarProgramacao(membro),
       getResumosDashboard(membro),
@@ -114,6 +113,9 @@ export default async function DashboardPage() {
       getMinhaPresenca(membro),
       listarUltimosAvisos(membro),
       getUltimaMudancaEvento(membro.turmaId),
+      // Próxima parcela (P-07): só leitura, e o valor só aparece para a própria
+      // pessoa, como em Minha situação. Observador não tem parcelas (ADR-0012).
+      ehObservador ? null : getMinhaSituacao(membro.turmaId, membro.usuarioId, hojeBrasil()),
     ]);
   const comoChegar = linkComoChegar({
     linkMapa: detalhes.linkMapa,
@@ -121,382 +123,341 @@ export default async function DashboardPage() {
     local: membro.localEvento,
   });
 
+  // O que está pendente, na ordem em que aparece. O primeiro vira a ação
+  // primária da tela (botão cheio); os outros ficam em contorno.
+  const semNome = presenca.status === "vou" ? Math.max(0, presenca.acompanhantes - presenca.lista.length) : 0;
+  const presencaPendente = !presencaTravada && (!presenca.status || semNome > 0);
+  const votosPendentes = ehObservador ? 0 : Math.max(0, resumo.enquetesTotal - resumo.enquetesRespondidas);
+  const proxima = minha && minha.situacao.estado !== "sem_plano" ? minha.situacao.proxima : null;
+  const atrasado = minha?.situacao.estado === "atrasado";
+  const primaria = presencaPendente ? "presenca" : votosPendentes > 0 ? "votos" : proxima ? "parcela" : null;
+
+  const respostaPresenca = presenca.status
+    ? `Sua resposta: ${ROTULO_PRESENCA[presenca.status]}${
+        presenca.status === "vou" && presenca.acompanhantes > 0
+          ? `, com ${plural(presenca.acompanhantes, "acompanhante", "acompanhantes")}`
+          : ""
+      }.${semNome > 0 ? ` Faltam os nomes de ${plural(semNome, "acompanhante", "acompanhantes")}, para a lista de entrada.` : ""}`
+    : "A comissão precisa saber quantas pessoas vêm para fechar o espaço e a comida.";
+
   return (
-    <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
-      <section className="vitrine-fundo-hero rounded-xl border bg-card p-5 md:p-7">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            {membro.turmaNome}
-          </h1>
-          <Badge variant={membro.papel === "admin" ? "default" : "secondary"}>
-            {ROTULO_PAPEL[membro.papel]}
-          </Badge>
-        </div>
-        {detalhes.descricao && (
-          <p className="mt-3 max-w-2xl whitespace-pre-wrap wrap-break-word text-pretty text-muted-foreground">
-            {detalhes.descricao}
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+      {/* Mudança de data, horário, local ou endereço nos últimos 14 dias
+          (ADR-0008): é o mais urgente da tela, então abre a página. */}
+      {mudancaEvento && (
+        <Alert role="status" className="border-warning/40 bg-warning/10">
+          <TriangleAlert className="text-warning" aria-hidden />
+          <AlertTitle>Mudou em {formatarDataHora.format(mudancaEvento.quando)}</AlertTitle>
+          <AlertDescription>
+            <ul>
+              {mudancaEvento.mudancas.map((m) => (
+                <li key={m.rotulo}>
+                  {m.rotulo[0].toUpperCase() + m.rotulo.slice(1)}: era <s>{m.antes}</s>, agora é{" "}
+                  <strong>{m.depois}</strong>
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <header className="flex flex-col gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">{membro.turmaNome}</h1>
+        <div className="flex flex-col gap-1.5 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5">
+          <p className="flex items-start gap-1.5">
+            <CalendarDays className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              {membro.dataEvento ? (
+                <>
+                  <span className="text-foreground">{formatarDataHora.format(membro.dataEvento)}</span>
+                  {detalhes.dataFim && <> até {formatarDataHora.format(detalhes.dataFim)}</>}
+                  {" · "}
+                  <ContagemRegressiva dataIso={membro.dataEvento.toISOString()} />
+                </>
+              ) : (
+                "Data ainda não definida"
+              )}
+            </span>
           </p>
-        )}
-        <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Users className="size-4" aria-hidden />
-          <span data-contar={resumo.membros}>{resumo.membros}</span>{" "}
-          {resumo.membros === 1 ? "membro na turma" : "membros na turma"}
-        </p>
-
-        <div className="mt-6">
-          <h2 className="mb-2 text-sm font-medium text-muted-foreground">Contagem regressiva</h2>
-          {membro.dataEvento ? (
-            <ContagemRegressiva dataIso={membro.dataEvento.toISOString()} />
-          ) : (
-            <p className="rounded-xl border border-dashed bg-background/60 p-4 text-sm text-muted-foreground">
-              A data do evento ainda não foi definida pelo administrador.
-            </p>
-          )}
+          <p className="flex items-start gap-1.5">
+            <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span className="wrap-break-word text-foreground">{membro.localEvento ?? "Local ainda não definido"}</span>
+          </p>
         </div>
+        {(comoChegar || ehAdmin) && (
+          <div className="flex flex-wrap gap-2">
+            {comoChegar && (
+              <Button asChild variant="outline" size="sm">
+                <a href={comoChegar} target="_blank" rel="noopener noreferrer">
+                  <Navigation aria-hidden /> Como chegar
+                  <span className="sr-only"> (abre em nova aba)</span>
+                </a>
+              </Button>
+            )}
+            {ehAdmin && (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/admin/evento">
+                  <Pencil aria-hidden /> Editar evento
+                </Link>
+              </Button>
+            )}
+          </div>
+        )}
+      </header>
 
-        {/* Mudança de data, horário, local ou endereço nos últimos 14 dias
-            (ADR-0008): quem já sabia o antigo precisa ver que mudou. */}
-        {mudancaEvento && (
-          <div
-            role="status"
-            className="mt-6 flex gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+      <section aria-labelledby="para-voce" className="rounded-xl border p-4 md:p-5">
+        <h2 id="para-voce" className="mb-3 text-lg font-semibold">
+          Para você fazer
+        </h2>
+        <ul data-grupo className="divide-y">
+          <Pendencia
+            icone={<UserCheck className="size-5" />}
+            feito={!presencaPendente}
+            titulo="Você vai ao evento?"
+            descricao={
+              <>
+                <p>{respostaPresenca}</p>
+                {/* Prazo da lista (ADR-0013): a data antes, a trava depois. */}
+                {membro.presencaAte && (
+                  <p>
+                    {presencaTravada
+                      ? `A lista fechou em ${formatarDataHora.format(membro.presencaAte)}. Para mudar, fale com a comissão.`
+                      : `Responda até ${formatarDataHora.format(membro.presencaAte)}. Depois disso a resposta trava.`}
+                  </p>
+                )}
+              </>
+            }
           >
-            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
-            <div>
-              <p className="font-medium">Mudou em {formatarDataHora.format(mudancaEvento.quando)}</p>
-              <ul>
-                {mudancaEvento.mudancas.map((m) => (
-                  <li key={m.rotulo}>
-                    {m.rotulo[0].toUpperCase() + m.rotulo.slice(1)}: era <s>{m.antes}</s>, agora é{" "}
-                    <strong>{m.depois}</strong>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        <dl className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
-            <CalendarDays className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
-            <div className="min-w-0">
-              <dt className="text-xs text-muted-foreground">Data do evento</dt>
-              <dd className="text-sm font-medium">
-                {membro.dataEvento
-                  ? formatarDataHora.format(membro.dataEvento)
-                  : "Não definida"}
-              </dd>
-              {membro.dataEvento && detalhes.dataFim && (
-                <dd className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                  <CalendarClock className="size-3.5" aria-hidden /> Até {formatarDataHora.format(detalhes.dataFim)}
-                </dd>
-              )}
-            </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
-            <MapPin className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
-            <div className="min-w-0">
-              <dt className="text-xs text-muted-foreground">Local</dt>
-              <dd className="text-sm font-medium wrap-break-word">
-                {membro.localEvento ?? "Não definido"}
-              </dd>
-              {detalhes.endereco && (
-                <dd className="mt-0.5 text-xs text-muted-foreground wrap-break-word">{detalhes.endereco}</dd>
-              )}
-              {detalhes.entrada && (
-                <dd className="mt-0.5 text-xs wrap-break-word">
-                  <span className="text-muted-foreground">Entrada:</span> {detalhes.entrada}
-                </dd>
-              )}
-              {comoChegar && (
-                <dd className="mt-2">
-                  <a
-                    href={comoChegar}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted pointer-coarse:py-2.5"
-                  >
-                    <Navigation className="size-3.5" aria-hidden /> Como chegar
-                    <span className="sr-only"> (abre em nova aba)</span>
-                  </a>
-                </dd>
-              )}
-            </div>
-          </div>
-          {detalhes.traje && (
-            <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
-              <Shirt className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
-              <div className="min-w-0">
-                <dt className="text-xs text-muted-foreground">Traje</dt>
-                <dd className="text-sm font-medium wrap-break-word">{detalhes.traje}</dd>
-              </div>
-            </div>
+            {!presencaTravada && (
+              <FormPresenca
+                inicial={presenca}
+                limite={membro.maxAcompanhantes}
+                variante={primaria === "presenca" ? "default" : "outline"}
+              />
+            )}
+          </Pendencia>
+          {votosPendentes > 0 && (
+            <Pendencia
+              icone={<Vote className="size-5" />}
+              titulo={`${votosPendentes === 1 ? "Falta 1 pergunta" : `Faltam ${votosPendentes} perguntas`} para você votar`}
+              descricao={`Você respondeu ${resumo.enquetesRespondidas} de ${resumo.enquetesTotal}.`}
+            >
+              <Button asChild size="sm" variant={primaria === "votos" ? "default" : "outline"}>
+                <Link href="/votacoes">
+                  Votar <ChevronRight aria-hidden />
+                </Link>
+              </Button>
+            </Pendencia>
           )}
-          {detalhes.observacoesLocal && (
-            <div className="flex items-start gap-3 rounded-xl border bg-background/80 p-3">
-              <StickyNote className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
-              <div className="min-w-0">
-                <dt className="text-xs text-muted-foreground">Sobre o local</dt>
-                <dd className="text-sm whitespace-pre-wrap wrap-break-word">{detalhes.observacoesLocal}</dd>
-              </div>
-            </div>
+          {proxima && (
+            <Pendencia
+              icone={<Wallet className="size-5" />}
+              titulo={
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="tabular-nums">
+                    Próxima parcela: {formatarReal.format(proxima.falta)} até {dataBr(proxima.vencimento)}
+                  </span>
+                  {atrasado && <Badge variant="warning">Em atraso</Badge>}
+                </span>
+              }
+              descricao="Só você e a tesouraria veem este valor."
+            >
+              <Button asChild size="sm" variant={primaria === "parcela" ? "default" : "outline"}>
+                <Link href="/minha-situacao">
+                  Minha situação <ChevronRight aria-hidden />
+                </Link>
+              </Button>
+            </Pendencia>
           )}
-        </dl>
-        {/* ADR-0024: acessibilidade do local, sempre em texto. */}
-        <div className="mt-3 rounded-xl border bg-background/80 p-3">
-          <AcessibilidadeLocal a={detalhes.acessibilidade} compacto />
-        </div>
+        </ul>
+        {!primaria && <p className="mt-3 text-sm text-muted-foreground">Tudo em dia por aqui.</p>}
       </section>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle nivel={2} className="flex items-center gap-2 text-lg">
-            <UserCheck className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Você vai ao evento?
-          </CardTitle>
-          <CardDescription>
-            {presenca.status
-              ? `Sua resposta: ${ROTULO_PRESENCA[presenca.status]}${
-                  presenca.status === "vou" && presenca.acompanhantes > 0
-                    ? `, com ${presenca.acompanhantes} ${presenca.acompanhantes === 1 ? "acompanhante" : "acompanhantes"}`
-                    : ""
-                }. ${
-                  presenca.status === "vou" && presenca.acompanhantes > presenca.lista.length
-                    ? `Faltam os nomes de ${presenca.acompanhantes - presenca.lista.length} ${
-                        presenca.acompanhantes - presenca.lista.length === 1 ? "acompanhante" : "acompanhantes"
-                      }, para a lista de entrada.`
-                    : "Você pode mudar quando quiser."
-                }`
-              : "A comissão precisa saber quantas pessoas vêm para fechar o espaço e a comida."}
-          </CardDescription>
-          {/* Prazo da lista (ADR-0013): a pessoa vê a data antes e a trava depois. */}
-          {membro.presencaAte && (
-            <p className="flex items-start gap-1.5 text-sm">
-              <CalendarClock className="mt-0.5 size-4 shrink-0 text-[var(--vitrine-a)]" aria-hidden />
-              {presencaTravada
-                ? `A lista fechou em ${formatarDataHora.format(membro.presencaAte)}. Para mudar, fale com a comissão.`
-                : `Responda até ${formatarDataHora.format(membro.presencaAte)}. Depois disso a resposta trava.`}
-            </p>
-          )}
-        </CardHeader>
-        {!presencaTravada && (
-          <CardContent>
-            <FormPresenca inicial={presenca} limite={membro.maxAcompanhantes} />
-          </CardContent>
-        )}
-      </Card>
-
-      <div data-grupo className="mt-4 grid gap-4 md:grid-cols-3">
-        {membro.papel === "admin" && resumoAdmin ? (
-          <>
+      {ehAdmin && resumoAdmin && (
+        <section aria-labelledby="comissao">
+          <h2 id="comissao" className="mb-3 text-lg font-semibold">
+            Comissão
+          </h2>
+          <ul data-grupo className="grid grid-cols-3 gap-2 sm:gap-3">
             <Indicador
-              titulo="Membros"
-              valor={resumoAdmin.membros}
-              href="/admin/membros"
-              icone={Users}
-            />
-            <Indicador
-              titulo="Participação nas votações"
+              titulo="Votaram"
               valor={resumoAdmin.votantes}
               total={resumoAdmin.formandos}
               href="/admin/votacoes"
-              icone={Vote}
-            />
-            <Indicador
-              titulo="Dúvidas sem resposta"
-              valor={resumoAdmin.duvidasAbertas}
-              href="/duvidas"
-              icone={CircleHelp}
-            />
-            <Indicador
-              titulo="Tarefas em aberto"
-              valor={resumoAdmin.tarefasAbertas}
-              href="/tarefas"
-              icone={ClipboardList}
             />
             <Indicador
               titulo="Presença confirmada"
               valor={resumoAdmin.confirmados}
               total={resumoAdmin.membros}
               href="/admin/presenca"
-              icone={UserCheck}
             />
-            <Indicador
-              titulo="Catálogos personalizados"
-              valor={resumoAdmin.personalizados}
-              href="/admin/votacoes"
-              icone={LayoutList}
-            />
-          </>
-        ) : (
-          <>
-            <Indicador
-              titulo="Tarefas concluídas"
-              valor={resumo.tarefasConcluidas}
-              total={resumo.tarefasTotal}
-              href="/tarefas"
-              icone={ClipboardCheck}
-            />
-            <Indicador
-              titulo="Enquetes respondidas por você"
-              valor={resumo.enquetesRespondidas}
-              total={resumo.enquetesTotal}
-              href="/votacoes"
-              icone={Vote}
-            />
-            <Indicador
-              titulo="Dúvidas sem resposta"
-              valor={resumo.duvidasAbertas}
-              href="/duvidas"
-              icone={CircleHelp}
-            />
-          </>
-        )}
-      </div>
-
-      {avisos.length > 0 && (
-        <Card className="mt-4">
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle nivel={2} className="flex items-center gap-2 text-lg">
-                <Megaphone className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Mural da turma
-              </CardTitle>
-              <Link href="/avisos" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
-                Ver todos
-              </Link>
-            </div>
-            <CardDescription>Recados da comissão sobre a organização do evento.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {avisos.map((a) => (
-              <div key={a.id} className="rounded-xl border bg-background/80 p-3">
-                <p className="font-medium wrap-break-word">{a.titulo}</p>
-                <p className="mt-0.5 wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">{a.conteudo}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+            <Indicador titulo="Dúvidas sem resposta" valor={resumoAdmin.duvidasAbertas} href="/duvidas" />
+          </ul>
+        </section>
       )}
 
       {(decisoes.length > 0 || historico.length > 0) && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle nivel={2} className="flex items-center gap-2 text-lg">
-              <Gavel className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Decisões da turma
-            </CardTitle>
-            <CardDescription>O que a comissão já fixou depois das votações.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {decisoes.length > 0 && (
-              <dl className="grid gap-3 sm:grid-cols-2">
-                {decisoes.map((d) => (
-                  <div key={d.enqueteId} className="rounded-xl border bg-background/80 p-3">
-                    <dt className="text-xs text-muted-foreground">{d.categoria}</dt>
-                    <dd className="mt-0.5 text-sm text-pretty text-muted-foreground">{d.pergunta}</dd>
-                    <dd className="mt-1 text-sm font-medium wrap-break-word">{d.escolhas.join(" · ")}</dd>
-                    {/* Números do dia e regra (ADR-0003). Decisões antigas não
-                        têm a fotografia, então ficam só com a escolha. */}
-                    {d.votantes !== null && (
-                      <dd className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span className="tabular-nums">
-                          votaram {d.votantes} de {d.membros}
-                        </span>
-                        {!d.foraDaRegra ? (
-                          <Badge variant="secondary">Dentro da regra</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-amber-700 dark:text-amber-400">
-                            Fora da regra
-                          </Badge>
-                        )}
-                      </dd>
-                    )}
-                    {d.justificativa && (
-                      <dd className="mt-1 text-xs text-pretty text-muted-foreground">
-                        Motivo da comissão: “{d.justificativa}”
-                      </dd>
-                    )}
-                    {d.linkDocumento && (
-                      <dd className="mt-1 text-xs">
+        <section aria-labelledby="decisoes">
+          <h2 id="decisoes" className="text-lg font-semibold">
+            Decisões da turma
+          </h2>
+          <p className="mb-3 text-sm text-muted-foreground">O que a comissão já fixou depois das votações.</p>
+          {decisoes.length > 0 && (
+            <ul data-grupo className="divide-y rounded-xl border">
+              {decisoes.map((d) => (
+                <li key={d.enqueteId} className="flex flex-col gap-1 p-3 md:px-4">
+                  <p className="text-xs text-muted-foreground text-pretty">
+                    {d.categoria} · {d.pergunta}
+                  </p>
+                  <p className="font-medium wrap-break-word">{d.escolhas.join(" · ")}</p>
+                  {/* Números do dia e regra (ADR-0003), numa linha só. Decisões
+                      antigas não têm a fotografia, então ficam só com a escolha. */}
+                  {(d.votantes !== null || d.linkDocumento) && (
+                    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      {d.votantes !== null && (
+                        <>
+                          <span className="tabular-nums">
+                            votaram {d.votantes} de {d.membros}
+                          </span>
+                          {!d.foraDaRegra ? (
+                            <Badge variant="secondary">Dentro da regra</Badge>
+                          ) : (
+                            <Badge variant="warning">Fora da regra</Badge>
+                          )}
+                        </>
+                      )}
+                      {d.linkDocumento && (
                         <a
                           href={d.linkDocumento}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline underline-offset-4"
+                          className="text-foreground underline underline-offset-4 pointer-coarse:py-2"
                         >
                           Ver documento
                           <span className="sr-only"> de {d.pergunta} (abre em nova aba)</span>
                         </a>
-                      </dd>
-                    )}
-                  </div>
-                ))}
-              </dl>
-            )}
-            {historico.length > 0 && (
-              <PainelRecolhivel className="group rounded-xl border p-3">
-                <summary className="cursor-pointer text-sm font-medium">
-                  Ver histórico das decisões
-                </summary>
-                <div className="mt-3">
-                  <HistoricoDecisoes itens={historico} mostrarPergunta />
-                </div>
-              </PainelRecolhivel>
-            )}
-          </CardContent>
-        </Card>
+                      )}
+                    </p>
+                  )}
+                  {d.justificativa && (
+                    <p className="text-xs text-muted-foreground text-pretty">
+                      Motivo da comissão: “{d.justificativa}”
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {historico.length > 0 && (
+            <PainelRecolhivel className="mt-3">
+              <summary className="cursor-pointer text-sm font-medium pointer-coarse:py-2.5">
+                Ver histórico das decisões
+              </summary>
+              <div className="mt-3">
+                <HistoricoDecisoes itens={historico} mostrarPergunta />
+              </div>
+            </PainelRecolhivel>
+          )}
+        </section>
       )}
 
-      {membro.papel === "admin" ? (
-        evento ? <EventoAdmin evento={evento} programacao={programacao} mudanca={mudancaEvento?.mudancas} /> : null
-      ) : (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle nivel={2} className="text-lg">Programação da festa</CardTitle>
-            <CardDescription>
+      {avisos.length > 0 && (
+        <section aria-labelledby="avisos">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="avisos" className="text-lg font-semibold">
+              Últimos avisos
+            </h2>
+            <Link
+              href="/avisos"
+              className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground pointer-coarse:py-2.5"
+            >
+              Ver todos
+            </Link>
+          </div>
+          {/* Resumo em duas linhas: o recado inteiro está em /avisos. */}
+          <ul className="divide-y rounded-xl border">
+            {avisos.map((a) => (
+              <li key={a.id} className="p-3 md:px-4">
+                <p className="font-medium wrap-break-word">{a.titulo}</p>
+                <p className="mt-0.5 line-clamp-2 wrap-break-word text-sm text-muted-foreground">{a.conteudo}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Sempre há o que mostrar: a acessibilidade aparece mesmo "não informada" (ADR-0024). */}
+      <PainelRecolhivel className="group rounded-xl border">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-xl p-4 md:px-5 pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
+          <h2 className="text-lg font-semibold">Sobre o evento</h2>
+          <ChevronRight className="size-4 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden />
+        </summary>
+        <div className="flex flex-col gap-5 border-t p-4 md:px-5">
+          {detalhes.descricao && (
+            <p className="whitespace-pre-wrap wrap-break-word text-pretty">{detalhes.descricao}</p>
+          )}
+          {(detalhes.endereco || detalhes.entrada || detalhes.traje || detalhes.observacoesLocal) && (
+            <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[auto_1fr]">
+              {detalhes.endereco && (
+                <>
+                  <dt className="text-muted-foreground">Endereço</dt>
+                  <dd className="wrap-break-word">{detalhes.endereco}</dd>
+                </>
+              )}
+              {detalhes.entrada && (
+                <>
+                  <dt className="text-muted-foreground">Entrada</dt>
+                  <dd className="wrap-break-word">
+                    {detalhes.entrada}
+                  </dd>
+                </>
+              )}
+              {detalhes.traje && (
+                <>
+                  <dt className="text-muted-foreground">Traje</dt>
+                  <dd className="wrap-break-word">{detalhes.traje}</dd>
+                </>
+              )}
+              {detalhes.observacoesLocal && (
+                <>
+                  <dt className="text-muted-foreground">Sobre o local</dt>
+                  <dd className="whitespace-pre-wrap wrap-break-word">{detalhes.observacoesLocal}</dd>
+                </>
+              )}
+            </dl>
+          )}
+          {/* ADR-0024: acessibilidade do local, sempre em texto. */}
+          <AcessibilidadeLocal a={detalhes.acessibilidade} compacto />
+          <div>
+            <h3 className="font-medium">Programação da festa</h3>
+            <p className="text-sm text-muted-foreground">
               {programacao.length === 0
-                ? "A programação ainda não foi divulgada pelo administrador."
+                ? "A programação ainda não foi divulgada pela comissão."
                 : "Horários no fuso de Brasília."}
-            </CardDescription>
-          </CardHeader>
-          {programacao.length > 0 && (
-            <CardContent>
-              <ol className="mt-1 ml-1.5 border-l">
+            </p>
+            {programacao.length > 0 && (
+              <ol className="mt-3 ml-1.5 border-l">
                 {programacao.map((item) => (
-                  <li key={item.id} className="relative pb-6 pl-6 last:pb-0">
+                  <li key={item.id} className="relative pb-5 pl-5 last:pb-0">
                     <span
                       aria-hidden
-                      className="absolute top-1.5 -left-[5px] size-2.5 rounded-full bg-[var(--vitrine-a)] ring-4 ring-card"
+                      className="absolute top-1.5 -left-[5px] size-2.5 rounded-full bg-muted-foreground ring-4 ring-background"
                     />
-                    <p className="text-sm font-semibold text-[var(--vitrine-a)]">
+                    <p className="text-sm font-semibold tabular-nums">
                       {formatarHora.format(item.horario)}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        · {formatarDiaCurto.format(item.horario)}
-                      </span>
+                      <span className="font-normal text-muted-foreground">· {formatarDiaCurto.format(item.horario)}</span>
                     </p>
                     <p className="mt-0.5 font-medium">{item.titulo}</p>
                     {item.descricao && (
-                      <p className="mt-0.5 wrap-break-word text-sm text-muted-foreground">
-                        {item.descricao}
-                      </p>
+                      <p className="mt-0.5 wrap-break-word text-sm text-muted-foreground">{item.descricao}</p>
                     )}
                   </li>
                 ))}
               </ol>
-            </CardContent>
-          )}
-        </Card>
-      )}
-
-      <Card className="mt-4 border-dashed bg-transparent ring-0 border">
-        <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="font-medium">Sua participação</h2>
-            <p className="text-sm text-muted-foreground">
-              Se você for o único membro, a turma será apagada ao sair.
-            </p>
+            )}
           </div>
-          <FormSairTurma />
-        </CardContent>
-      </Card>
+        </div>
+      </PainelRecolhivel>
     </div>
   );
 }
