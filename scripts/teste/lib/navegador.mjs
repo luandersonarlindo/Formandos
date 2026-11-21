@@ -102,7 +102,7 @@ export async function iniciar({ base = "http://localhost:3000", largura = 1280, 
     },
     // Clica no primeiro elemento visível (dentro de `escopo`) com esse texto.
     // `escopo` é um trecho de texto de um cartão ou, começando com "@", um seletor CSS.
-    async clicar(texto, { seletor = "button,a,summary,label", escopo = null, contem = true } = {}) {
+    async clicar(texto, { seletor = "button,a,summary,label,[role=menuitem],[role=menuitemradio]", escopo = null, contem = true } = {}) {
       const ok = await nav.ev(`(() => {
         const raiz = ${escopo ? (escopo.startsWith("@") ? `document.querySelector(${JSON.stringify(escopo.slice(1))})` : `[...document.querySelectorAll('[data-slot=card],li,section,details,form,article')].filter(c => c.textContent.includes(${JSON.stringify(escopo)})).sort((a, b) => a.textContent.length - b.textContent.length)[0]`) : "document"};
         if (!raiz) return 'sem-escopo';
@@ -117,6 +117,37 @@ export async function iniciar({ base = "http://localhost:3000", largura = 1280, 
       })()`);
       if (ok !== "ok") throw new Error(`clicar "${texto}"${escopo ? ` em "${escopo}"` : ""}: ${ok}`);
       await dormir(150);
+    },
+    // Abre o menu "⋯" de uma linha (MenuAcoes) e escolhe um item. `dono` é o
+    // nome passado ao MenuAcoes (vai em data-menu-acoes) ou um trecho dele; o
+    // item é o texto do [role=menuitem]. O menu do Radix abre no pointerdown,
+    // então o gatilho recebe pointerdown + click.
+    async acaoMenu(dono, item) {
+      const abriu = await nav.ev(`(() => {
+        const d = ${JSON.stringify(dono)};
+        const b = [...document.querySelectorAll('[data-menu-acoes]')].find(e => e.dataset.menuAcoes === d) ?? [...document.querySelectorAll('[data-menu-acoes]')].find(e => e.dataset.menuAcoes.includes(d));
+        if (!b) return 'sem-menu';
+        b.scrollIntoView({ block: 'center' });
+        b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' }));
+        return 'ok';
+      })()`);
+      if (abriu !== "ok") throw new Error(`menu "⋯" de "${dono}": ${abriu}`);
+      await nav.esperar("!!document.querySelector('[role=menu]')", 5000, `menu de "${dono}" abrir`);
+      await nav.clicar(item, { seletor: "[role=menuitem]", escopo: "@[role=menu]" });
+      await dormir(200);
+    },
+    // Abre um DropdownMenu qualquer pelo texto ou aria-label do gatilho.
+    async abrirMenu(texto) {
+      const ok = await nav.ev(`(() => {
+        const t = ${JSON.stringify(texto)};
+        const b = [...document.querySelectorAll('button[aria-haspopup=menu]')].find(e => { const r = e.getBoundingClientRect(); return r.width && r.height && ((e.getAttribute('aria-label') || '') + ' ' + e.textContent).includes(t); });
+        if (!b) return false;
+        b.scrollIntoView({ block: 'center' });
+        b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' }));
+        return true;
+      })()`);
+      if (!ok) throw new Error(`menu "${texto}" não encontrado`);
+      await nav.esperar("!!document.querySelector('[role=menu]')", 5000, `menu "${texto}" abrir`);
     },
     // Preenche um campo (input, textarea ou select) e avisa o React.
     async preencher(seletor, valor) {

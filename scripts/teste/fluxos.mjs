@@ -139,10 +139,39 @@ const abrirFormularioDePergunta = async (categoria) => {
 const logsDesde = (n) => nav.logs.slice(n);
 // Os botões de exclusão abrem um diálogo antes de apagar. Clica no botão,
 // confere que o diálogo apareceu e confirma dentro dele.
+// A confirmação é um AlertDialog (role=alertdialog) desde a Fase 0 do plano de UX.
+const DIALOGO = "[role=dialog],[role=alertdialog]";
 const excluir = async (texto, { escopo = null, contem = true, seletor = "button" } = {}) => {
   await nav.clicar(texto, { escopo, seletor, contem });
-  await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, `diálogo de "${texto}"`);
-  await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+  await nav.esperar(`!!document.querySelector(${JSON.stringify(DIALOGO)})`, 10000, `diálogo de "${texto}"`);
+  await nav.clicar("Sim, excluir", { escopo: `@${DIALOGO}`, seletor: "button", contem: false });
+};
+// "Nova categoria" é a ação primária do catálogo e abre um diálogo de um campo.
+const novaCategoria = async (nome) => {
+  await nav.clicar("Nova categoria", { seletor: "button" });
+  await nav.esperar("!!document.querySelector('[role=dialog] #nome-categoria')", 10000, "diálogo de nova categoria");
+  await nav.preencher("#nome-categoria", nome);
+  await nav.clicar("Adicionar categoria", { escopo: "@[role=dialog]", seletor: "button" });
+};
+// Itens do menu "⋯" de uma linha, sem escolher nenhum (fecha com Esc).
+const itensDoMenu = async (dono) => {
+  await nav.abrirMenu(`Ações de ${dono}`);
+  const itens = await nav.ev("[...document.querySelectorAll('[role=menu] [role=menuitem]')].map((i) => i.textContent.trim()).join('|')");
+  await nav.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await nav.cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await dormir(300);
+  return itens;
+};
+// Troca a turma ativa pelo seletor no topo da sidebar (ADR-0025).
+const trocarDeTurma = async (nome) => {
+  await nav.abrirMenu("Trocar de turma");
+  await nav.clicar(nome, { seletor: "[role=menuitem]", escopo: "@[role=menu]" });
+};
+// Exclusão que mora no menu "⋯" da linha (MenuAcoes/MenuGestao, D-05).
+const excluirMenu = async (dono, item) => {
+  await nav.acaoMenu(dono, item);
+  await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, `confirmação de "${item}"`);
+  await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
 };
 async function grupo(nome, fn) {
   if (!grupos.includes(nome)) return;
@@ -210,11 +239,18 @@ await grupo("auth", async () => {
   });
   await passo("criar conta mostra o aviso de confirmação", async () => {
     await nav.abrir("/entrar");
-    await nav.clicar("Criar conta", { seletor: "button[aria-pressed]" });
+    // Entrar | Criar conta são abas (P-20).
+    await nav.clicar("Criar conta", { seletor: "[role=tab]" });
     await nav.preencher("#nome", "Novo Teste");
     await nav.preencher("#email", NOVO);
     await nav.preencher("#senha", "SenhaTeste123");
     await nav.clicar("Tenho 18 anos ou mais e aceito", { seletor: "label" });
+    // Senhas diferentes: nada é criado, e o erro diz por quê.
+    await nav.preencher("#confirmar-senha", "SenhaTeste124");
+    await nav.clicar("Criar conta", { seletor: "form button[type=submit]" });
+    await nav.esperarTexto("As senhas não conferem");
+    igual(sql(`select count(*) from usuarios where email='${NOVO}'`), "0", "conta não criada com senhas diferentes");
+    await nav.preencher("#confirmar-senha", "SenhaTeste123");
     await nav.clicar("Criar conta", { seletor: "form button[type=submit]" });
     await nav.esperarTexto("Enviamos um link de confirmação");
     igual(sql(`select "emailVerified" from usuarios where email='${NOVO}'`), "f", "email ainda não confirmado");
@@ -248,19 +284,21 @@ await grupo("auth", async () => {
     await nav.esperarTexto("Código de convite inválido");
   });
   await passo("criar turma leva ao dashboard vazio", async () => {
+    // Criar turma fica recolhido abaixo do código (P-21).
+    await nav.clicar("Quer criar uma turma nova?", { seletor: "summary" });
     await nav.preencher("#nome", "Turma Nova Teste");
     await nav.clicar("Criar turma", { seletor: "button" });
     await nav.esperarUrl("/dashboard");
     await nav.assentar();
-    await nav.esperarTexto("A data do evento ainda não foi definida");
-    await nav.esperarTexto("Dados do evento");
-    await nav.esperarTexto("Nenhum item ainda");
+    // Início enxuto (D-03): sem data ainda, e a comissão vê o atalho para editar o evento.
+    await nav.esperarTexto("Data ainda não definida");
+    await nav.esperarTexto("Editar evento");
     await nav.foto(`${TMP}/vazio-dashboard.png`);
     sql(`update turmas set codigo_convite='TESTENOVA01' where nome='Turma Nova Teste'`);
   });
   await passo("minha conta: corrigir o nome completo", async () => {
     await nav.abrir("/conta");
-    await nav.esperarTexto("Dados");
+    await nav.esperarTexto("Perfil");
     // Espaços sobrando e das pontas não podem chegar no nome que a turma lê.
     await nav.preencher("#nome", "  Novo   Teste  da Silva  ");
     await nav.clicar("Salvar nome", { seletor: "button" });
@@ -287,7 +325,9 @@ await grupo("auth", async () => {
   }
   await passo("sair da conta volta para a página inicial", async () => {
     await nav.abrir("/dashboard");
-    await nav.clicar("Sair", { seletor: "button" });
+    // "Sair" mora no menu da pessoa, no rodapé da sidebar (ADR-0025).
+    await nav.abrirMenu("menu");
+    await nav.clicar("Sair", { seletor: "[role=menuitem]" });
     await nav.esperar("location.pathname === '/'", 10000, "voltar para /");
     await nav.abrir("/dashboard");
     await nav.esperarUrl("/entrar");
@@ -327,12 +367,20 @@ await grupo("auth", async () => {
     await nav.abrir("/conta");
     await nav.esperarTexto("Excluir minha conta");
     await nav.esperarTexto("Turma Nova Teste");
+    // A exclusão abre num AlertDialog (P-05); o botão de confirmar só libera
+    // com o email certo, e a action confere de novo no servidor.
+    await nav.clicar("Excluir minha conta", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=alertdialog] #confirmacao')", 5000, "diálogo de exclusão abrir");
     await nav.preencher("#confirmacao", "errado@example.invalid");
-    await nav.clicar("Excluir minha conta", { seletor: "form button[type=submit]" });
-    await nav.esperarTexto("não confere");
+    await dormir(150);
+    verdade(
+      await nav.ev("document.querySelector('[role=alertdialog] button[type=submit]').disabled"),
+      "email errado não libera a exclusão",
+    );
     igual(sql(`select count(*) from usuarios where email='${NOVO}'`), "1", "email errado não apaga");
     await nav.preencher("#confirmacao", NOVO);
-    await nav.clicar("Excluir minha conta", { seletor: "form button[type=submit]" });
+    await dormir(150);
+    await nav.clicar("Excluir minha conta", { escopo: "@[role=alertdialog]", seletor: "button[type=submit]" });
     await nav.esperar("location.pathname === '/'", 10000, "voltar para a página inicial");
     igual(sql(`select count(*) from usuarios where email='${NOVO}'`), "0", "conta apagada");
     igual(sql("select count(*) from turmas where nome='Turma Nova Teste'"), "0", "turma dele apagada junto");
@@ -355,9 +403,10 @@ await grupo("auth", async () => {
 await grupo("participante", async () => {
   await nav.cookie(lerCookie("cookie-participante.txt"));
   await passo("participante entra por código já existente após sair da turma", async () => {
-    await nav.abrir("/dashboard");
+    // "Sair da turma" mora em Minha conta (P-05).
+    await nav.abrir("/conta");
     await nav.clicar("Sair da turma", { seletor: "button" });
-    await nav.clicar("Sim, sair", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await nav.clicar("Sim, sair", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await nav.esperarUrl("/convite");
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "sem turma");
     verdade(
@@ -395,9 +444,9 @@ await grupo("participante", async () => {
   });
   await passo("participante não vê botões de admin em Terceiros e Tarefas", async () => {
     await nav.abrir("/terceiros");
-    verdade(!(await nav.tem("Adicionar fornecedor")) && !(await nav.tem("Remover")), "botões de admin visíveis");
+    verdade(!(await nav.tem("Novo fornecedor")) && !(await nav.ev("!!document.querySelector('main [data-menu-acoes]')")), "botões de admin visíveis");
     await nav.abrir("/tarefas");
-    verdade(!(await nav.tem("Nova tarefa")) && !(await nav.tem("Gerenciar tarefa")), "botões de admin visíveis");
+    verdade(!(await nav.tem("Nova tarefa")) && !(await nav.ev("!!document.querySelector('main [data-menu-acoes]')")), "botões de admin visíveis");
   });
   await passo("presença: vou com acompanhantes, e talvez zera os acompanhantes", async () => {
     const resposta = () => sql("select status || ':' || acompanhantes || ':' || coalesce(observacao,'') from presencas p join usuarios u on u.id=p.usuario_id where u.email='teste-jl@example.invalid'");
@@ -467,13 +516,12 @@ await grupo("participante", async () => {
       // Navegar por títulos: os blocos do dashboard e cada pergunta.
       await nav.abrir("/dashboard");
       const titulos = await nav.ev("[...document.querySelectorAll('main h2')].map((h) => h.textContent.trim())");
-      for (const t of ["Contagem regressiva", "Você vai ao evento?", "Programação da festa", "Sua participação"]) {
+      for (const t of ["Para você fazer", "Sobre o evento"]) {
         verdade(titulos.includes(t), `"${t}" é título no dashboard (veio: ${titulos.join(" | ")})`);
       }
-      // A contagem sai numa frase só; as caixas ficam fora da leitura.
-      const frase = await nav.ev("document.querySelector('main p.sr-only')?.textContent ?? ''");
-      verdade(/^Faltam? .+ para o evento\.$/.test(frase), `frase da contagem: ${frase}`);
-      verdade(await nav.ev("!!document.querySelector('main p.vitrine-texto-gradiente')?.closest('[aria-hidden]')"), "caixas da contagem fora da leitura");
+      // A contagem é uma frase curta na linha da data ("faltam 40 dias").
+      const frase = await nav.ev("document.querySelector('main [data-contagem]')?.textContent ?? ''");
+      verdade(/^(faltam? .+|o evento já começou ou já passou)$/.test(frase), `frase da contagem: ${frase}`);
       await nav.abrir(`/votacoes/${idPadrao()}`);
       igual(
         await nav.ev("document.querySelectorAll('main fieldset h3').length === document.querySelectorAll('main fieldset').length"),
@@ -489,6 +537,8 @@ await grupo("participante", async () => {
   await passo("ADR-0020: registro da turma para o participante e nome da turma no convite", async () => {
     // Registro: o participante abre pelo menu, sem pedir à comissão.
     await nav.abrir("/dashboard");
+    // Registro mora no grupo "Mais" do menu (ADR-0025), que começa fechado.
+    await nav.clicar("Mais", { seletor: "button", contem: false });
     await nav.clicar("Registro da turma", { seletor: "a" });
     await nav.esperar("location.pathname === '/registro'", 15000, "página do registro");
     await nav.esperarTexto("Registro da turma · gerado em");
@@ -546,16 +596,20 @@ await grupo("app", async () => {
   await nav.cookie(lerCookie("cookie-admin.txt"));
   await passo("criar tarefa aparece na lista", async () => {
     await nav.abrir("/tarefas");
-    await nav.clicar("Nova tarefa", { seletor: "summary" });
+    // "Nova tarefa" no cabeçalho abre um diálogo (plano de UX, Fase 2).
+    await nav.clicar("Nova tarefa", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog] #titulo')", 10000, "diálogo da nova tarefa");
     await nav.preencher("#titulo", "Tarefa E2E");
     await nav.preencher("#descricao", "Criada pelo teste");
     await nav.preencher("#prazo", "2026-12-01");
-    await nav.clicar("Criar tarefa", { seletor: "button" });
+    await nav.clicar("Criar tarefa", { escopo: "@[role=dialog]", seletor: "button" });
     await nav.esperarTexto("Tarefa E2E");
     igual(sql("select count(*) from tarefas where titulo='Tarefa E2E'"), "1", "no banco");
   });
   await passo("gerenciar tarefa muda o status e o filtro conta", async () => {
-    await nav.clicar("Gerenciar tarefa", { escopo: "Tarefa E2E", seletor: "button" });
+    // Editar mora no "⋯" da linha (D-05).
+    await nav.acaoMenu("Tarefa E2E", "Editar tarefa");
+    await nav.esperar("!!document.querySelector('[role=dialog] select[name=status]')", 10000, "diálogo de editar tarefa");
     await preencherEm("@[role=dialog]", "select[name=status]", "concluida");
     await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1500);
@@ -566,7 +620,9 @@ await grupo("app", async () => {
   });
   await passo("excluir tarefa", async () => {
     await nav.abrir("/tarefas");
-    await excluir("Excluir tarefa", { escopo: "Tarefa E2E" });
+    await nav.acaoMenu("Tarefa E2E", "Excluir tarefa");
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "diálogo de excluir tarefa");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1500);
     igual(sql("select count(*) from tarefas where titulo='Tarefa E2E'"), "0", "apagada");
   });
@@ -614,14 +670,15 @@ await grupo("app", async () => {
     await nav.abrir("/duvidas");
     await nav.preencher("#texto-duvida", "Dúvida Excluir E2E: pode repetir o almoço?");
     await nav.clicar("Enviar dúvida", { seletor: "button" });
+    // O sucesso do envio aparece em toast (D-06).
+    await nav.esperarTexto("Dúvida enviada.");
     await nav.esperarTexto("Dúvida Excluir E2E");
-    const id = sql("select id from duvidas where conteudo like 'Dúvida Excluir E2E%'");
-    const escopo = `@li[data-duvida='${id}']`;
-    // Quem roda aqui é admin (moderação): apaga qualquer dúvida.
-    await excluir("Apagar", { escopo });
+    // Quem roda aqui é admin (moderação): apaga qualquer dúvida, pelo "⋯".
+    await nav.acaoMenu("Dúvida Excluir E2E", "Apagar");
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "diálogo de apagar");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select count(*) from duvidas where conteudo like 'Dúvida Excluir E2E%'"), "0", "excluída");
-    await nav.esperarTexto("Dúvida enviada.");
     // A dúvida do participante continua de pé: ninguém além do autor apaga a sua.
     await nav.cookie(lerCookie("cookie-participante.txt"));
     await nav.abrir("/duvidas");
@@ -661,26 +718,32 @@ await grupo("app", async () => {
   });
   await passo("adicionar e remover fornecedor", async () => {
     await nav.abrir("/terceiros");
-    await nav.clicar("Adicionar fornecedor", { seletor: "summary" });
+    // "Novo fornecedor" no cabeçalho abre um diálogo (P-09).
+    await nav.clicar("Novo fornecedor", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog] #nome')", 10000, "diálogo do novo fornecedor");
     await nav.preencher("#nome", "Flores E2E");
     await nav.preencher("#categoria", "Decoração");
     await nav.preencher("#contato", "https://floresE2E.example.com");
-    await nav.clicar("Adicionar fornecedor", { seletor: "button" });
+    await nav.clicar("Adicionar fornecedor", { escopo: "@[role=dialog]", seletor: "button" });
     await nav.esperarTexto("Flores E2E");
     igual(sql("select count(*) from fornecedores where nome='Flores E2E'"), "1", "no banco");
-    await excluir("Remover", { escopo: "Flores E2E" });
+    await nav.acaoMenu("Flores E2E", "Remover");
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "diálogo de remover");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1500);
     igual(sql("select count(*) from fornecedores where nome='Flores E2E'"), "0", "removido");
   });
   await passo("orçamento do fornecedor: status, valor e some para o participante", async () => {
     await nav.abrir("/terceiros");
-    await nav.clicar("Adicionar fornecedor", { seletor: "summary" });
+    await nav.clicar("Novo fornecedor", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog] #nome')", 10000, "diálogo do novo fornecedor");
     await nav.preencher("#nome", "Espaço Orçamento E2E");
     await nav.preencher("#categoria", "Espaço");
-    await nav.clicar("Adicionar fornecedor", { seletor: "button" });
+    await nav.clicar("Adicionar fornecedor", { escopo: "@[role=dialog]", seletor: "button" });
     await nav.esperarTexto("Espaço Orçamento E2E");
     try {
-      await nav.clicar("Editar dados", { escopo: "Espaço Orçamento E2E", seletor: "button" });
+      await nav.acaoMenu("Espaço Orçamento E2E", "Editar dados");
+      await nav.esperar("!!document.querySelector('[role=dialog] select[name=status]')", 10000, "diálogo de editar fornecedor");
       await preencherEm("@[role=dialog]", "select[name=status]", "contratado");
       await preencherEm("@[role=dialog]", "input[name=valorOrcado]", "1500,50");
       await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button" });
@@ -713,31 +776,37 @@ await grupo("app", async () => {
   });
   await passo("mural de avisos: publicar, aparecer no dashboard e ser removido", async () => {
     await nav.abrir("/avisos");
+    // "Novo aviso" no cabeçalho abre o formulário num diálogo (plano de UX, Fase 2).
+    await nav.clicar("Novo aviso", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog] #titulo-aviso')", 10000, "diálogo do novo aviso");
     await nav.preencher("#titulo-aviso", "Aviso E2E");
     await nav.preencher("#conteudo-aviso", "Prazo do pagamento do buffet até dia 20.");
-    await nav.clicar("Publicar aviso", { seletor: "button" });
+    await nav.clicar("Publicar aviso", { escopo: "@[role=dialog]", seletor: "button" });
     await nav.esperarTexto("Aviso publicado");
     igual(sql("select count(*) from avisos where titulo='Aviso E2E'"), "1", "no banco");
     await nav.abrir("/dashboard");
-    await nav.esperarTexto("Mural da turma");
+    await nav.esperarTexto("Últimos avisos");
     await nav.esperarTexto("Aviso E2E");
     await nav.cookie(lerCookie("cookie-participante.txt"));
     await nav.abrir("/avisos");
     await nav.esperarTexto("Aviso E2E");
-    verdade(!(await nav.tem("Publicar aviso")), "participante não vê o formulário de publicar");
-    verdade(!(await nav.tem("Remover")), "participante não vê o botão de remover");
+    verdade(!(await nav.tem("Novo aviso")), "participante não vê o botão de publicar");
+    verdade(!(await nav.ev("!!document.querySelector('[data-menu-acoes]')")), "participante não vê o menu de ações");
     await nav.cookie(lerCookie("cookie-admin.txt"));
     await nav.abrir("/avisos");
-    await excluir("Remover", { escopo: "Aviso E2E" });
+    await nav.acaoMenu("Aviso E2E", "Remover");
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "diálogo de remover");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1500);
     igual(sql("select count(*) from avisos where titulo='Aviso E2E'"), "0", "removido");
   });
   await passo("dashboard mostra a contagem regressiva e a programação", async () => {
     await nav.abrir("/dashboard");
-    await nav.esperarTexto("Recepção dos convidados");
     await nav.esperarTexto("Chácara Bela Vista, Recife");
-    const partes = await nav.ev("[...document.querySelectorAll('main p.vitrine-texto-gradiente')].map(p => p.textContent)");
-    igual(partes.length, 3, "três blocos de contagem (sem segundos)");
+    // A contagem cabe na linha da data; a programação mora em "Sobre o evento".
+    await nav.esperar("/^faltam? /.test(document.querySelector('main [data-contagem]')?.textContent ?? '')", 10000, "contagem na linha da data");
+    await nav.clicar("Sobre o evento", { seletor: "summary" });
+    await nav.esperarTexto("Recepção dos convidados");
   });
 });
 
@@ -753,7 +822,8 @@ await grupo("admin", async () => {
   });
   await passo("gerar novo código troca o código", async () => {
     const antes = sql(`select codigo_convite from turmas where id='${turmaTeste()}'`);
-    await nav.clicar("Gerar novo código", { seletor: "button" });
+    // Trocar o código é raro e invalida o atual: mora no "⋯" do convite.
+    await nav.acaoMenu("código de convite", "Gerar novo código");
     await nav.clicar("Gerar novo código", { escopo: "@[role=dialog]", seletor: "button" });
     await dormir(1800);
     const depois = sql(`select codigo_convite from turmas where id='${turmaTeste()}'`);
@@ -788,24 +858,27 @@ await grupo("admin", async () => {
     verdade(!(await nav.ev("!!document.querySelector('#confirmacao')")), "campo de confirmação não deveria existir");
   });
   await passo("promover e rebaixar um membro", async () => {
+    // Papel fica no "⋯" do membro e pede confirmação num AlertDialog (P-16).
     await nav.abrir("/admin/membros");
-    await nav.clicar("Promover", { escopo: "João Lima", seletor: "button" });
-    await nav.clicar("Trocar papel", { escopo: "@[role=dialog]", seletor: "button" });
+    await nav.acaoMenu("João Lima", "Promover");
+    await nav.clicar("Sim, promover", { escopo: "@[role=alertdialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "admin", "promovido");
     await nav.abrir("/admin/membros");
-    await nav.clicar("Tornar participante", { escopo: "João Lima", seletor: "button" });
-    await nav.clicar("Trocar papel", { escopo: "@[role=dialog]", seletor: "button" });
+    await nav.acaoMenu("João Lima", "Tornar participante");
+    await nav.clicar("Sim, tornar participante", { escopo: "@[role=alertdialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "participante", "rebaixado");
   });
   await passo("o último administrador não tem botão de rebaixar nem de remover", async () => {
     await nav.abrir("/admin/membros");
-    const botoes = await nav.ev("[...document.querySelectorAll('li')].find(li => li.textContent.includes('Maria Souza'))?.innerText");
+    // As ações ficam no "⋯": abre o menu da Maria e lê os itens.
+    await nav.abrirMenu("Ações de Maria Souza");
+    const botoes = await nav.ev("document.querySelector('[role=menu]')?.innerText ?? ''");
     verdade(!botoes.includes("Remover") && !botoes.includes("Tornar participante"), botoes);
   });
   await passo("salvar dados do evento", async () => {
-    await nav.abrir("/dashboard");
+    await nav.abrir("/admin/evento");
     await abrirDadosDoEvento();
     await nav.preencher("#localEvento", "Salão Novo E2E");
     await nav.clicar("Salvar", { seletor: "button", contem: false });
@@ -814,7 +887,7 @@ await grupo("admin", async () => {
     igual(sql(`select local_evento from turmas where id='${turmaTeste()}'`), "Salão Novo E2E", "local no banco");
   });
   await passo("detalhes do evento: descrição, endereço, mapa e traje aparecem no dashboard", async () => {
-    await nav.abrir("/dashboard");
+    await nav.abrir("/admin/evento");
     await abrirDadosDoEvento();
     await nav.preencher("#descricao", "Descrição E2E da festa");
     await nav.preencher("#endereco", "Rua E2E, 100 - Recife");
@@ -828,6 +901,7 @@ await grupo("admin", async () => {
     await nav.clicar("Salvar", { seletor: "button", contem: false });
     await nav.esperarTexto("Dados do evento salvos");
     await nav.abrir("/dashboard");
+    await nav.clicar("Sobre o evento", { seletor: "summary" });
     await nav.esperarTexto("Descrição E2E da festa");
     await nav.esperarTexto("Rua E2E, 100 - Recife");
     await nav.esperarTexto("Gala E2E");
@@ -838,14 +912,14 @@ await grupo("admin", async () => {
       "botão Como chegar",
     );
     // Término antes do início é recusado.
-    await nav.abrir("/dashboard");
+    await nav.abrir("/admin/evento");
     await abrirDadosDoEvento();
     await nav.preencher("#dataEvento", "2030-05-10T20:00");
     await nav.preencher("#dataFimEvento", "2030-05-10T19:00");
     await nav.clicar("Salvar", { seletor: "button", contem: false });
     await nav.esperarTexto("O término precisa ser depois do início");
     // Limpa os campos de teste para os passos seguintes.
-    await nav.abrir("/dashboard");
+    await nav.abrir("/admin/evento");
     await abrirDadosDoEvento();
     for (const id of ["#descricao", "#endereco", "#traje", "#observacoesLocal", "#linkMapa", "#dataFimEvento"]) {
       await nav.preencher(id, "");
@@ -856,25 +930,28 @@ await grupo("admin", async () => {
     verdade(!(await nav.tem("Descrição E2E da festa")), "descrição removida");
   });
   await passo("adicionar e remover item da programação", async () => {
-    await nav.abrir("/dashboard");
-    await nav.clicar("Adicionar item", { seletor: "summary" });
+    await nav.abrir("/admin/evento");
+    await nav.clicar("Adicionar item", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog] #horario')", 10000, "diálogo de novo item");
     await nav.preencher("#horario", "2026-12-05T20:00");
     await nav.preencher("#titulo", "Item E2E");
     await nav.clicar("Adicionar", { seletor: "button", contem: false });
     await nav.esperarTexto("Item E2E");
     igual(sql("select count(*) from programacao where titulo='Item E2E'"), "1", "no banco");
-    await excluir("Remover", { escopo: "Item E2E" });
+    await excluirMenu("Item E2E", "Remover");
     await dormir(1800);
     igual(sql("select count(*) from programacao where titulo='Item E2E'"), "0", "removido");
   });
   await passo("editar item da programação em diálogo", async () => {
-    await nav.abrir("/dashboard");
-    await nav.clicar("Adicionar item", { seletor: "summary" });
+    await nav.abrir("/admin/evento");
+    await nav.clicar("Adicionar item", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog] #horario')", 10000, "diálogo de novo item");
     await nav.preencher("#horario", "2026-12-05T21:00");
     await nav.preencher("#titulo", "Item E2E Editar");
     await nav.clicar("Adicionar", { seletor: "button", contem: false });
     await nav.esperarTexto("Item E2E Editar");
-    await nav.clicar("Editar", { escopo: "Item E2E Editar", seletor: "button" });
+    // Editar e remover moram no "⋯" do item (plano de UX, Fase 3).
+    await nav.acaoMenu("Item E2E Editar", "Editar item");
     await nav.esperarTexto("Editar item");
     igual(
       await nav.ev("document.querySelector('[role=dialog] [name=titulo]')?.value"),
@@ -894,7 +971,7 @@ await grupo("admin", async () => {
     await dormir(1800);
     verdade(!(await nav.ev("!!document.querySelector('[role=dialog]')")), "diálogo fecha ao salvar");
     igual(sql("select count(*) from programacao where titulo='Item E2E Editado'"), "1", "no banco");
-    await excluir("Remover", { escopo: "Item E2E Editado" });
+    await excluirMenu("Item E2E Editado", "Remover");
     await dormir(1800);
     igual(sql("select count(*) from programacao where titulo like 'Item E2E%'"), "0", "removido");
   });
@@ -906,17 +983,18 @@ await grupo("admin", async () => {
     await dormir(1800);
     igual(sql("select respondida from duvidas where conteudo like 'Posso levar%'"), "t", "respondida");
     await nav.abrir("/duvidas");
-    await nav.clicar("Destacar", { escopo: "Posso levar acompanhante", seletor: "button", contem: true });
-    await nav.clicar("Destacar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    // Destacar e reabrir rodam num clique no "⋯", sem diálogo (P-10).
+    await nav.acaoMenu("Posso levar acompanhante", "Destacar");
     await dormir(1800);
     igual(sql("select destaque from duvidas where conteudo like 'Posso levar%'"), "t", "destaque");
     await nav.abrir("/duvidas");
-    await nav.clicar("Reabrir", { escopo: "Posso levar acompanhante", seletor: "button" });
-    await nav.clicar("Reabrir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await nav.acaoMenu("Posso levar acompanhante", "Reabrir");
     await dormir(1800);
     igual(sql("select respondida from duvidas where conteudo like 'Posso levar%'"), "f", "reaberta");
     await nav.abrir("/duvidas");
-    await excluir("Apagar", { escopo: "Posso levar acompanhante" });
+    await nav.acaoMenu("Posso levar acompanhante", "Apagar");
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "diálogo de apagar");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select count(*) from duvidas where conteudo like 'Posso levar%'"), "0", "apagada");
   });
@@ -933,8 +1011,7 @@ await grupo("admin", async () => {
     await nav.clicar("Salvar novo nome", { seletor: "button" });
     await dormir(1800);
     igual(sql("select count(*) from catalogos where nome='Catálogo E2E Renomeado'"), "1", "renomeado");
-    await nav.preencher("#nome-categoria", "Categoria E2E");
-    await nav.clicar("Adicionar categoria", { seletor: "button" });
+    await novaCategoria("Categoria E2E");
     // A pergunta é criada de dentro da categoria: sem seletor, porque o botão
     // já sabe a que categoria pertence.
     await abrirFormularioDePergunta("Categoria E2E");
@@ -958,8 +1035,7 @@ await grupo("admin", async () => {
       "a pergunta foi para a categoria do botão",
     );
     // Duas categorias: cada uma tem o seu botão, e a pergunta vai para a escolhida.
-    await nav.preencher("#nome-categoria", "Outra E2E");
-    await nav.clicar("Adicionar categoria", { seletor: "button" });
+    await novaCategoria("Outra E2E");
     await dormir(2000);
     await abrirFormularioDePergunta("Outra E2E");
     await preencherEm("@[role=dialog]", "input[name=titulo]", "Qual a música da abertura?");
@@ -982,15 +1058,19 @@ await grupo("admin", async () => {
     const ordem = () =>
       sql(`select string_agg(k.nome, ' > ' order by k.ordem) from categorias k where k.catalogo_id='${cat}'`);
     igual(await ordem(), "Categoria E2E > Outra E2E", "ordem inicial");
-    // A primeira categoria não tem "Subir": o botão some na ponta da lista.
-    verdade(
-      !(await nav.ev("!![...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Subir') && [...document.querySelectorAll('section')].find(s => s.querySelector('h2')?.textContent.includes('Categoria E2E') && [...s.querySelectorAll('button')].some(b => b.getAttribute('aria-label') === 'Subir a categoria Categoria E2E'))")),
-      "a primeira categoria não pode subir",
-    );
-    await nav.clicar("Descer a categoria Categoria E2E", { seletor: "button" });
+    // Subir e descer moram no "⋯" da categoria e da pergunta (D-05). Na ponta
+    // da lista o item some.
+    verdade(!(await itensDoMenu("Categoria E2E")).includes("Subir"), "a primeira categoria não pode subir");
+    await nav.acaoMenu("Categoria E2E", "Descer");
     await dormir(1800);
     igual(await ordem(), "Outra E2E > Categoria E2E", "categorias trocaram de lugar");
-    await nav.clicar("Descer a categoria Outra E2E", { seletor: "button" });
+    // O foco volta para o "⋯" da categoria que andou.
+    await nav.esperar(
+      "document.activeElement?.dataset.menuAcoes === 'Categoria E2E'",
+      10000,
+      "foco no menu da categoria movida",
+    );
+    await nav.acaoMenu("Outra E2E", "Descer");
     await dormir(1800);
     igual(await ordem(), "Categoria E2E > Outra E2E", "voltou ao lugar de origem");
 
@@ -998,10 +1078,8 @@ await grupo("admin", async () => {
       sql(`select string_agg(e.titulo, ' > ' order by e.ordem) from enquetes e
              join categorias k on k.id = e.categoria_id where k.nome = 'Outra E2E'`);
     igual(await perguntas(), "Qual a música da abertura?", "uma pergunta só, sem para onde descer");
-    verdade(
-      !(await nav.ev("!![...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Descer a pergunta Qual a música da abertura?')")),
-      "a única pergunta da categoria não tem botão de descer",
-    );
+    const itensUnica = await itensDoMenu("Qual a música da abertura?");
+    verdade(!itensUnica.includes("Descer") && !itensUnica.includes("Subir"), `a única pergunta não se move: ${itensUnica}`);
     await abrirFormularioDePergunta("Outra E2E");
     await preencherEm("@[role=dialog]", "input[name=titulo]", "Segunda pergunta E2E");
     await preencherOpcoes(["Samba", "Axé"]);
@@ -1010,11 +1088,11 @@ await grupo("admin", async () => {
     igual(await perguntas(), "Qual a música da abertura? > Segunda pergunta E2E", "pergunta nova vai para o fim");
     // O banco já tem a pergunta, mas a tela pode ainda não ter redesenhado.
     await nav.esperar(
-      "!![...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Subir a pergunta Segunda pergunta E2E')",
+      "!!document.querySelector('[data-menu-acoes=\"Segunda pergunta E2E\"]')",
       15000,
-      "botão de subir a pergunta nova",
+      "menu da pergunta nova",
     );
-    await nav.clicar("Subir a pergunta Segunda pergunta E2E", { seletor: "button" });
+    await nav.acaoMenu("Segunda pergunta E2E", "Subir");
     await dormir(1800);
     igual(await perguntas(), "Segunda pergunta E2E > Qual a música da abertura?", "perguntas trocaram de lugar");
   });
@@ -1024,13 +1102,15 @@ await grupo("admin", async () => {
 
     // Título repetido: "cATEGORIA e2e" é a mesma categoria que já existe, com
     // outra caixa e espaço sobrando. Comparar só com `=` deixaria passar.
-    await nav.preencher("#nome-categoria", "  CATEGORIA e2e  ");
-    await nav.clicar("Adicionar categoria", { seletor: "form button[type=submit]" });
+    await novaCategoria("  CATEGORIA e2e  ");
     await dormir(1500);
     verdade(
       (await nav.texto()).includes("Já existe uma categoria chamada"),
       "a categoria repetida é recusada com aviso",
     );
+    // Com erro o diálogo fica aberto para corrigir; fecha antes de seguir.
+    await nav.clicar("Cancelar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await dormir(800);
     igual(
       sql(`select count(*) from categorias where catalogo_id='${cat}'`),
       "2",
@@ -1105,10 +1185,7 @@ await grupo("admin", async () => {
 
     // Preview: a mesma pergunta montada como na tela de votação, com os
     // controles desligados.
-    await nav.clicar("Ver como o formando vê", {
-      escopo: "Pergunta com foco E2E",
-      seletor: "button",
-    });
+    await nav.acaoMenu("Pergunta com foco E2E", "Ver como o formando vê");
     await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo da prévia");
     igual(
       await nav.ev("[...document.querySelectorAll('[role=dialog] label')].map(l => l.textContent.trim()).join('|')"),
@@ -1123,19 +1200,18 @@ await grupo("admin", async () => {
     await nav.clicar("Fechar", { seletor: "button" });
     await dormir(1000);
 
-    // A exclusão é só o ícone: o texto vermelho repetido era o que mais pesava.
-    // O nome do botão continua exposto para o leitor de tela.
-    const exclusao = await nav.ev(`(() => {
-      const b = [...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Excluir a pergunta Pergunta com foco E2E');
-      return b ? { largura: Math.round(b.getBoundingClientRect().width), rotulo: b.getAttribute('aria-label') } : null;
+    // Ações compactas (D-05/D-07): na linha, só "Resultado e decisão" e o "⋯",
+    // que o leitor de tela anuncia com o nome da pergunta. Excluir vem por último.
+    const linha = await nav.ev(`(() => {
+      const li = [...document.querySelectorAll('li[id^=enq-]')].find((l) => l.textContent.includes('Pergunta com foco E2E'));
+      return li ? [...li.querySelectorAll('a,button')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()).join('|') : null;
     })()`);
-    verdade(!!exclusao, "o botão de excluir continua presente");
-    verdade(exclusao.largura < 60, `o botão de excluir é só o ícone (largura ${exclusao.largura})`);
-    igual(exclusao.rotulo, "Excluir a pergunta Pergunta com foco E2E", "o leitor de tela ouve qual pergunta será apagada");
+    igual(linha, "Resultado e decisão|Ações de Pergunta com foco E2E", "uma ação visível e o menu");
+    verdade((await itensDoMenu("Pergunta com foco E2E")).endsWith("Excluir pergunta"), "excluir é o último item do menu");
   });
   await passo("ver quem votou em uma pergunta", async () => {
     await nav.abrir(`/admin/votacoes/${idPadrao()}`);
-    await nav.clicar("Ver quem votou", { seletor: "a" });
+    await nav.clicar("Resultado e decisão", { seletor: "a" });
     await nav.esperarUrl("/admin/votacoes/votos/");
     await nav.esperarTexto("Ainda não votaram");
     await nav.esperarTexto("Participação nesta pergunta");
@@ -1199,9 +1275,10 @@ await grupo("admin", async () => {
     const turma = turmaTeste();
     try {
       // Comissão salva prazo e quórum pelo diálogo; a mudança vai para a auditoria.
-      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      // A regra mora na página da pergunta, "Resultado e decisão" (D-07).
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
       await nav.esperarTexto("Onde vai ser o nosso evento?");
-      await nav.clicar("Regra da votação", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.clicar("Regra da votação", { seletor: "button" });
       await nav.preencher(`#prazo-${enq}`, "2099-12-12T23:59");
       await nav.preencher(`#quorum-${enq}`, "90");
       await nav.clicar("Salvar regra", { escopo: "@[role=dialog]", seletor: "button" });
@@ -1233,7 +1310,8 @@ await grupo("admin", async () => {
       const enqCat = sql(`select enquete_id from opcoes where id='${opcao}'`);
       sql(`insert into votos (turma_id,opcao_id,usuario_id) select '${turma}', '${opcao}', id from usuarios where email='teste-jl@example.invalid' on conflict do nothing`);
       await nav.abrir(`/admin/votacoes/${cat}`);
-      await nav.clicar("Editar pergunta", { escopo: `@#enq-${enqCat}`, seletor: "button" });
+      // Editar fica no "⋯" da pergunta (D-05).
+      await nav.acaoMenu(sql(`select titulo from enquetes where id='${enqCat}'`), "Editar pergunta");
       await nav.esperar(`!!document.querySelector("[role=dialog] [name='valor-${opcao}']")`, 10000, "campo de valor");
       await nav.preencher(`[role=dialog] [name='valor-${opcao}']`, "110");
       await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
@@ -1269,9 +1347,10 @@ await grupo("admin", async () => {
   await passo("ADR-0004: mandar para o grupo mostra o texto pronto da pergunta e do aviso", async () => {
     const enq = enqueteLocal();
     const textoDoDialogo = () => nav.ev("document.querySelector('[role=dialog] #texto-grupo')?.value ?? ''");
-    await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+    // Mandar para o grupo mora na página da pergunta (D-07).
+    await nav.abrir(`/admin/votacoes/votos/${enq}`);
     await nav.esperarTexto("Onde vai ser o nosso evento?");
-    await nav.clicar("Mandar para o grupo", { escopo: `@#enq-${enq}`, seletor: "button" });
+    await nav.clicar("Mandar para o grupo", { seletor: "button" });
     await nav.esperar("!!document.querySelector('[role=dialog] #texto-grupo')", 10000, "prévia do texto");
     const texto = await textoDoDialogo();
     verdade(texto.startsWith("*Votação: Onde vai ser o nosso evento?*"), `primeira linha da votação: ${texto.split("\n")[0]}`);
@@ -1318,19 +1397,16 @@ await grupo("admin", async () => {
            and opcao_id in (select id from opcoes where enquete_id='${enq}')`);
     sql(`update usuarios set receber_emails=true, "emailVerified"=true where email='teste-jl@example.invalid'`);
     try {
-      // Sem prazo, o botão não aparece.
-      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
-      await nav.esperar(`!!document.querySelector('#enq-${enq}')`, 15000, "card da pergunta");
-      verdade(
-        !(await nav.ev(`document.querySelector('#enq-${enq}').textContent.includes('Avisar a turma por email')`)),
-        "sem prazo, sem botão",
-      );
+      // Sem prazo, o botão não aparece. Avisar mora na página da pergunta (D-07).
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
+      await nav.esperarTexto("Regra da votação");
+      verdade(!(await nav.tem("Avisar a turma por email")), "sem prazo, sem botão");
 
       sql(`insert into regras_enquete (turma_id, enquete_id, prazo) values ('${turma}', '${enq}', now() + interval '3 days')`);
-      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
-      await nav.clicar("Avisar a turma por email", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
+      await nav.clicar("Avisar a turma por email", { seletor: "button" });
       // A página recarrega com o aviso feito: o botão vira a data do aviso.
-      await nav.esperar(`document.querySelector('#enq-${enq}')?.textContent.includes('Turma avisada por email em')`, 15000, "data do aviso");
+      await nav.esperarTexto("Turma avisada por email em", 15000);
       const email = await ultimoEmail(`Votação aberta: ${titulo}`);
       verdade(email.includes("teste-jl@example.invalid"), "email para o João, que não votou");
       verdade(email.includes(`#enquete-${enq}`), "link direto para a pergunta");
@@ -1347,12 +1423,9 @@ await grupo("admin", async () => {
       );
 
       // Uma vez só: depois de avisar, o botão vira a data do aviso.
-      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
-      await nav.esperar(`document.querySelector('#enq-${enq}')?.textContent.includes('Turma avisada por email em')`, 15000, "data do aviso");
-      verdade(
-        !(await nav.ev(`document.querySelector('#enq-${enq}').textContent.includes('Avisar a turma por email')`)),
-        "o botão some depois do aviso",
-      );
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
+      await nav.esperarTexto("Turma avisada por email em", 15000);
+      verdade(!(await nav.tem("Avisar a turma por email")), "o botão some depois do aviso");
     } finally {
       limpar();
     }
@@ -1397,7 +1470,7 @@ await grupo("admin", async () => {
       // Comissão edita o link do fornecedor; vai para o histórico da comissão.
       await nav.cookie(lerCookie("cookie-admin.txt"));
       await nav.abrir("/terceiros");
-      await nav.clicar("Editar dados", { escopo: "Buffet Sabor & Arte", seletor: "button" });
+      await nav.acaoMenu("Buffet Sabor & Arte", "Editar dados");
       await nav.esperar(`!!document.querySelector("[role=dialog] #linkDocumento-${forn}")`, 10000, "campo do link do fornecedor");
       await preencherEm("@[role=dialog]", `#linkDocumento-${forn}`, "https://drive.google.com/contrato-buffet-e2e");
       await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
@@ -1426,12 +1499,12 @@ await grupo("admin", async () => {
       // Busca pelo email: com 10 por página, o card dela pode não estar na primeira.
       await nav.abrir("/admin/membros?busca=teste-sh%40");
       await nav.esperarTexto("Maria Souza");
-      // Mira pelo email, que só existe no card dela, e espera o botão aparecer.
+      // Mira pelo email, que só existe na linha dela, e espera o "⋯" aparecer.
       try {
         await nav.esperar(
-          "[...document.querySelectorAll('li')].some((li) => li.textContent.includes('teste-sh@example.invalid') && li.textContent.includes('Pôr na tesouraria'))",
+          "[...document.querySelectorAll('li')].some((li) => li.textContent.includes('teste-sh@example.invalid') && li.querySelector('[data-menu-acoes]'))",
           15000,
-          "botão de tesouraria no card da Maria",
+          "menu da Maria",
         );
       } catch (e) {
         const card = await nav.ev(
@@ -1439,11 +1512,14 @@ await grupo("admin", async () => {
         );
         throw new Error(`${e.message} (tesouraria no banco: ${sql(`select tesouraria from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-sh@example.invalid' and m.turma_id='${turma}'`)}; card: ${card})`);
       }
-      await nav.clicar("Pôr na tesouraria", { escopo: "teste-sh@example.invalid", seletor: "button" });
-      await nav.esperarTexto("Tirar da tesouraria");
+      // Tesouraria fica no "⋯" e passa a pedir confirmação (plano de UX, Fase 3).
+      await nav.acaoMenu("Maria Souza", "Pôr na tesouraria");
+      await nav.clicar("Sim, pôr na tesouraria", { escopo: "@[role=alertdialog]", seletor: "button" });
+      for (let i = 0; i < 20 && sql(`select tesouraria from membros m join usuarios u on u.id=m.usuario_id where m.turma_id='${turma}' and u.email='teste-sh@example.invalid'`) !== "t"; i++) await dormir(500);
       igual(sql(`select tesouraria from membros m join usuarios u on u.id=m.usuario_id where m.turma_id='${turma}' and u.email='teste-sh@example.invalid'`), "t", "marcada no banco");
 
-      await nav.abrir("/admin/tesouraria");
+      // Plano, regras e importação ficam na aba "Plano e regras" (D-12).
+      await nav.abrir("/admin/tesouraria/plano");
       await nav.esperarTexto("Ainda não há plano");
       await nav.clicar("Montar plano", { seletor: "button" });
       await nav.preencher("#plano-quantidade", "3");
@@ -1457,6 +1533,7 @@ await grupo("admin", async () => {
       // O diálogo "Montar plano" também tem campo "valor": espera ele fechar,
       // senão o teste preenche o diálogo errado.
       await nav.esperar("!document.querySelector('[role=dialog]')", 10000, "diálogo do plano fechar");
+      await nav.abrir("/admin/tesouraria");
       await nav.clicar("Lançar", { escopo: "@li[data-membro='João Lima']", seletor: "button" });
       await nav.esperar(
         "[...document.querySelectorAll('[role=dialog]')].some((d) => d.textContent.includes('Lançar para João Lima'))",
@@ -1478,6 +1555,8 @@ await grupo("admin", async () => {
       await nav.esperarTexto("Você pagou");
       await nav.esperarTexto("150,00"); // "R$" vem com espaço não separável
       await nav.esperarTexto("300,00");
+      // Os lançamentos ficam na aba Lançamentos (?aba=lancamentos).
+      await nav.abrir("/minha-situacao?aba=lancamentos");
       await nav.esperarTexto("Pago por mãe");
       await nav.esperarTexto("Tesouraria: Maria Souza");
       // E não entra na tesouraria.
@@ -1509,13 +1588,13 @@ await grupo("admin", async () => {
       await nav.clicar("Informar pagamento", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
       await dormir(2000);
       igual(estados(), "120.00:informado", "informe no banco");
-      await nav.abrir("/minha-situacao");
+      await nav.abrir("/minha-situacao?aba=lancamentos");
       await nav.esperarTexto("Aguardando confirmação");
 
       // A tesouraria confirma.
       await nav.cookie(lerCookie("cookie-admin.txt"));
       await nav.abrir("/admin/tesouraria");
-      await nav.esperarTexto("Aguardando sua confirmação");
+      await nav.esperarTexto("aguardando sua confirmação");
       await nav.clicar("Confirmar", { escopo: "@li[data-informe='João Lima']", seletor: "button" });
       await dormir(2000);
       igual(estados(), "120.00:confirmado", "confirmado no banco");
@@ -1524,7 +1603,7 @@ await grupo("admin", async () => {
       sql(`insert into pagamentos (turma_id,usuario_id,valor,pago_em,status,lancado_por)
         select '${turma}', id, 80, current_date, 'informado', id from usuarios where email='teste-jl@example.invalid'`);
       await nav.abrir("/admin/tesouraria");
-      await nav.esperarTexto("Aguardando sua confirmação");
+      await nav.esperarTexto("aguardando sua confirmação");
       await nav.clicar("Recusar", { escopo: "@li[data-informe='João Lima']", seletor: "button" });
       await nav.esperar("!!document.querySelector('[role=dialog] [name=motivo]')", 10000, "motivo da recusa");
       await nav.preencher("[role=dialog] [name=motivo]", "não achei no extrato");
@@ -1533,7 +1612,7 @@ await grupo("admin", async () => {
       igual(estados(), "120.00:confirmado,80.00:recusado", "recusado no banco");
 
       await nav.cookie(lerCookie("cookie-participante.txt"));
-      await nav.abrir("/minha-situacao");
+      await nav.abrir("/minha-situacao?aba=lancamentos");
       await nav.esperarTexto("Motivo da tesouraria: não achei no extrato");
       await nav.esperarTexto("120,00");
       igual(
@@ -1564,14 +1643,16 @@ await grupo("admin", async () => {
       ('${turma}',${idDe("teste-tmp@example.invalid")},10,current_date,'informado')`);
     try {
       // Tesouraria escreve as regras e ajusta uma parcela.
-      await nav.abrir("/admin/tesouraria");
-      await nav.esperarTexto("Caixa e regras");
+      await nav.abrir("/admin/tesouraria/plano");
+      await nav.esperarTexto("Regras do dinheiro");
       await nav.clicar("Escrever regras do dinheiro", { seletor: "button" });
       await nav.preencher("#regras-dinheiro", "Desistência até 31/03 devolve tudo.");
       await nav.clicar("Salvar regras", { escopo: "@[role=dialog]", seletor: "button" });
       await dormir(2000);
       igual(sql(`select regras_dinheiro from turmas where id='${turma}'`), "Desistência até 31/03 devolve tudo.", "regras no banco");
-      await nav.abrir("/admin/tesouraria");
+      await nav.abrir("/admin/tesouraria/plano");
+      // As parcelas ficam recolhidas em "Ver as N parcelas".
+      await nav.clicar("Ver as", { seletor: "summary" });
       await nav.clicar("Ajustar", { seletor: "button" });
       await nav.esperar("!!document.querySelector('[role=dialog] [name=valor]')", 10000, "ajuste da parcela");
       await nav.preencher("[role=dialog] [name=valor]", "120");
@@ -1582,9 +1663,9 @@ await grupo("admin", async () => {
       // Remover alguém com pagamento: o diálogo avisa, o confirmado fica sem nome, o informe some.
       await nav.abrir("/admin/membros");
       await nav.esperarTexto("Temporário E2E");
-      await nav.clicar("Remover", { escopo: "Temporário E2E", seletor: "button" });
+      await nav.acaoMenu("Temporário E2E", "Remover");
       await nav.esperarTexto("Pagou R$\u00a040,00");
-      await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+      await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
       // Espera a remoção no banco (ela também manda email, e no Docker passa de 2 s).
       const aindaMembro = () =>
         sql(`select count(*) from membros where turma_id='${turma}' and usuario_id=${idDe("teste-tmp@example.invalid")}`);
@@ -1599,6 +1680,8 @@ await grupo("admin", async () => {
       // O formando vê o caixa (com o pagamento de quem saiu), as regras e a mudança no plano.
       await nav.cookie(lerCookie("cookie-participante.txt"));
       await nav.abrir("/minha-situacao");
+      // Caixa, regras e mudanças moram no "Dinheiro da turma", fechado (P-08).
+      await nav.clicar("Dinheiro da turma", { seletor: "summary" });
       await nav.esperarTexto("Caixa da turma");
       // Arrecadado 140 (100 + 40 de quem saiu); previsto (120 + 100) × 2 membros = 440.
       await nav.esperarTexto("140,00");
@@ -1659,9 +1742,10 @@ await grupo("admin", async () => {
       // Participante: saldo e cada saída, sem a descrição da só da comissão.
       await nav.cookie(lerCookie("cookie-participante.txt"));
       await nav.abrir("/minha-situacao");
+      await nav.clicar("Dinheiro da turma", { seletor: "summary" });
       await nav.esperarTexto("Saídas lançadas");
       await nav.esperarTexto("Não é o saldo do banco");
-      await nav.ev("document.querySelector('main details')?.setAttribute('open', '')");
+      await nav.clicar("Ver as saídas", { seletor: "summary" });
       await nav.esperarTexto("Sinal do buffet E2E");
       await nav.esperarTexto("Outras despesas");
       verdade(!(await nav.tem("Tarifa do banco E2E")), "participante não vê a descrição só da comissão");
@@ -1675,7 +1759,8 @@ await grupo("admin", async () => {
       const sinal = sql(`select id from saidas where turma_id='${turma}' and descricao='Sinal do buffet E2E'`);
       const tarifa = sql(`select id from saidas where turma_id='${turma}' and descricao='Tarifa do banco E2E'`);
       await nav.abrir("/admin/tesouraria/saidas");
-      await nav.clicar("Editar", { escopo: `@li[data-saida='${sinal}']`, seletor: "button" });
+      // Editar e Excluir moram no "⋯" de cada saída (D-05).
+      await nav.acaoMenu("Sinal do buffet E2E", "Editar");
       await nav.esperar(`!!document.querySelector("[role=dialog] #editar-${sinal}-valor")`, 10000, "formulário de edição");
       await preencherEm("@[role=dialog]", `#editar-${sinal}-valor`, "1600");
       await nav.clicar("Salvar saída", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
@@ -1683,7 +1768,10 @@ await grupo("admin", async () => {
       igual(sql(`select valor from saidas where id='${sinal}'`), "1600.00", "saída corrigida");
       igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='saida.editada'`), "1", "correção no histórico");
       await nav.abrir("/admin/tesouraria/saidas");
-      await excluir("Excluir", { escopo: `@li[data-saida='${tarifa}']` });
+      verdade(!!(await nav.ev(`!!document.querySelector("li[data-saida='${tarifa}'] [data-menu-acoes]")`)), "menu da saída");
+      await nav.acaoMenu("Tarifa do banco E2E", "Excluir");
+      await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "confirmação da exclusão");
+      await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
       for (let i = 0; i < 20 && qtd() !== "1"; i++) await dormir(500);
       igual(qtd(), "1", "saída excluída");
       igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='saida.excluida'`), "1", "exclusão no histórico");
@@ -1712,11 +1800,24 @@ await grupo("admin", async () => {
       sql(`insert into parcelas (turma_id,numero,valor,vencimento) values ('${turma}',${i},100,date '2026-10-10' + ${i - 1} * interval '1 month')`);
     }
     const total = () => sql(`select count(*) || ':' || coalesce(sum(valor), 0) from pagamentos where turma_id='${turma}' and status='confirmado'`);
+    // "Importar" só libera depois de uma prévia sem problema (D-12): para
+    // importar, o passo vê a prévia antes e só então toca em "Importar". Com
+    // problema, a própria prévia mostra o erro e "Importar" fica travado.
     const colar = async (texto, botao) => {
-      await nav.abrir("/admin/tesouraria");
+      await nav.abrir("/admin/tesouraria/plano");
       await nav.esperarTexto("Importar da planilha");
       await nav.preencher("#planilha-pagamentos", texto);
-      await nav.clicar(botao, { escopo: "@form:has(#planilha-pagamentos)", seletor: "button" });
+      await nav.clicar("Ver prévia", { escopo: "@form:has(#planilha-pagamentos)", seletor: "button" });
+      if (botao !== "Importar") return;
+      await nav.esperar(
+        // Prévia respondeu: "Ver prévia" saiu do pendente e há mensagem. Com
+        // problema, "Importar" continua travado, e o passo só confere o erro.
+        "(() => { const f = document.querySelector('form:has(#planilha-pagamentos)'); return !!f && !f.querySelector('button[value=previa]')?.disabled && !!f.querySelector('[role=status],[role=alert]')?.textContent.trim(); })()",
+        15000,
+        "resposta da prévia",
+      );
+      const livre = await nav.ev("!document.querySelector('form:has(#planilha-pagamentos) button[value=importar]')?.disabled");
+      if (livre) await nav.clicar("Importar", { escopo: "@form:has(#planilha-pagamentos)", seletor: "button[value=importar]" });
     };
     // Cabeçalho, uma linha com ponto e vírgula e outra com tabulação (como sai da planilha).
     const boa = [
@@ -1829,7 +1930,7 @@ await grupo("admin", async () => {
       );
 
       // Mudança de local: email "Mudou".
-      await nav.abrir("/dashboard");
+      await nav.abrir("/admin/evento");
       await abrirDadosDoEvento();
       await nav.preencher("#localEvento", "Salão Email E2E");
       await nav.clicar("Salvar", { seletor: "button", contem: false });
@@ -1838,7 +1939,7 @@ await grupo("admin", async () => {
 
       // Quem desligou não recebe.
       sql("update usuarios set receber_emails=false where email='teste-jl@example.invalid'");
-      await nav.abrir("/dashboard");
+      await nav.abrir("/admin/evento");
       await abrirDadosDoEvento();
       await nav.preencher("#localEvento", "Salão Email E2E 2");
       await nav.clicar("Salvar", { seletor: "button", contem: false });
@@ -1883,9 +1984,10 @@ await grupo("admin", async () => {
     limpar();
     try {
       // Sem voto, a comissão liga o segredo; a mudança vai para o histórico.
-      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      // A regra mora na página da pergunta, "Resultado e decisão" (D-07).
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
       await nav.esperarTexto(titulo);
-      await nav.clicar("Regra da votação", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.clicar("Regra da votação", { seletor: "button" });
       await nav.esperar(`!!document.querySelector("#secreto-${enq}")`, 10000, "caixa do voto secreto");
       await nav.ev(`document.querySelector("#secreto-${enq}").click()`);
       await nav.clicar("Salvar regra", { escopo: "@[role=dialog]", seletor: "button" });
@@ -1932,9 +2034,10 @@ await grupo("admin", async () => {
       verdade(linhas[0].endsWith("(voto secreto);"), `sem a hora: ${linhas[0]}`);
 
       // Com voto, a caixa trava; prazo e quórum continuam mudando sem perder o segredo.
-      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      // A regra mora na página da pergunta, "Resultado e decisão" (D-07).
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
       await nav.esperarTexto(titulo);
-      await nav.clicar("Regra da votação", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.clicar("Regra da votação", { seletor: "button" });
       await nav.esperarTexto("Já existem votos. Esta opção não pode mais mudar.");
       igual(await nav.ev(`document.querySelector("#secreto-${enq}").disabled`), true, "caixa travada");
       await nav.preencher(`#quorum-${enq}`, "70");
@@ -1943,9 +2046,10 @@ await grupo("admin", async () => {
       igual(sql(`select secreto::text || quorum_pct from regras_enquete where turma_id='${turma}' and enquete_id='${enq}'`), "true70", "segredo mantido");
 
       // Quem força o envio sem o segredo recebe a recusa do servidor.
-      await nav.abrir(`/admin/votacoes/${idPadrao()}`);
+      // A regra mora na página da pergunta, "Resultado e decisão" (D-07).
+      await nav.abrir(`/admin/votacoes/votos/${enq}`);
       await nav.esperarTexto(titulo);
-      await nav.clicar("Regra da votação", { escopo: `@#enq-${enq}`, seletor: "button" });
+      await nav.clicar("Regra da votação", { seletor: "button" });
       await nav.esperarTexto("Já existem votos. Esta opção não pode mais mudar.");
       await nav.ev(`document.querySelector("[role=dialog] input[type=hidden][name=secreto]").remove()`);
       await nav.clicar("Salvar regra", { escopo: "@[role=dialog]", seletor: "button" });
@@ -1991,6 +2095,9 @@ await grupo("admin", async () => {
       // Convite por lista: prévia, envio, email no Mailpit 
       await fetch("http://localhost:8025/api/v1/messages", { method: "DELETE" }).catch(() => {});
       await nav.abrir("/admin/membros");
+      // Convidar por email é a ação primária do cabeçalho e abre um diálogo.
+      await nav.clicar("Convidar por email", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #lista-convites')", 10000, "diálogo de convite");
       await nav.preencher("#lista-convites", "Nova Pessoa; teste-nova@example.invalid\nteste-jl@example.invalid\nlixo sem email");
       await nav.clicar("Ver prévia", { seletor: "button" });
       await nav.esperarTexto("1 convite novo, 1 já é membro, 1 sem email válido");
@@ -2016,7 +2123,7 @@ await grupo("admin", async () => {
     const token = () => sql(`select coalesce(token_publico,'') from turmas where id='${turma}'`);
     try {
       // A comissão cria o link.
-      await nav.abrir("/dashboard");
+      await nav.abrir("/admin/evento");
       await nav.clicar("Criar link para família e convidados", { seletor: "button" });
       for (let i = 0; i < 20 && !token(); i++) await dormir(500);
       const t1 = token();
@@ -2041,7 +2148,7 @@ await grupo("admin", async () => {
       const alterado = () => sql(`select count(*) from auditoria where turma_id='${turma}' and acao='evento.alterado'`);
       const antes = alterado();
       await nav.cookie(lerCookie("cookie-admin.txt"));
-      await nav.abrir("/dashboard");
+      await nav.abrir("/admin/evento");
       await abrirDadosDoEvento();
       const atual = await nav.ev("document.querySelector('#dataEvento').value");
       const novo = `${atual.slice(0, 11)}${atual.slice(11, 13) === "19" ? "18" : "19"}:00`;
@@ -2057,7 +2164,7 @@ await grupo("admin", async () => {
 
       // ADR-0017: o texto do grupo começa dizendo o que mudou.
       await nav.cookie(lerCookie("cookie-admin.txt"));
-      await nav.abrir("/dashboard");
+      await nav.abrir("/admin/evento");
       await nav.clicar("Mandar para o grupo", { escopo: "Dados do evento", seletor: "button" });
       await nav.esperar("!!document.querySelector('[role=dialog] #texto-grupo')", 10000, "prévia do evento");
       const textoGrupo = await nav.ev("document.querySelector('[role=dialog] #texto-grupo')?.value ?? ''");
@@ -2068,8 +2175,8 @@ await grupo("admin", async () => {
       );
 
       // Gerar outro link: o antigo dá 404.
-      await nav.abrir("/dashboard");
-      await nav.clicar("Gerar outro link", { seletor: "button" });
+      await nav.abrir("/admin/evento");
+      await nav.acaoMenu("link público do evento", "Gerar outro link");
       for (let i = 0; i < 20 && token() === t1; i++) await dormir(500);
       verdade(token() !== t1 && token() !== "", "link trocado");
       await nav.cookie(null);
@@ -2095,7 +2202,7 @@ await grupo("admin", async () => {
     const turma = turmaTeste();
     const alterado = () => sql(`select count(*) from auditoria where turma_id='${turma}' and acao='evento.alterado'`);
     const salvarEntrada = async (valor) => {
-      await nav.abrir("/dashboard");
+      await nav.abrir("/admin/evento");
       await abrirDadosDoEvento();
       await nav.esperar("!!document.querySelector('#entrada')", 10000, "campo de entrada");
       await nav.preencher("#entrada", valor);
@@ -2119,7 +2226,9 @@ await grupo("admin", async () => {
       const email = await ultimoEmail("Mudou: entrada da formatura");
       verdade(email.includes("Entrada: era Portão 1, pela Rua A, agora é Portão 2, pela Rua B"), "email com antes e agora");
       await nav.abrir("/dashboard");
-      await nav.esperarTexto("Entrada: Portão 2, pela Rua B");
+      await nav.clicar("Sobre o evento", { seletor: "summary" });
+      await nav.esperarTexto("Portão 2, pela Rua B");
+      await nav.abrir("/admin/evento");
       await nav.clicar("Mandar para o grupo", { escopo: "Dados do evento", seletor: "button" });
       await nav.esperar("!!document.querySelector('[role=dialog] #texto-grupo')", 10000, "prévia do evento");
       igual(
@@ -2149,7 +2258,7 @@ await grupo("admin", async () => {
       // A comissão marca rampa "sim" e banheiro "não"; estacionamento fica sem resposta.
       await nav.cookie(lerCookie("cookie-admin.txt"));
       const antes = alterado();
-      await nav.abrir("/dashboard");
+      await nav.abrir("/admin/evento");
       await abrirDadosDoEvento();
       await nav.esperar("!!document.querySelector('[role=dialog] #acessRampa')", 10000, "campos de acessibilidade");
       await preencherEm("@[role=dialog]", "#acessRampa", "sim");
@@ -2164,6 +2273,7 @@ await grupo("admin", async () => {
       );
       igual(alterado(), antes, "acessibilidade não entra no Mudou");
       await nav.abrir("/dashboard");
+      await nav.clicar("Sobre o evento", { seletor: "summary" });
       await nav.esperarTexto("Rampa ou entrada sem degrau: sim");
       await nav.esperarTexto("Estacionamento perto da entrada: não informado");
       await nav.cookie(null);
@@ -2195,24 +2305,25 @@ await grupo("admin", async () => {
     const cat = sql("select id from catalogos where nome='Catálogo E2E Renomeado'");
     await nav.abrir(`/admin/votacoes/${cat}`);
     // O diálogo mostra o nome do item e o cancelamento não apaga nada.
-    await nav.clicar("Excluir pergunta", { seletor: "button" });
-    await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo de confirmação");
+    // Excluir fica no fim do "⋯" de cada linha (D-05).
+    await nav.acaoMenu("Qual cor da decoração?", "Excluir pergunta");
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "diálogo de confirmação");
     verdade(
-      (await nav.ev("document.querySelector('[role=dialog]')?.textContent ?? ''")).includes("Qual cor da decoração?"),
+      (await nav.ev("document.querySelector('[role=alertdialog]')?.textContent ?? ''")).includes("Qual cor da decoração?"),
       "o diálogo nomeia a pergunta que vai ser apagada",
     );
-    await nav.clicar("Cancelar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await nav.clicar("Cancelar", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1200);
     igual(sql("select count(*) from enquetes where titulo='Qual cor da decoração?'"), "1", "cancelar não apaga a pergunta");
-    await excluir("Excluir pergunta", { seletor: "button" });
+    await excluirMenu("Qual cor da decoração?", "Excluir pergunta");
     await dormir(1800);
     igual(sql("select count(*) from enquetes where titulo='Qual cor da decoração?'"), "0", "pergunta");
     await nav.abrir(`/admin/votacoes/${cat}`);
-    await excluir("Excluir categoria", { seletor: "button" });
+    await excluirMenu("Categoria E2E", "Excluir categoria");
     await dormir(1800);
     igual(sql("select count(*) from categorias where nome='Categoria E2E'"), "0", "categoria");
     await nav.abrir(`/admin/votacoes/${cat}`);
-    await excluir("Excluir catálogo", { seletor: "button" });
+    await excluirMenu("Catálogo E2E Renomeado", "Excluir catálogo");
     await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
     igual(sql("select count(*) from catalogos where nome='Catálogo E2E Renomeado'"), "0", "catálogo");
   });
@@ -2225,8 +2336,8 @@ await grupo("admin", async () => {
     // Filtra pela turma do teste: outras turmas podem ter cópia do mesmo modelo.
     igual(sql(`select count(*) from categorias ca join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id='${turmaTeste()}'`), "5", "categorias copiadas");
     igual(sql(`select count(*) from enquetes e join categorias ca on ca.id=e.categoria_id join catalogos c on c.id=ca.catalogo_id where c.nome='Educação Infantil e ABC' and c.turma_id='${turmaTeste()}'`), "10", "perguntas copiadas");
-    await nav.esperar("[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Excluir catálogo'))", 10000, "botão Excluir catálogo");
-    await excluir("Excluir catálogo", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[data-menu-acoes=\"Educação Infantil e ABC\"]')", 10000, "menu do catálogo");
+    await excluirMenu("Educação Infantil e ABC", "Excluir catálogo");
     await nav.esperar("location.pathname === '/admin/votacoes'", 10000, "voltar à lista");
     igual(sql(`select count(*) from catalogos where nome='Educação Infantil e ABC' and turma_id='${turmaTeste()}'`), "0", "catálogo");
   });
@@ -2234,10 +2345,9 @@ await grupo("admin", async () => {
     const votos = sql(`select count(*) from votos where turma_id='${turmaTeste()}'`);
     await nav.abrir("/admin/votacoes");
     await nav.esperarTexto("Catálogo padrão");
-    await nav.clicar("Editar uso do catálogo padrão", { seletor: "button" });
-    await preencherEm("@[role=dialog]", "#usar", "nao");
-    await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
-    await dormir(2000);
+    // Um Switch que salva na hora, no lugar do diálogo com sim/não.
+    await nav.clicar("Oferecer o catálogo padrão à turma", { seletor: "button[role=switch]" });
+    for (let i = 0; i < 20 && sql(`select usar_catalogo_padrao from turmas where id='${turmaTeste()}'`) !== "f"; i++) await dormir(500);
     igual(sql(`select usar_catalogo_padrao from turmas where id='${turmaTeste()}'`), "f", "desligado no banco");
     await nav.abrir("/votacoes");
     verdade(!(await nav.tem("Catálogo Padrão")), "o padrão sumiu das votações");
@@ -2249,10 +2359,8 @@ await grupo("admin", async () => {
     // Nada foi apagado: os votos continuam guardados para quando a turma religar.
     igual(sql(`select count(*) from votos where turma_id='${turmaTeste()}'`), votos, "votos intactos");
     await nav.abrir("/admin/votacoes");
-    await nav.clicar("Editar uso do catálogo padrão", { seletor: "button" });
-    await preencherEm("@[role=dialog]", "#usar", "sim");
-    await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button", contem: false });
-    await dormir(2000);
+    await nav.clicar("Oferecer o catálogo padrão à turma", { seletor: "button[role=switch]" });
+    for (let i = 0; i < 20 && sql(`select usar_catalogo_padrao from turmas where id='${turmaTeste()}'`) !== "t"; i++) await dormir(500);
     igual(sql(`select usar_catalogo_padrao from turmas where id='${turmaTeste()}'`), "t", "religado");
     await nav.abrir("/votacoes");
     await nav.esperarTexto("Catálogo Padrão");
@@ -2323,7 +2431,7 @@ await grupo("admin", async () => {
     await dormir(1800);
     igual(sql(`select arquivada_em is null from turmas where id='${turmaTeste()}'`), "t", "desarquivada");
     await nav.abrir("/duvidas");
-    await nav.esperarTexto("Envie a sua dúvida");
+    await nav.esperarTexto("Pergunte à comissão");
     igual(await nav.ev("document.querySelector('#texto-duvida').matches(':disabled')"), false, "campo liberado");
     verdade(!(await nav.tem("Turma arquivada em")), "faixa sumiu");
   });
@@ -2363,7 +2471,7 @@ await grupo("admin", async () => {
     const turma = id();
     try {
       await nav.abrir("/dashboard");
-      await nav.clicar("Fim E2E", { seletor: "button" });
+      await trocarDeTurma("Fim E2E");
       await nav.assentar();
 
       // Arquivar com 30 dias: data gravada, email para o participante e não para quem arquivou.
@@ -2427,16 +2535,19 @@ await grupo("admin", async () => {
       select t.id,u.id,'admin' from turmas t, usuarios u
        where t.codigo_convite='TESTEDEL001' and u.email='teste-sh@example.invalid' on conflict do nothing`);
     await nav.abrir("/dashboard");
-    await nav.clicar("Excluir E2E", { seletor: "button" });
+    await trocarDeTurma("Excluir E2E");
     await nav.assentar();
     await nav.abrir("/admin/turma");
-    await nav.esperarTexto("Digite o nome da turma");
-    await nav.preencher("#confirmacao", "errado");
+    // O nome da turma só é pedido dentro da confirmação (ConfirmarExclusao).
+    verdade(!(await nav.ev("!!document.querySelector('#confirmacao')")), "sem campo sempre visível");
     await nav.clicar("Excluir turma", { seletor: "button" });
+    await nav.esperarTexto("Digite o nome da turma");
+    await preencherEm("@[role=alertdialog]", "input[name=confirmacao]", "errado");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "1", "nome errado não apaga");
-    await nav.preencher("#confirmacao", "Excluir E2E");
-    await nav.clicar("Excluir turma", { seletor: "button" });
+    await preencherEm("@[role=alertdialog]", "input[name=confirmacao]", "Excluir E2E");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await nav.esperarUrl("/dashboard");
     await dormir(1500);
     igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "0", "apagada");
@@ -2464,8 +2575,9 @@ await grupo("admin", async () => {
             where u.email='teste-jl@example.invalid' and p.turma_id='${turma}'`);
     const limite = async (n) => {
       await nav.abrir("/admin/presenca");
-      await nav.esperarTexto("Limite de acompanhantes");
-      await nav.clicar("Editar limite de acompanhantes", { seletor: "button" });
+      // Limite e prazo moram no diálogo "Regras da presença" (P-15).
+      await nav.clicar("Regras da presença", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #maxAcompanhantes')", 10000, "regras da presença");
       await preencherEm("@[role=dialog]", "#maxAcompanhantes", String(n));
       await nav.clicar("Salvar limite", { escopo: "@[role=dialog]", seletor: "button" });
       await dormir(2000);
@@ -2530,8 +2642,9 @@ await grupo("admin", async () => {
     try {
       // A comissão marca o prazo; a mudança vai para o histórico e a turma vê a data.
       await nav.abrir("/admin/presenca");
-      await nav.esperarTexto("Prazo para confirmar presença");
-      await nav.clicar("Marcar prazo", { seletor: "button" });
+      await nav.esperarTexto("Sem prazo para responder");
+      await nav.clicar("Regras da presença", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #prazo-presenca')", 10000, "regras da presença");
       await preencherEm("@[role=dialog]", "#prazo-presenca", "2099-12-12T23:59");
       await nav.clicar("Salvar prazo", { escopo: "@[role=dialog]", seletor: "button" });
       await dormir(2000);
@@ -2584,7 +2697,8 @@ await grupo("admin", async () => {
       await nav.cookie(lerCookie("cookie-admin.txt"));
       await nav.abrir("/admin/presenca");
       await nav.esperarTexto("A lista fechou em");
-      await nav.clicar("Mudar o prazo", { seletor: "button" });
+      await nav.clicar("Regras da presença", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #prazo-presenca')", 10000, "regras da presença");
       await preencherEm("@[role=dialog]", "#prazo-presenca", "");
       await nav.clicar("Salvar prazo", { escopo: "@[role=dialog]", seletor: "button" });
       await dormir(2000);
@@ -2605,9 +2719,9 @@ await grupo("admin", async () => {
     const tornarObservador = async () => {
       await nav.abrir("/admin/membros");
       await nav.esperarTexto("João Lima");
-      await nav.clicar("Tornar observador", { seletor: "button" });
-      await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo de troca");
-      await nav.clicar("Tornar observador", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      await nav.acaoMenu("João Lima", "Tornar observador");
+      await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "diálogo de troca");
+      await nav.clicar("Sim, tornar observador", { escopo: "@[role=alertdialog]", seletor: "button[type=submit]" });
     };
     // Pergunta aberta, com um voto do João, e nenhum pagamento dele.
     sql(`delete from decisoes where turma_id='${turma}' and enquete_id='${enq}'`);
@@ -2694,7 +2808,7 @@ await grupo("admin", async () => {
     verdade(Number(rastro("votos", "usuario_id")) > 0, "o teste precisa de um voto do participante para provar a limpeza");
     verdade(Number(rastro("presencas", "usuario_id")) > 0, "o teste precisa da presença do participante");
     await nav.abrir("/admin/membros");
-    await excluir("Remover", { escopo: "João Lima" });
+    await excluirMenu("João Lima", "Remover");
     await dormir(1800);
     igual(sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "0", "removido");
     // Saiu por decisão do admin: o email tem de dizer isso, não "você saiu".
@@ -2760,26 +2874,28 @@ await grupo("master", async () => {
   });
   await passo("alterar papel de um membro pela turma", async () => {
     await nav.abrir(`/master/turmas/${turmaTeste()}`);
-    await nav.clicar("Promover", { escopo: "João Lima", seletor: "button" });
-    await nav.clicar("Trocar papel", { escopo: "@[role=dialog]", seletor: "button" });
+    // Trocar papel fica no "⋯" do membro e pede confirmação num AlertDialog (P-16).
+    await nav.acaoMenu("João Lima", "Promover");
+    await nav.clicar("Sim, promover", { escopo: "@[role=alertdialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "admin", "promovido");
     await nav.abrir(`/master/turmas/${turmaTeste()}`);
-    await nav.clicar("Tornar participante", { escopo: "João Lima", seletor: "button" });
-    await nav.clicar("Trocar papel", { escopo: "@[role=dialog]", seletor: "button" });
+    await nav.acaoMenu("João Lima", "Tornar participante");
+    await nav.clicar("Sim, tornar participante", { escopo: "@[role=alertdialog]", seletor: "button" });
     await dormir(1800);
     igual(sql("select papel from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"), "participante", "rebaixado");
   });
   await passo("excluir usuário exige o email de confirmação", async () => {
     sql(`insert into usuarios (name,email,"emailVerified") values ('Apagar Teste','teste-del@example.invalid',true) on conflict do nothing`);
     await nav.abrir("/master/usuarios");
-    await nav.clicar("Excluir usuário", { escopo: "Apagar Teste", seletor: "button" });
-    await preencherEm("@[role=dialog]", "input[name=confirmacao]", "errado@example.invalid");
-    await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await nav.acaoMenu("Apagar Teste", "Excluir usuário");
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "confirmação da exclusão");
+    await preencherEm("@[role=alertdialog]", "input[name=confirmacao]", "errado@example.invalid");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false }).catch(() => {});
     await dormir(1800);
     igual(sql("select count(*) from usuarios where email='teste-del@example.invalid'"), "1", "confirmação errada não apaga");
-    await preencherEm("@[role=dialog]", "input[name=confirmacao]", "teste-del@example.invalid");
-    await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await preencherEm("@[role=alertdialog]", "input[name=confirmacao]", "teste-del@example.invalid");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(sql("select count(*) from usuarios where email='teste-del@example.invalid'"), "0", "apagado");
     // Mesmo assunto da exclusão pedida pela própria pessoa; o corpo é que diz
@@ -2794,12 +2910,13 @@ await grupo("master", async () => {
     const id = sql("select id from turmas where codigo_convite='TESTEDEL001'");
     await nav.abrir(`/master/turmas/${id}`);
     await nav.clicar("Excluir turma", { seletor: "button" });
-    await preencherEm("@[role=dialog]", "input[name=confirmacao]", "nome errado");
-    await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "confirmação da exclusão");
+    await preencherEm("@[role=alertdialog]", "input[name=confirmacao]", "nome errado");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false }).catch(() => {});
     await dormir(1800);
     igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "1", "confirmação errada não apaga");
-    await preencherEm("@[role=dialog]", "input[name=confirmacao]", "Turma Apagar Teste");
-    await nav.clicar("Sim, excluir", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await preencherEm("@[role=alertdialog]", "input[name=confirmacao]", "Turma Apagar Teste");
+    await nav.clicar("Sim, excluir", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await nav.esperar("location.pathname === '/master/turmas'", 10000, "voltar à lista de turmas");
     igual(sql("select count(*) from turmas where codigo_convite='TESTEDEL001'"), "0", "apagada");
   });
@@ -2807,8 +2924,9 @@ await grupo("master", async () => {
   // grupos seguintes já não dependem da presença dele.
   await passo("master remove membro da turma e avisa por email", async () => {
     await nav.abrir(`/master/turmas/${turmaTeste()}`);
-    await nav.clicar("Remover", { escopo: "João Lima", seletor: "button" });
-    await nav.clicar("Sim, remover", { escopo: "@[role=dialog]", seletor: "button", contem: false });
+    await nav.acaoMenu("João Lima", "Remover da turma");
+    await nav.esperar("!!document.querySelector('[role=alertdialog]')", 10000, "confirmação da remoção");
+    await nav.clicar("Sim, remover", { escopo: "@[role=alertdialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(
       sql("select count(*) from membros m join usuarios u on u.id=m.usuario_id where u.email='teste-jl@example.invalid'"),
@@ -2907,9 +3025,9 @@ await grupo("extras", async () => {
     igual(await dialogAberto(), false, "gaveta começa fechada no celular");
     await nav.clicar("Alternar menu", { seletor: "button" });
     await nav.esperar("!!document.querySelector('[role=dialog]')", 5000, "gaveta abriu");
-    await nav.tem("Tarefas"); // link da navegação visível dentro da gaveta
-    await nav.clicar("Tarefas", { seletor: "a" });
-    await nav.esperarUrl("/tarefas");
+    await nav.tem("Avisos"); // link da navegação visível dentro da gaveta
+    await nav.clicar("Avisos", { seletor: "a" });
+    await nav.esperarUrl("/avisos");
     await dormir(400);
     igual(await dialogAberto(), false, "navegar pelo link fecha a gaveta sozinha");
     await nav.clicar("Alternar menu", { seletor: "button" });
@@ -2936,26 +3054,24 @@ await grupo("extras", async () => {
     }
     await nav.tamanho(1280, 900, false);
   });
-  await passo("Minhas turmas recolhe e expande dentro da sidebar", async () => {
+  await passo("seletor de turma abre a lista no topo da sidebar", async () => {
     await nav.abrir("/dashboard");
-    const aberta = () => nav.ev("document.querySelector('[data-slot=collapsible]')?.dataset.state");
-    igual(await aberta(), "open", "começa aberta");
-    await nav.tem("Outra turma");
-    await nav.clicar("Minhas turmas", { seletor: "button" });
+    verdade(!(await nav.tem("Outra turma")), "a lista de turmas começa fechada");
+    await nav.abrirMenu("Trocar de turma");
+    await nav.esperarTexto("Minhas turmas");
+    await nav.esperarTexto("Outra turma");
+    await nav.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await nav.cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
     await dormir(300);
-    igual(await aberta(), "closed", "recolhe ao clicar");
-    verdade(!(await nav.tem("Outra turma")), "as turmas somem");
-    await nav.clicar("Minhas turmas", { seletor: "button" });
-    await dormir(300);
-    igual(await aberta(), "open", "expande de novo");
-    await nav.tem("Outra turma");
+    verdade(!(await nav.tem("Outra turma")), "Esc fecha a lista");
   });
   await passo("celular: menu, cabeçalho e formulário cabem na tela com toque", async () => {
     await nav.tamanho(390, 800, true);
     await nav.abrir("/tarefas");
     const sw = await nav.ev("document.documentElement.scrollWidth");
     igual(sw, 390, "sem rolagem horizontal");
-    await nav.clicar("Nova tarefa", { seletor: "summary" });
+    await nav.clicar("Nova tarefa", { seletor: "button" });
+    await nav.esperar("!!document.querySelector('[role=dialog] #titulo')", 10000, "diálogo da nova tarefa");
     const alturaInput = await nav.ev("document.querySelector('#titulo').getBoundingClientRect().height");
     verdade(alturaInput >= 40, `campo com ${alturaInput}px de altura no toque`);
     await nav.tamanho(1280, 900, false);
@@ -2986,6 +3102,7 @@ await grupo("encerramento", async () => {
     // Admin pode criar outra turma em /convite: com o encerramento, é recusado.
     const antes = sql("select count(*) from turmas");
     await nav.abrir("/convite");
+    await nav.clicar("Quer criar uma turma nova?", { seletor: "summary" });
     await nav.preencher("#nome", "Turma Encerramento Teste");
     await nav.clicar("Criar turma", { seletor: "button", contem: false });
     await nav.esperarTexto("não aceita turmas novas");
