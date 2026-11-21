@@ -8,7 +8,7 @@ export function AcessibilidadeLocal({ a, compacto = false }: { a: Acessibilidade
   return (
     <div className="flex gap-3">
       <Accessibility
-        className="mt-0.5 size-5 shrink-0 text-[var(--vitrine-a)]"
+        className="mt-0.5 size-5 shrink-0 text-muted-foreground"
         aria-hidden
       />
       <div className="min-w-0">

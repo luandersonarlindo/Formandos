@@ -11,10 +11,13 @@ export function ErroPagina({
   error,
   retry,
   voltarPara = "/dashboard",
+  ajuda = "Se o problema continuar, avise a comissão organizadora.",
 }: {
   error: Error & { digest?: string };
   retry: () => void;
   voltarPara?: string;
+  /** Última frase: a quem recorrer. O master não tem comissão a avisar. */
+  ajuda?: string;
 }) {
   useEffect(() => {
     console.error(error);
@@ -27,8 +30,7 @@ export function ErroPagina({
       </span>
       <h1 className="text-2xl font-semibold tracking-tight">Algo deu errado</h1>
       <p className="text-muted-foreground">
-        Não foi possível carregar esta página. Tente novamente. Se o problema
-        continuar, avise a comissão organizadora.
+        Não foi possível carregar esta página. Tente novamente. {ajuda}
       </p>
       {error.digest && (
         <p className="text-xs text-muted-foreground">Código do erro: {error.digest}</p>

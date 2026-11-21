@@ -36,9 +36,9 @@ export function ConteudoTurma({
     <>
       <div
         role="status"
-        className="mx-auto mb-6 flex w-full max-w-4xl items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm 2xl:max-w-6xl"
+        className="mx-auto mb-6 flex w-full max-w-4xl items-start gap-2.5 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm 2xl:max-w-6xl"
       >
-        <Archive className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
+        <Archive className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
         <p className="text-pretty">
           <strong className="font-medium">Turma arquivada em {data}.</strong> Nada pode ser alterado.{" "}
           {excluirEm ? (

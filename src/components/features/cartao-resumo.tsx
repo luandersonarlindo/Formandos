@@ -24,10 +24,10 @@ export function CartaoResumo({
   icone: LucideIcon;
 }) {
   const cartao = (
-    <Card className="vitrine-cartao h-full">
+    <Card className="h-full transition-colors group-hover:bg-muted/40">
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <span className="flex size-9 items-center justify-center rounded-lg border bg-muted/50 text-[var(--vitrine-a)]">
+          <span className="flex size-9 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
             <Icone className="size-5" aria-hidden />
           </span>
           {href && (

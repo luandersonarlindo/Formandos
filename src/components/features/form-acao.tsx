@@ -2,8 +2,9 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import type { EstadoForm } from "@/actions/tipos";
-import { Check, LoaderCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
 type FormAcaoProps = {
@@ -14,13 +15,19 @@ type FormAcaoProps = {
   className?: string;
   /** Chamado depois que a ação volta sem erro. Usado para fechar diálogos. */
   onSucesso?: () => void;
+  /** Botões antes do submit, na mesma linha (ex.: "Cancelar" do diálogo). */
+  acoesExtras?: React.ReactNode;
+  /** Alinha os botões à direita, como no rodapé de um diálogo. */
+  rodapeDireita?: boolean;
   children: React.ReactNode;
 };
 
 const inicial: EstadoForm = {};
 
-// Formulário genérico ligado a uma Server Action, com mensagem de sucesso ou
-// erro. Os campos (Input, Textarea…) entram como `children`.
+// Formulário genérico ligado a uma Server Action. Os campos (Input, Textarea…)
+// entram como `children`. O sucesso aparece num toast (o Sonner anuncia com
+// aria-live, sem roubar o foco); o erro fica junto do botão, visível enquanto a
+// pessoa corrige.
 export function FormAcao({
   acao,
   rotulo,
@@ -28,6 +35,8 @@ export function FormAcao({
   variante = "default",
   className,
   onSucesso,
+  acoesExtras,
+  rodapeDireita = false,
   children,
 }: FormAcaoProps) {
   const [estado, formAcao, pendente] = useActionState(acao, inicial);
@@ -52,7 +61,9 @@ export function FormAcao({
   }, [estado]);
 
   useEffect(() => {
-    if (estado.ok) sucesso.current?.();
+    if (!estado.ok) return;
+    toast.success(estado.ok);
+    sucesso.current?.();
   }, [estado]);
 
   return (
@@ -67,22 +78,22 @@ export function FormAcao({
       className={cn("grid gap-3", className)}
     >
       {children}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="sm" variant={variante} disabled={pendente}>
-          {pendente && <LoaderCircle className="animate-spin" aria-hidden />}
+      {estado.erro && (
+        <p role="alert" className="text-sm text-destructive">
+          {estado.erro}
+        </p>
+      )}
+      <div
+        className={cn(
+          "flex flex-wrap gap-2",
+          rodapeDireita ? "flex-col-reverse sm:flex-row sm:items-center sm:justify-end" : "items-center",
+        )}
+      >
+        {acoesExtras}
+        <Button type="submit" size={rodapeDireita ? "default" : "sm"} variant={variante} disabled={pendente}>
+          {pendente && <Spinner />}
           {pendente ? rotuloPendente : rotulo}
         </Button>
-        <p
-          role={estado.erro ? "alert" : "status"}
-          className={
-            estado.erro
-              ? "text-sm text-destructive"
-              : "flex items-center gap-1.5 text-sm text-muted-foreground"
-          }
-        >
-          {!estado.erro && estado.ok && <Check className="size-4 text-emerald-600" aria-hidden />}
-          {estado.erro ?? estado.ok}
-        </p>
       </div>
     </form>
   );

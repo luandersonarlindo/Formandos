@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { FaixaEncerramento } from "@/components/features/faixa-encerramento";
 import { ScriptTema } from "@/components/features/script-tema";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -56,6 +57,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <FaixaEncerramento />
         {children}
+        {/* Feedback de sucesso das ações (toast). O erro continua junto do
+            campo, no próprio formulário. */}
+        <Toaster />
       </body>
     </html>
   );

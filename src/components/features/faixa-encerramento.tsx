@@ -10,9 +10,9 @@ export function FaixaEncerramento() {
   return (
     <div
       role="status"
-      className="border-b border-amber-500/40 bg-amber-500/15 px-4 py-2.5 text-center text-sm text-pretty print:hidden"
+      className="border-b border-warning/40 bg-warning/15 px-4 py-2.5 text-center text-sm text-pretty print:hidden"
     >
-      <TriangleAlert className="mr-1.5 inline size-4 align-[-3px] text-amber-700 dark:text-amber-400" aria-hidden />
+      <TriangleAlert className="mr-1.5 inline size-4 align-[-3px] text-warning" aria-hidden />
       <strong className="font-medium">O Formandos será encerrado em {dataBr(data)}.</strong> Até lá tudo continua
       funcionando. Baixe seus dados em{" "}
       <Link href="/conta" className="underline underline-offset-4">

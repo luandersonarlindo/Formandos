@@ -2,14 +2,16 @@
 
 import { useActionState, useEffect, useState } from "react";
 import type { EstadoForm } from "@/actions/tipos";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -45,11 +47,18 @@ type ConfirmarExclusaoProps = {
     esperado: string;
   };
   className?: string;
+  /** Texto do toast quando dá certo e a ação não devolve o seu. */
+  sucesso?: string;
+  /** Modo controlado, sem botão próprio (ex.: aberto por um item do menu "⋯"). */
+  aberto?: boolean;
+  onAbertoChange?: (aberto: boolean) => void;
+  semGatilho?: boolean;
 };
 
 const inicial: EstadoForm = {};
 
-// Botão de exclusão que abre um diálogo antes de apagar. As listas repetem o
+// Botão de exclusão que abre uma confirmação (AlertDialog: papel
+// "alertdialog", foco inicial em "Cancelar", Esc fecha) antes de apagar. As listas repetem o
 // mesmo botão várias vezes, então a confirmação mostra o nome do item: sem isso
 // a pessoa confirma no escuro e apaga a linha errada.
 //
@@ -70,8 +79,17 @@ export function ConfirmarExclusao({
   verb = "Excluir",
   confirmacao,
   className,
+  sucesso,
+  aberto: abertoFora,
+  onAbertoChange,
+  semGatilho = false,
 }: ConfirmarExclusaoProps) {
-  const [aberto, setAberto] = useState(false);
+  const [abertoAqui, setAbertoAqui] = useState(false);
+  const aberto = abertoFora ?? abertoAqui;
+  const setAberto = (valor: boolean) => {
+    setAbertoAqui(valor);
+    onAbertoChange?.(valor);
+  };
   const [digitado, setDigitado] = useState("");
   const [estado, formAcao, pendente] = useActionState(
     // A maioria das ações de exclusão não devolve nada quando dá certo; as que
@@ -82,7 +100,7 @@ export function ConfirmarExclusao({
       if (resposta && typeof resposta === "object" && ("ok" in resposta || "erro" in resposta)) {
         return resposta;
       }
-      return { ok: "Excluído." };
+      return { ok: sucesso ?? (verb === "Excluir" ? "Excluído." : "Feito.") };
     },
     inicial,
   );
@@ -91,11 +109,17 @@ export function ConfirmarExclusao({
     digitado.trim().toLowerCase() === confirmacao.esperado.trim().toLowerCase();
 
   useEffect(() => {
-    if (estado.ok) setAberto(false);
+    if (!estado.ok) return;
+    toast.success(estado.ok);
+    setAbertoAqui(false);
+    onAbertoChange?.(false);
+    // onAbertoChange vem de fora e muda a cada render; só o estado importa aqui.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado]);
 
   return (
     <>
+      {!semGatilho && (
       <Button
         type="button"
         variant="destructive"
@@ -108,14 +132,15 @@ export function ConfirmarExclusao({
         {icone}
         {somenteIcone ? <span className="sr-only">{rotulo}</span> : rotulo}
       </Button>
+      )}
 
-      <Dialog open={aberto} onOpenChange={setAberto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
+      <AlertDialog open={aberto} onOpenChange={setAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
               {verb} {alvo}?
-            </DialogTitle>
-            <DialogDescription>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
               {nome ? (
                 <>
                   <span className="font-medium text-foreground wrap-break-word">{nome}</span>
@@ -124,8 +149,8 @@ export function ConfirmarExclusao({
               ) : (
                 (aviso ?? "Não dá para desfazer.")
               )}
-            </DialogDescription>
-          </DialogHeader>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           {/* Tudo que a ação precisa fica dentro do form, inclusive o campo de
               confirmação: fora dele o valor não é enviado e o "Sim, excluir"
               volta como não excluído. Os dois botões ficam lado a lado numa
@@ -166,12 +191,13 @@ export function ConfirmarExclusao({
                 Cancelar
               </Button>
               <Button type="submit" variant="destructive" disabled={pendente || !confere}>
+                {pendente && <Spinner />}
                 {pendente ? "Excluindo…" : confirmar}
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

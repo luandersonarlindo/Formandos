@@ -6,6 +6,7 @@ import { FormAcao } from "@/components/features/form-acao";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -19,7 +20,7 @@ type FormDialogProps = {
   rotulo: string;
   /** Ícone antes do texto do botão. */
   icone?: React.ReactNode;
-  variante?: "default" | "outline" | "destructive";
+  variante?: "default" | "outline" | "destructive" | "ghost" | "secondary";
   tamanho?: "default" | "sm" | "lg";
   titulo: string;
   descricao?: string;
@@ -32,11 +33,21 @@ type FormDialogProps = {
   dialogClassName?: string;
   /** Campos do formulário (Input, Textarea, Select…). Entram como children. */
   children?: React.ReactNode;
+  /** Modo controlado, sem botão próprio: quem abre é outro elemento (ex.: um
+   *  item do menu "⋯", ver MenuAcoes). */
+  aberto?: boolean;
+  onAbertoChange?: (aberto: boolean) => void;
+  semGatilho?: boolean;
+  /** Classe extra no botão que abre o diálogo. */
+  className?: string;
 };
 
 // Qualquer edição ou ação que precisa de um formulário, aberta em diálogo, em
 // vez de <details> solto na página. O tempo todo a lista não se move, a
-// largura é a do diálogo e o foco volta para a lista ao fechar.
+// largura é a do diálogo e o foco volta para a lista ao fechar. O rodapé tem
+// "Cancelar" e o submit à direita; o sucesso fecha o diálogo e vira toast
+// (FormAcao). Formulários longos: uma coluna no celular e os opcionais em
+// "Mais detalhes" (decisão D-04 do plano de UX: Dialog sempre, sem Drawer).
 export function FormDialog({
   rotulo,
   icone,
@@ -50,17 +61,28 @@ export function FormDialog({
   rotuloPendente = "Salvando…",
   dialogClassName,
   children,
+  aberto: abertoFora,
+  onAbertoChange,
+  semGatilho = false,
+  className,
 }: FormDialogProps) {
-  const [aberto, setAberto] = React.useState(false);
+  const [abertoAqui, setAbertoAqui] = React.useState(false);
+  const aberto = abertoFora ?? abertoAqui;
+  const setAberto = (valor: boolean) => {
+    setAbertoAqui(valor);
+    onAbertoChange?.(valor);
+  };
 
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
-      <DialogTrigger asChild>
-        <Button type="button" variant={variante} size={tamanho} className={cn("shrink-0")}>
-          {icone}
-          {rotulo}
-        </Button>
-      </DialogTrigger>
+      {!semGatilho && (
+        <DialogTrigger asChild>
+          <Button type="button" variant={variante} size={tamanho} className={cn("shrink-0", className)}>
+            {icone}
+            {rotulo}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className={dialogClassName}>
         <DialogHeader>
           <DialogTitle>{titulo}</DialogTitle>
@@ -71,6 +93,14 @@ export function FormDialog({
           rotulo={rotuloSubmit}
           rotuloPendente={rotuloPendente}
           onSucesso={() => setAberto(false)}
+          rodapeDireita
+          acoesExtras={
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancelar
+              </Button>
+            </DialogClose>
+          }
         >
           {Object.entries(campos ?? {}).map(([nome, valor]) => (
             <input key={nome} type="hidden" name={nome} value={valor} />
