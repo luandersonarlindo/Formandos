@@ -77,3 +77,13 @@ Preencher a entrada pela primeira vez (de vazio para algo) **não** conta como m
 **Teste de fluxo**
 - Casos novos no teste de `mudancasEvento`: entrada trocada, entrada preenchida pela primeira vez (não conta) e entrada apagada.
 - Passo no E2E: trocar a entrada e conferir o "Mudou em" e o email no Mailpit.
+
+### Andamento (2026-11-20)
+
+Feita (commit `1bdb576`). Diferenças em relação ao texto acima:
+
+- **A regra de "primeira vez não conta" já existia** em `mudancasEvento` para local e endereço. A entrada só entrou na mesma lista. Apagar a entrada conta, e o email mostra "agora é não informado".
+- **Sem código novo no "Mudou em", no email e no texto do grupo:** os três leem a lista de `mudancasEvento`. O email sai com o assunto "Mudou: entrada da formatura".
+- **Onde aparece:** no dashboard e na página pública, abaixo do endereço, como "Entrada: …". Na lista da portaria, no topo.
+- **Formulário:** "Entrada / portão (opcional)", com a dica de que mudar avisa a turma.
+- Testes: `typecheck`, `npm test` (342; 3 novos no teste de `mudancasEvento`). Passo novo "ADR-0019" no grupo `admin` de `fluxos.mjs`: primeira vez sem mudança; troca com auditoria, email no Mailpit, entrada no dashboard, linha "MUDOU" no texto do grupo e lista da portaria. Bloco `participante,app,admin` no Docker, 68 de 69. O único que falhou foi o passo da ADR-0020, por erro do próprio teste, corrigido e confirmado no grupo `participante` (9 de 9).
