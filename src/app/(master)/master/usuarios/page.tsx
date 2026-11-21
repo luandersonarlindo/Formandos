@@ -1,67 +1,49 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MailWarning, Search, ShieldCheck, Trash2 } from "lucide-react";
-import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { MailWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { excluirUsuario } from "@/actions/master";
-import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
+import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
+import { CampoBusca } from "@/components/features/campo-busca";
 import { EstadoVazio } from "@/components/features/estado-vazio";
+import { AcaoExcluir, MenuAcoes } from "@/components/features/menu-acoes";
 import { Paginacao } from "@/components/features/paginacao";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { lerBusca } from "@/lib/busca";
 import { exigirMaster } from "@/lib/dal";
 import { emailsMaster } from "@/lib/master";
 import { lerPagina } from "@/lib/paginacao";
+import { ROTULO_PAPEL } from "@/lib/papeis";
 import { listarUsuarios } from "@/lib/plataforma";
 
 export const metadata: Metadata = { title: "Usuários" };
 
+// Usuários da plataforma, vistos pelo master. Uma linha por conta; as turmas
+// são links para a turma (onde se troca o papel). "Excluir usuário" é raro e
+// irreversível: fica no "⋯" e continua pedindo o email digitado (LGPD).
 export default async function UsuariosMasterPage({ searchParams }: PageProps<"/master/usuarios">) {
   const master = await exigirMaster();
   const { busca: buscaParametro, pagina: paginaParametro } = await searchParams;
   const busca = lerBusca(buscaParametro);
-  const { itens: usuarios, total, pagina, totalPaginas } = await listarUsuarios(
-    lerPagina(paginaParametro),
-    { busca },
-  );
+  const { itens: usuarios, total, pagina, totalPaginas } = await listarUsuarios(lerPagina(paginaParametro), { busca });
   const masters = emailsMaster();
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Usuários</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground text-pretty">
-        {total} {total === 1 ? "usuário cadastrado" : "usuários cadastrados"}. Para mudar o papel de alguém em uma turma, abra a turma.
-      </p>
+      <CabecalhoPagina
+        titulo="Usuários"
+        descricao={`${total} ${total === 1 ? "usuário cadastrado" : "usuários cadastrados"}.`}
+      />
 
-      <form action="/master/usuarios" role="search" className="mt-6 flex gap-2">
-        <div className="relative flex-1">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            type="search"
-            name="busca"
-            defaultValue={busca}
-            maxLength={100}
-            placeholder="Buscar por nome ou email"
-            aria-label="Buscar usuário por nome ou email"
-            autoComplete="off"
-            className="h-10 pl-9"
-          />
-        </div>
-        <Button type="submit" size="lg">
-          Buscar
-        </Button>
-        {busca && (
-          <Link href="/master/usuarios" className={buttonVariants({ variant: "outline", size: "lg" })}>
-            Limpar
-          </Link>
-        )}
-      </form>
+      <CampoBusca
+        className="mt-6"
+        acao="/master/usuarios"
+        valor={busca}
+        placeholder="Buscar por nome ou email"
+        rotulo="Buscar usuário por nome ou email"
+      />
       {busca && (
         <p role="status" className="mt-3 text-sm text-muted-foreground">
           {total} {total === 1 ? "usuário encontrado" : "usuários encontrados"} para “{busca}”.
@@ -76,84 +58,74 @@ export default async function UsuariosMasterPage({ searchParams }: PageProps<"/m
           descricao="Confira o nome ou o email e tente de novo."
         />
       ) : (
-      <ul data-grupo className="mt-6 grid gap-3">
-        {usuarios.map((u) => {
-          const ehMasterAlvo = masters.includes(u.email.toLowerCase());
-          const podeExcluir = u.id !== master.id && !ehMasterAlvo;
-          return (
-            <li key={u.id}>
-              <Card>
-                <CardContent className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-                    <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
-                      <AvatarUsuario nome={u.name} imagem={u.image} className="size-10" />
-                      <div className="min-w-0">
-                        <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium">
-                          <span className="truncate">{u.name}</span>
-                          {u.id === master.id && <span className="font-normal text-muted-foreground">(você)</span>}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">{u.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {ehMasterAlvo && (
-                        <Badge>
-                          <ShieldCheck aria-hidden /> Master
-                        </Badge>
+        <ul data-grupo className="mt-4 divide-y rounded-lg border">
+          {usuarios.map((u) => {
+            const ehMasterAlvo = masters.includes(u.email.toLowerCase());
+            const podeExcluir = u.id !== master.id && !ehMasterAlvo;
+            return (
+              <Item asChild key={u.id}>
+                <li data-usuario={u.email} className="rounded-none not-first:border-t-border">
+                  <ItemMedia>
+                    <AvatarUsuario nome={u.name} imagem={u.image} className="size-10" />
+                  </ItemMedia>
+                  <ItemContent className="min-w-0 basis-56">
+                    <ItemTitle className="max-w-full">
+                      <span className="truncate">{u.name}</span>
+                      {u.id === master.id && <span className="font-normal text-muted-foreground">(você)</span>}
+                    </ItemTitle>
+                    <ItemDescription className="truncate">{u.email}</ItemDescription>
+                    <ItemDescription className="line-clamp-none text-xs">
+                      {u.turmas.length > 0 ? (
+                        u.turmas.map((t, i) => (
+                          <span key={t.id}>
+                            {i > 0 && " · "}
+                            <Link href={`/master/turmas/${t.id}`} className="underline underline-offset-4 hover:text-foreground">{t.nome}</Link> ({ROTULO_PAPEL[t.papel].toLowerCase()})
+                          </span>
+                        ))
+                      ) : (
+                        "Sem turma"
                       )}
-                      {!u.emailVerificado && (
-                        <Badge variant="outline">
-                          <MailWarning aria-hidden /> Email não confirmado
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="text-xs text-muted-foreground">Turmas:</span>
-                    {u.turmas.length > 0 ? (
-                      u.turmas.map((t) => (
-                        <Link
-                          key={t.id}
-                          href={`/master/turmas/${t.id}`}
-                          className="rounded-full border px-2.5 py-0.5 text-xs transition-colors hover:bg-muted"
-                        >
-                          {t.nome} · {t.papel}
-                        </Link>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Sem turma</span>
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions className="flex-wrap">
+                    {ehMasterAlvo && (
+                      <Badge>
+                        <ShieldCheck aria-hidden /> Master
+                      </Badge>
                     )}
-                  </div>
-
-                  {podeExcluir && (
-                    <div className="flex flex-wrap gap-2 border-t pt-3">
-                      <ConfirmarExclusao
-                        acao={excluirUsuario}
-                        campos={{ usuarioId: u.id }}
-                        alvo="o usuário"
-                        nome={u.name}
-                        aviso="Apaga a conta, a participação e os votos e dúvidas dessa pessoa."
-                        rotulo="Excluir usuário"
-                        descricao={`Excluir o usuário ${u.name}`}
-                        icone={<Trash2 aria-hidden />}
-                        confirmacao={{
-                          rotulo: (
-                            <>
-                              Digite o email, <strong>{u.email}</strong>, para confirmar
-                            </>
-                          ),
-                          esperado: u.email,
-                        }}
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </li>
-          );
-        })}
-      </ul>
+                    {!u.emailVerificado && (
+                      <Badge variant="outline">
+                        <MailWarning aria-hidden /> Email não confirmado
+                      </Badge>
+                    )}
+                    {podeExcluir && (
+                      <MenuAcoes nome={u.name}>
+                        <AcaoExcluir
+                          acao={excluirUsuario}
+                          campos={{ usuarioId: u.id }}
+                          alvo="o usuário"
+                          nome={u.name}
+                          aviso="Apaga a conta, a participação e os votos e dúvidas dessa pessoa."
+                          rotulo="Excluir usuário"
+                          icone={<Trash2 aria-hidden />}
+                          sucesso="Usuário excluído."
+                          confirmacao={{
+                            rotulo: (
+                              <>
+                                Digite o email, <strong>{u.email}</strong>, para confirmar
+                              </>
+                            ),
+                            esperado: u.email,
+                          }}
+                        />
+                      </MenuAcoes>
+                    )}
+                  </ItemActions>
+                </li>
+              </Item>
+            );
+          })}
+        </ul>
       )}
       <Paginacao
         pagina={pagina}

@@ -9,5 +9,12 @@ export default function Erro({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
-  return <ErroPagina error={error} retry={retry} />;
+  return (
+    <ErroPagina
+      error={error}
+      retry={retry}
+      voltarPara="/master"
+      ajuda="Se o problema continuar, confira os logs do servidor."
+    />
+  );
 }

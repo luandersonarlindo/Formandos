@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { CircleHelp, School, ShieldCheck, UserRoundX, Users } from "lucide-react";
+import { CircleHelp, School, UserRoundX, Users } from "lucide-react";
 import { CartaoResumo } from "@/components/features/cartao-resumo";
-import { Badge } from "@/components/ui/badge";
 import { exigirMaster } from "@/lib/dal";
 import { getResumoPlataforma } from "@/lib/plataforma";
 
@@ -14,20 +13,15 @@ export default async function MasterPage() {
   const cartoes = [
     { href: "/master/turmas", titulo: "Turmas", valor: r.turmas, texto: "ver, gerir membros e excluir", icone: School },
     { href: "/master/usuarios", titulo: "Usuários", valor: r.usuarios, texto: "contas cadastradas na plataforma", icone: Users },
-    { href: "/master/usuarios", titulo: "Usuários sem turma", valor: r.semTurma, texto: "ainda não entraram em uma turma", icone: UserRoundX },
-    { href: "/master/turmas", titulo: "Dúvidas sem resposta", valor: r.duvidasAbertas, texto: "somando todas as turmas", icone: CircleHelp },
+    // Sem href: não há tela filtrada para estes números, e um link que abre a
+    // lista inteira prometeria o que não entrega.
+    { titulo: "Usuários sem turma", valor: r.semTurma, texto: "ainda não entraram em uma turma", icone: UserRoundX },
+    { titulo: "Dúvidas sem resposta", valor: r.duvidasAbertas, texto: "somando todas as turmas", icone: CircleHelp },
   ];
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          Gestão da plataforma
-        </h1>
-        <Badge>
-          <ShieldCheck aria-hidden /> Master
-        </Badge>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Gestão da plataforma</h1>
       <p className="mt-2 text-muted-foreground">
         Visão de todas as turmas e usuários do Formandos.
       </p>
