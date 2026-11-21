@@ -5,11 +5,11 @@
 | **Projeto** | Formandos — gestão administrativa de formaturas e eventos |
 | **Documento** | Especificação de Requisitos de Software (ERS) |
 | **Padrão** | IEEE 830-1998 — *IEEE Recommended Practice for Software Requirements Specifications* |
-| **Versão** | 2.0 |
-| **Data** | 16/11/2026 |
+| **Versão** | 2.1 |
+| **Data** | 21/11/2026 |
 | **Equipe** | Luanderson Arlindo, Luiz Orlando, José Renato e Vinícius |
 | **Repositório** | https://github.com/luandersonarlindo/Formandos |
-| **Estado do produto** | MVP mais as decisões das ADR-0001 a ADR-0016, rodando em Docker na máquina local (`compose.yaml`). Sem hospedagem pública contratada até a data desta versão. |
+| **Estado do produto** | MVP mais as decisões das ADR-0001 a ADR-0024, rodando em Docker na máquina local (`compose.yaml`). Sem hospedagem pública contratada até a data desta versão. |
 
 ---
 
@@ -102,7 +102,7 @@ A fonte de verdade deste documento é o **código do repositório**, conferido e
 | Lei 13.709/2018 (LGPD) | Base das regras de dados pessoais, retenção e exclusão. |
 | `docs/adr/0001` a `0016` | Decisões que originam os requisitos RF-28 a RF-54 e as regras RN-29 a RN-43. |
 | `docs/simulacoes/levantamento.md` | Achados da rodada 1 de simulações (letras A a O). |
-| `docs/simulacoes/levantamento-rodada-2.md` | Achados da rodada 2; origem dos requisitos **Propostos** (RF-55 a RF-70) e das decisões DEC-01 a DEC-05. |
+| `docs/simulacoes/levantamento-rodada-2.md` | Achados da rodada 2; origem dos requisitos RF-55 a RF-70 (situação na seção 3.2 e na tabela de rastreabilidade) e das decisões DEC-01 a DEC-05. |
 | `docs/entregas/15-09-2026/Requisitos Prioritários.md` | Origem dos identificadores RF-01 a RF-21, RN-01 a RN-09 e RNF-01 a RNF-10, mantidos aqui. |
 | `db/schema.sql` | Estrutura do banco e restrições declarativas. |
 | `README.md` | Execução, Docker e variáveis de ambiente. |
@@ -285,7 +285,7 @@ Cada requisito pertence a exatamente uma seção normativa. As outras apenas rem
 
 Padrão: verbo observável, condição e critério de aceite. "DEVE" é obrigatório; "PODE" é opcional.
 
-Prioridade MoSCoW: **M** obrigatório, **S** desejável, **C** possível. Situação apurada em 16/11/2026: **Atendido**, **Parcial**, **Pendente** (prometido e não feito) **Proposto** (vem das simulações; não decidido) ou **Descartado** (o grupo decidiu não fazer).
+Prioridade MoSCoW: **M** obrigatório, **S** desejável, **C** possível. Situação apurada em 16/11/2026 (RF-55 a RF-70 revistos em 21/11/2026): **Atendido**, **Parcial**, **Pendente** (prometido e não feito) **Proposto** (vem das simulações; não decidido) ou **Descartado** (o grupo decidiu não fazer).
 
 #### 3.2.1 Conta e acesso
 
@@ -434,7 +434,7 @@ Origem: `docs/simulacoes/levantamento-rodada-2.md`, seções 3 e 4. São **espec
 | RF-58 | Todo membro DEVE poder baixar o Registro da turma em PDF, pelo menos com a turma arquivada. | S | 1.3 | tema 8 | Atendido (ADR-0020: sempre, em `/registro`) |
 | RF-59 | O sistema DEVE ter a faixa no site e o email a todos os usuários para o encerramento com 60 dias de aviso, prometidos nos Termos. | S | 1.4 | tema 8; ADR-0009 | Atendido (ADR-0021) |
 | RF-60 | A tela de convite DEVE mostrar o nome da turma e de quem convidou. | S | 0.2 | tema 3 | Atendido (ADR-0020) |
-| RF-61 | O "valor por pessoa" DEVE dizer se é o total ou por mês. | S | 0.3 | tema 5 | Proposto |
+| RF-61 | O "valor por pessoa" DEVE dizer se é o total ou por mês. | S | 0.3 | tema 5 | Atendido (rótulo "total por pessoa"; parcelado vai no texto da opção) |
 | RF-62 | A tela de votação DEVE dizer: "Ninguém da comissão muda o seu voto; mudanças em decisões ficam no histórico". | C | 0.4 | tema 10 | Atendido (ADR-0017) |
 | RF-63 | Um link público trocado DEVE abrir uma página que diga "Este link foi trocado. Peça o novo a quem mandou". | C | 0.5 | tema 9 | Atendido (ADR-0017) |
 | RF-64 | O caixa DEVE registrar saídas (pagamentos a fornecedor), com totais para a turma. | C | 2.1 | temas 2, 6 | Atendido (ADR-0022) |
@@ -942,14 +942,24 @@ Funcionalidade: Emails
 | RF-52 | 0006 | E.G.15 | E2E | Atendido |
 | RF-53 | — | — | `modelos.test.ts` | Atendido |
 | RF-54 | — | — | inspeção | Atendido; sem teste |
-| RF-55 a RF-70 | — | — | — | Proposto ou Pendente |
+| RF-55 | 0018 | — | `email.test.ts`; E2E | Atendido |
+| RF-56, RF-62, RF-63 | 0017 | — | `texto-whatsapp.test.ts`; E2E | Atendido |
+| RF-57 | 0019 | — | `lembretes-regras.test.ts`; E2E | Atendido |
+| RF-58, RF-60 | 0020 | — | E2E | Atendido |
+| RF-59 | 0021 | — | `encerramento.test.ts`, `email.test.ts`; E2E (grupo `encerramento`) | Atendido |
+| RF-61 | — | — | `texto-whatsapp.test.ts`, `email.test.ts`; E2E | Atendido |
+| RF-64 | 0022 | — | `saidas-regras.test.ts`; E2E | Atendido |
+| RF-65 | 0023 | — | `link-documento.test.ts`; E2E | Atendido |
+| RF-69 | 0024 | — | `acessibilidade.test.ts`; E2E | Atendido |
+| RF-66 a RF-68 | — | — | — | Proposto: esperam uma tesoureira real (`docs/simulacoes/2026-11-20/relatorio.md`) |
+| RF-70 | 0017 | — | — | Descartado |
 | EM-01 a EM-08 | — | E.G.03, E.G.09, E.G.10 | `email.test.ts`; E2E | Atendido |
 | EM-13 a EM-19 | 0006, 0007, 0008, 0009 | E.G.15 | `email.test.ts`, `lembretes-regras.test.ts` | Atendido |
 | RNF-11, RNF-12 | — | — | — | Alvo: depende de publicação |
 | RNF-13 | — | — | TEST-02 a TEST-12 | Parcial: TEST-08 e TEST-10 pendentes |
 | RNF-14 | — | — | 3.6 | Parcial: só `/api/healthz` |
 
-**Cobertura:** 54 requisitos funcionais atendidos (RF-01 a RF-54), todos com verificação automatizada ou inspeção registrada; 15 propostos e 1 pendente (RF-55 a RF-70).
+**Cobertura:** 66 requisitos funcionais atendidos (RF-01 a RF-65 e RF-69, menos RF-66 a RF-68), todos com verificação automatizada ou inspeção registrada; 3 propostos (RF-66 a RF-68) e 1 descartado (RF-70).
 
 ---
 
@@ -1044,3 +1054,4 @@ Funcionalidade: Emails
 |---|---|---|---|
 | 1.0 | 05/10/2026 | Equipe Formandos | Emissão inicial. RF-01 a RF-27, RN-01 a RN-28, RNF-01 a RNF-14, 22 cenários Gherkin. |
 | 2.0 | 16/11/2026 | Equipe Formandos | Conferida contra o código de 16/11/2026 e as ADR-0001 a 0016. Novos requisitos atendidos RF-28 a RF-54, emails EM-13 a EM-21, regras RN-29 a RN-43, papéis de observador e tesouraria, RNF-15 (LGPD). Requisitos propostos RF-55 a RF-70 e decisões DEC-01 a DEC-05, vindos de `docs/simulacoes/levantamento-rodada-2.md`. Corrigidos RF-05, RF-09, RF-27, RN-01, RN-03, RN-22 e RN-24. Arquitetura atualizada para Docker local, com backup diário de 30 dias. Lacunas LAC-03 e LAC-05 resolvidas, LAC-01 e LAC-06 parciais, LAC-08 a LAC-11 novas. Cenários Gherkin reescritos (E.G.01 a E.G.15). |
+| 2.1 | 21/11/2026 | Equipe Formandos | Situação de RF-55 a RF-70 depois das ADR-0017 a 0024: 12 atendidos (RF-55 a RF-65 e RF-69), 3 propostos (RF-66 a RF-68, esperam tesoureira real) e 1 descartado (RF-70). Tabela de rastreabilidade e cobertura refeitas. Caixa com "pagamentos confirmados pela tesouraria", saídas e saldo. Sem nova conferência completa do código: a de 16/11/2026 continua valendo para o resto. |
