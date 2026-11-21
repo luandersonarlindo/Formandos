@@ -1,8 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { ChevronDown, Plus, type LucideIcon } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import { AnimarPagina } from "@/components/animacao/animar-pagina";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -13,31 +12,22 @@ import {
   SidebarInset,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { trocarTurma } from "@/actions/turmas";
-import { AlternadorTema } from "./alternador-tema";
-import { AvatarUsuario } from "./avatar-usuario";
-import { BotaoSair } from "./botao-sair";
+import type { GrupoMenu, ItemMenu } from "@/lib/menu";
+import type { Papel } from "@/lib/papeis";
 import { ConteudoTurma } from "./conteudo-turma";
+import { GrupoMais } from "./grupo-mais";
+import { MenuUsuario } from "./menu-usuario";
+import { SeletorTurma } from "./seletor-turma";
 import { SidebarAutoClose } from "./sidebar-auto-close";
 import { SidebarNavLink } from "./sidebar-nav-link";
-import type { Papel } from "@/lib/papeis";
 
-export type ItemMenu = {
-  href: string;
-  rotulo: string;
-  icone: LucideIcon;
-  exato?: boolean;
-};
-
-type Rodape = { href: string; rotulo: string };
+export type { GrupoMenu, ItemMenu };
 
 export type SeletorTurmas = {
   ativaId: string;
@@ -46,17 +36,35 @@ export type SeletorTurmas = {
 };
 
 type AppShellProps = {
+  /** Nome da turma (ou da área, no master), mostrado no topo. */
   titulo: string;
   turmas?: SeletorTurmas;
-  itens: ItemMenu[];
+  grupos: GrupoMenu[];
   // Data em que a turma foi arquivada (ISO), ou null. Deixa o conteúdo só leitura.
   arquivadaEm?: string | null;
   // Data de exclusão da turma arquivada (AAAA-MM-DD, ADR-0009).
   excluirEm?: string | null;
-  rodape?: Rodape | Rodape[];
   usuario: { nome: string; email: string; imagem?: string | null };
+  master?: boolean;
+  /** Links a mais no menu da pessoa (ex.: "Voltar para a turma" no master). */
+  extrasUsuario?: { href: string; rotulo: string }[];
   children: React.ReactNode;
 };
+
+function Item({ item, sub = false, className }: { item: ItemMenu; sub?: boolean; className?: string }) {
+  const { href, rotulo, icone: Icone, exato, tambem } = item;
+  const link = (
+    <SidebarNavLink href={href} exato={exato} tooltip={rotulo} tambem={tambem}>
+      <Icone aria-hidden />
+      <span>{rotulo}</span>
+    </SidebarNavLink>
+  );
+  return sub ? (
+    <SidebarMenuSubItem className={className}>{link}</SidebarMenuSubItem>
+  ) : (
+    <SidebarMenuItem className={className}>{link}</SidebarMenuItem>
+  );
+}
 
 // Sidebar do shadcn (ui.shadcn.com/docs/components/base/sidebar): fica sempre
 // aberta em computador, tablet e TV (a partir de 768px, breakpoint `md` do
@@ -65,15 +73,16 @@ type AppShellProps = {
 export async function AppShell({
   titulo,
   turmas,
-  itens,
+  grupos,
   arquivadaEm = null,
   excluirEm = null,
-  rodape,
   usuario,
+  master = false,
+  extrasUsuario,
   children,
 }: AppShellProps) {
-  const rodapes = rodape ? [rodape].flat() : [];
-  const mostrarTurmas = !!turmas && (turmas.lista.length > 1 || turmas.podeAdicionar);
+  const ativa = turmas?.lista.find((t) => t.id === turmas.ativaId);
+  const seletor = turmas && ativa ? { ativa: { id: ativa.id, nome: ativa.nome }, lista: turmas.lista, podeAdicionar: turmas.podeAdicionar } : null;
   // Sem cookie ainda (primeira visita), começa aberta; só fica fechada se a
   // pessoa mesma recolheu da última vez.
   const estadoSalvo = (await cookies()).get("sidebar_state")?.value;
@@ -87,130 +96,79 @@ export async function AppShell({
           <SidebarHeader>
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 overflow-hidden px-2 py-1.5 text-lg font-semibold tracking-tight whitespace-nowrap group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+              className="flex items-center gap-2 overflow-hidden px-2 py-1 text-lg font-semibold tracking-tight whitespace-nowrap group-data-[collapsible=icon]:hidden"
             >
-              <span className="group-data-[collapsible=icon]:hidden">Formandos</span>
-              <span aria-hidden>🎓</span>
+              Formandos <span aria-hidden>🎓</span>
             </Link>
-            <span className="truncate px-2 text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-              {titulo}
-            </span>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                {seletor ? (
+                  <SeletorTurma {...seletor} />
+                ) : (
+                  <span className="block truncate px-2 text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+                    {titulo}
+                  </span>
+                )}
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarHeader>
 
           <SidebarContent>
-            {mostrarTurmas && turmas && (
-              <SidebarGroup>
-                <Collapsible defaultOpen className="group/turmas">
-                  <SidebarGroupLabel asChild>
-                    <CollapsibleTrigger className="flex w-full items-center justify-between">
-                      Minhas turmas
-                      <ChevronDown className="size-4 shrink-0 transition-transform group-data-[state=closed]/turmas:-rotate-90" aria-hidden />
-                    </CollapsibleTrigger>
-                  </SidebarGroupLabel>
-                  <CollapsibleContent>
+            {grupos.map((g, i) =>
+              g.recolhivel ? (
+                <SidebarGroup key={g.rotulo ?? i} className="py-0">
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuSub>
-                        {turmas.lista.map((t) => {
-                          const ativa = t.id === turmas.ativaId;
-                          return (
-                            <SidebarMenuSubItem key={t.id}>
-                              <form action={trocarTurma}>
-                                <input type="hidden" name="turmaId" value={t.id} />
-                                <SidebarMenuSubButton asChild isActive={ativa}>
-                                  <button type="submit" className="w-full">
-                                    <span
-                                      aria-hidden
-                                      className={
-                                        ativa
-                                          ? "size-2 shrink-0 rounded-full bg-[var(--vitrine-a)]"
-                                          : "size-2 shrink-0 rounded-full bg-border"
-                                      }
-                                    />
-                                    <span className="min-w-0 flex-1 truncate">{t.nome}</span>
-                                    {t.arquivada && (
-                                      <span className="shrink-0 rounded-full border px-1.5 text-[10px] font-normal text-muted-foreground">
-                                        arquivada
-                                      </span>
-                                    )}
-                                  </button>
-                                </SidebarMenuSubButton>
-                              </form>
-                            </SidebarMenuSubItem>
-                          );
-                        })}
-                        {turmas.podeAdicionar && (
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild>
-                              <Link href="/convite">
-                                <Plus aria-hidden />
-                                <span>Outra turma</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )}
-                      </SidebarMenuSub>
-                    </SidebarMenuItem>
+                    {/* Sidebar aberta: "Mais" recolhível. Recolhida a só ícones: os
+                        itens aparecem direto (o submenu não cabe). */}
+                    <GrupoMais
+                      rotulo={g.rotulo ?? "Mais"}
+                      hrefs={g.itens.map((x) => x.href)}
+                      icone={<Ellipsis aria-hidden />}
+                      className="group-data-[collapsible=icon]:hidden"
+                    >
+                      {g.itens.map((item) => (
+                        <Item key={item.href} item={item} sub />
+                      ))}
+                    </GrupoMais>
+                    {g.itens.map((item) => (
+                      <Item key={item.href} item={item} className="hidden group-data-[collapsible=icon]:block" />
+                    ))}
                   </SidebarMenu>
-                </CollapsibleContent>
-                </Collapsible>
-              </SidebarGroup>
-            )}
-
-            <SidebarGroup>
-              <SidebarMenu>
-                {itens.map(({ href, rotulo, icone: Icone, exato }) => (
-                  <SidebarMenuItem key={href}>
-                    <SidebarNavLink href={href} exato={exato} tooltip={rotulo}>
-                      <Icone aria-hidden />
-                      <span>{rotulo}</span>
-                    </SidebarNavLink>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-
-            {/* Sem ícone próprio: some inteiro no modo só ícones, não dá pra mostrar nada útil. */}
-            {rodapes.length > 0 && (
-              <SidebarGroup className="mt-auto group-data-[collapsible=icon]:hidden">
-                <SidebarMenu>
-                  {rodapes.map((r) => (
-                    <SidebarMenuItem key={r.href}>
-                      <SidebarNavLink href={r.href} exato>
-                        {r.rotulo}
-                      </SidebarNavLink>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroup>
+                </SidebarGroup>
+              ) : (
+                <SidebarGroup key={g.rotulo ?? i}>
+                  {g.rotulo && <SidebarGroupLabel>{g.rotulo}</SidebarGroupLabel>}
+                  <SidebarMenu>
+                    {g.itens.map((item) => (
+                      <Item key={item.href} item={item} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroup>
+              ),
             )}
           </SidebarContent>
 
           <SidebarFooter>
-            <div className="flex items-center gap-3 px-1 py-1 group-data-[collapsible=icon]:justify-center">
-              <AvatarUsuario nome={usuario.nome} imagem={usuario.imagem} />
-              <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-                <p className="truncate text-sm font-medium">{usuario.nome}</p>
-                <p className="truncate text-xs text-muted-foreground">{usuario.email}</p>
-              </div>
-              <div className="group-data-[collapsible=icon]:hidden">
-                <BotaoSair />
-              </div>
-            </div>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <MenuUsuario usuario={usuario} master={master} extras={extrasUsuario} />
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarFooter>
           <SidebarRail />
         </Sidebar>
 
         <SidebarInset>
-          <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur print:hidden">
+          <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-background/95 px-4 py-2 backdrop-blur print:hidden">
             <SidebarTrigger />
-            <Link href="/dashboard" className="shrink-0 text-lg font-semibold tracking-tight whitespace-nowrap md:hidden">
-              Formandos <span aria-hidden>🎓</span>
-            </Link>
-            <span className="min-w-0 flex-1 truncate text-right text-xs font-medium text-muted-foreground md:hidden">
-              {titulo}
-            </span>
-            <AlternadorTema className="ml-auto md:ml-0" />
+            {/* Celular: o nome da turma é o próprio seletor (D-02). */}
+            <div className="flex min-w-0 flex-1 justify-end md:hidden">
+              {seletor ? (
+                <SeletorTurma {...seletor} compacto />
+              ) : (
+                <span className="truncate text-sm font-medium text-muted-foreground">{titulo}</span>
+              )}
+            </div>
           </header>
           <main id="conteudo" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none sm:p-6 lg:p-8 2xl:p-12">
             <ConteudoTurma arquivadaEm={arquivadaEm} excluirEm={excluirEm}>

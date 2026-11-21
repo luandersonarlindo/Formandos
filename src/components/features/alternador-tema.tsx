@@ -40,7 +40,8 @@ function aplicar(tema: Tema): void {
   html.setAttribute(ATRIBUTO_TEMA, tema);
 }
 
-export function AlternadorTema({ rotulo = "Tema", className }: { rotulo?: string; className?: string }) {
+/** Estado do tema escolhido, sincronizado com o <html>, o aparelho e outras abas. */
+export function useTema() {
   const [tema, setTema] = React.useState<Tema | null>(null);
 
   // Depois da hidratação, adota o que já está no <html> (posto pelo script do
@@ -82,6 +83,26 @@ export function AlternadorTema({ rotulo = "Tema", className }: { rotulo?: string
     return () => window.removeEventListener("storage", aoMudar);
   }, []);
 
+  return { tema, escolher };
+}
+
+/** Itens de rádio do tema, para pôr dentro de qualquer DropdownMenu. */
+export function ItensTema({ tema, escolher }: { tema: Tema | null; escolher: (t: Tema) => void }) {
+  return (
+    <DropdownMenuRadioGroup value={tema ?? "sistema"} onValueChange={(v) => escolher(v as Tema)}>
+      {OPCOES.map(({ valor, rotulo: nome, Icone }) => (
+        <DropdownMenuRadioItem key={valor} value={valor}>
+          <Icone aria-hidden />
+          {nome}
+        </DropdownMenuRadioItem>
+      ))}
+    </DropdownMenuRadioGroup>
+  );
+}
+
+export function AlternadorTema({ rotulo = "Tema", className }: { rotulo?: string; className?: string }) {
+  const { tema, escolher } = useTema();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -94,14 +115,7 @@ export function AlternadorTema({ rotulo = "Tema", className }: { rotulo?: string
       <DropdownMenuContent align="end" className="min-w-40">
         <DropdownMenuLabel>{rotulo}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup value={tema ?? "sistema"} onValueChange={(v) => escolher(v as Tema)}>
-          {OPCOES.map(({ valor, rotulo: nome, Icone }) => (
-            <DropdownMenuRadioItem key={valor} value={valor}>
-              <Icone aria-hidden />
-              {nome}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+        <ItensTema tema={tema} escolher={escolher} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

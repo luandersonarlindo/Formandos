@@ -10,6 +10,8 @@ type SidebarNavLinkProps = {
   exato?: boolean;
   // Legenda mostrada como dica quando a sidebar está recolhida a só ícones.
   tooltip?: string;
+  /** Outras rotas que também deixam o item ativo. */
+  tambem?: string[];
   children: React.ReactNode;
 };
 
@@ -19,13 +21,14 @@ type SidebarNavLinkProps = {
 //
 // No celular a sidebar é uma gaveta por cima da página: tocar num link fecha a
 // gaveta, senão a página nova abre escondida atrás dela.
-export function SidebarNavLink({ href, exato = false, tooltip, children }: SidebarNavLinkProps) {
+export function SidebarNavLink({ href, exato = false, tooltip, tambem = [], children }: SidebarNavLinkProps) {
   const pathname = usePathname();
-  const { setOpenMobile } = useSidebar();
-  const ativo = exato ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const { setOpenMobile, isMobile } = useSidebar();
+  const casa = (base: string) => pathname === base || pathname.startsWith(`${base}/`);
+  const ativo = exato ? pathname === href : casa(href) || tambem.some(casa);
 
   return (
-    <SidebarMenuButton asChild isActive={ativo} tooltip={tooltip}>
+    <SidebarMenuButton asChild isActive={ativo} tooltip={isMobile ? undefined : tooltip}>
       <Link href={href} onClick={() => setOpenMobile(false)}>
         {children}
       </Link>

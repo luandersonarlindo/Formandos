@@ -1,14 +1,7 @@
-import type { Metadata } from "next";
-import { RegistroTurma } from "@/components/features/registro-turma";
-import { exigirAdmin } from "@/lib/dal";
-import { getRegistroTurma } from "@/lib/registro";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Registro da turma" };
-
-// Registro da turma da comissão (ADR-0007). O mesmo conteúdo, sem mudança,
-// fica para todo membro em /registro (ADR-0020).
-export default async function RegistroTurmaPage() {
-  const admin = await exigirAdmin();
-  const r = await getRegistroTurma(admin);
-  return <RegistroTurma r={r} voltar={{ href: "/admin/turma", rotulo: "Turma" }} />;
+// O registro da turma é o mesmo para todo membro (ADR-0020) e mora em
+// /registro. Esta rota ficou só para links antigos.
+export default function RegistroTurmaAdminPage() {
+  redirect("/registro");
 }

@@ -1,30 +1,7 @@
-import {
-  BarChart3,
-  CircleHelp,
-  ClipboardList,
-  FileText,
-  LayoutDashboard,
-  Megaphone,
-  Store,
-  Vote,
-  Wallet,
-} from "lucide-react";
-import { AppShell, type ItemMenu } from "@/components/features/app-shell";
+import { AppShell } from "@/components/features/app-shell";
 import { exigirMembro, exigirSessao, getSeletorTurmas } from "@/lib/dal";
 import { ehMaster } from "@/lib/master";
-
-const itens: ItemMenu[] = [
-  { href: "/dashboard", rotulo: "Dashboard", icone: LayoutDashboard },
-  { href: "/avisos", rotulo: "Avisos", icone: Megaphone },
-  { href: "/minha-situacao", rotulo: "Minha situação", icone: Wallet },
-  { href: "/tarefas", rotulo: "Tarefas", icone: ClipboardList },
-  { href: "/votacoes", rotulo: "Votações", icone: Vote, exato: true },
-  { href: "/votacoes/relatorio", rotulo: "Relatório", icone: BarChart3 },
-  // ADR-0020: todo membro guarda o registro da turma, não só a comissão.
-  { href: "/registro", rotulo: "Registro da turma", icone: FileText },
-  { href: "/duvidas", rotulo: "Dúvidas", icone: CircleHelp },
-  { href: "/terceiros", rotulo: "Terceiros", icone: Store },
-];
+import { menuDaTurma } from "@/lib/menu";
 
 // Exige login e turma (sem turma, vai para /convite).
 // Layouts não são reexecutados a cada navegação: páginas e Server Actions
@@ -37,20 +14,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <AppShell
       titulo={membro.turmaNome}
       turmas={await getSeletorTurmas(membro.turmaId)}
-      // Observador não tem parcelas (ADR-0012): o item some do menu.
-      itens={membro.papel === "observador" ? itens.filter((i) => i.href !== "/minha-situacao") : itens}
+      grupos={menuDaTurma(membro)}
       arquivadaEm={membro.arquivadaEm?.toISOString() ?? null}
       excluirEm={membro.excluirEm}
       usuario={{ nome: user.name, email: user.email, imagem: user.image }}
-      rodape={[
-        ...(membro.papel === "admin"
-          ? [{ href: "/admin/membros", rotulo: "Administrar a turma" }]
-          : []),
-        ...(ehMaster(user)
-          ? [{ href: "/master", rotulo: "Gestão da plataforma" }]
-          : []),
-        { href: "/conta", rotulo: "Minha conta" },
-      ]}
+      master={ehMaster(user)}
     >
       {children}
     </AppShell>

@@ -312,3 +312,34 @@ fica em `scripts/docs/fluxos-paginas.json`.
 <h4>30. <code>/api/auth/[...all]</code> — Endpoint do Better Auth</h4>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 224" role="img" aria-label="fluxo de /api/auth/[...all]" style="width:90%;max-width:100%;height:auto;display:block;margin:8pt auto;break-inside:avoid"><defs><marker id="g33a0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#94a3b8"/></marker><marker id="g33a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#94a3b8"/></marker></defs><rect x="16" y="16" width="362" height="41" rx="5" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.6"/><text x="29" y="34.5" text-anchor="start" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#334155">chegada</text><text x="29" y="48.2" text-anchor="start" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="500" fill="#475569">chamado pelo cliente (Better Auth)</text><path d="M197,57 V87" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#g33a0)"/><rect x="16" y="91" width="362" height="42" rx="5" fill="rgb(231,232,235)" stroke="#334155" stroke-width="1.6"/><text x="197" y="111.3" text-anchor="middle" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#111827">/api/auth/[...all]</text><text x="197" y="124.5" text-anchor="middle" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="400" fill="#64748b">src/app/api/auth/[...all]/route.ts:4</text><path d="M197,133 V163" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#g33a1)"/><rect x="16" y="167" width="362" height="41" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.6"/><text x="29" y="185.4" text-anchor="start" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#334155">o usuário vai para</text><text x="29" y="199.1" text-anchor="start" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="500" fill="#475569">responde JSON · nenhuma navegação</text></svg>
 </div>
+
+---
+
+## 4. Navegação a partir de 21/11/2026 (ADR-0025)
+
+O sitemap acima mostra as rotas, e elas continuam as mesmas. O que mudou foi o caminho até elas: participante e comissão usam **um menu só** por turma.
+
+```
+Sidebar
+├── [Turma ▾]  seletor de turma (no celular: o nome no cabeçalho)
+├── Início                /dashboard
+├── Votações              /votacoes  (abas Votar | Resultados → /votacoes/relatorio)
+├── Avisos                /avisos
+├── Dúvidas               /duvidas
+├── Minha situação        /minha-situacao   (observador não vê)
+├── Mais ▸
+│   ├── Tarefas           /tarefas
+│   ├── Fornecedores      /terceiros
+│   └── Registro da turma /registro
+├── Comissão              (só admin)
+│   ├── Membros           /admin/membros
+│   ├── Evento e presença /admin/evento  (abas Dados e programação | Presença → /admin/presenca)
+│   ├── Catálogos         /admin/votacoes
+│   ├── Tesouraria        /admin/tesouraria (só tesouraria; abas Membros | Plano e regras | Saídas)
+│   └── Turma             /admin/turma (abas Turma | Histórico)
+└── [Pessoa ▾]  Minha conta · Tema · Gestão da plataforma (master) · Sair
+```
+
+- `/admin/turma/registro` redireciona para `/registro`.
+- `/conta` abre dentro deste menu quando a pessoa tem turma.
+- A área `/master` continua com menu próprio (Resumo, Turmas, Usuários). O menu da pessoa tem "Voltar para a turma".
