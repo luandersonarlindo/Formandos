@@ -12,6 +12,7 @@ raiz por exigência das ferramentas — não mova sem conferir a coluna "Pode mo
 | `.impeccable/` | Sidecar do design system (`design.json`) | Skill impeccable | Não |
 | `PRODUCT.md` | Verdade de produto (carregado da raiz pelo impeccable) | Time + IA | Não |
 | `DESIGN.md` | Verdade visual (carregado da raiz pelo impeccable) | Time + IA | Não |
+| `docs/ux/` | Plano de simplificação de UX e auditoria de todas as telas | Time + IA | Sim |
 | `docs/design-system/` | Cópia persistida do design system (MASTER + páginas) | Time + IA | Sim (já está em `docs/`) |
 | `docs/sessoes/` | Notas de sessão de trabalho com IA | IA | Sim |
 

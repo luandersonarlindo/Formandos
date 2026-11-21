@@ -33,6 +33,7 @@
 | Muted Foreground | `oklch(0.556 0 0)` (4.73:1 on white) | `--muted-foreground` |
 | Border / Input | `oklch(0.922 0 0)` | `--border` / `--input` |
 | Destructive | `oklch(0.577 0.245 27.325)` | `--destructive` |
+| Warning (atraso, atenção) | `oklch(0.555 0.163 48.998)` claro / `oklch(0.828 0.189 84.429)` escuro | `--warning` |
 | Ring | `oklch(0.585 0.233 277.117)` | `--ring` |
 | Chart series (single, validated) | `#2a78d6` light / `#3987e5` dark | `--viz-serie-1` |
 
@@ -186,3 +187,23 @@ Before delivering any UI code, verify:
 - [ ] Touch targets ≥44px on coarse pointers
 - [ ] Responsive: 375px, 768px, 1024px, 1440px (+ TV scaling untouched)
 - [ ] `npm run typecheck` + `npm test` green
+
+
+---
+
+## Kit de padrões (plano de simplificação, 21/11/2026)
+
+Regras de uso em `docs/ux/plano-simplificacao.md` (seção 3) e em `DESIGN.md` (Page pattern, Lists and row actions, Forms, confirmation and feedback).
+
+| Situação | Componente |
+|---|---|
+| Cabeçalho da tela (título + 1 frase + 1 ação) | `CabecalhoPagina` |
+| Sub-seções da tela | `AbasRota` (abas que são URLs) |
+| Lista | `Item` / `<ul>` com `divide-y`, sem Card por linha |
+| Ações da linha | `MenuAcoes` ("⋯") com `AcaoLink`, `AcaoDialogo`, `AcaoForm`, `AcaoExcluir` |
+| Criar/editar | `FormDialog` (Cancelar + submit à direita) |
+| Excluir | `ConfirmarExclusao` (AlertDialog) |
+| Sucesso / erro | toast (Sonner) / inline `role="alert"` |
+| Vazio | `EstadoVazio` (sobre `Empty`) |
+| Busca / filtro | `CampoBusca` / `FiltrosPilula` |
+| Voltar | `LinkVoltar` |

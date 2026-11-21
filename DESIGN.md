@@ -11,6 +11,7 @@ colors:
   muted-foreground: "oklch(0.556 0 0)"
   border: "oklch(0.922 0 0)"
   destructive: "oklch(0.577 0.245 27.325)"
+  warning: "oklch(0.555 0.163 48.998)"
   ring: "oklch(0.585 0.233 277.117)"
   dataviz: "#2a78d6"
 typography:
@@ -119,6 +120,7 @@ A neutral light-first palette with one fixed brand accent. Dark mode remaps the 
 - **Muted Text** (oklch(0.556 0 0)): descriptions, metadata, placeholders (4.73:1 on Paper; 7.63:1 in dark mode).
 - **Hairline** (oklch(0.922 0 0)): borders and input strokes in light mode.
 - **Destructive** (oklch(0.577 0.245 27.325)): errors and destructive actions (4.76:1 on Paper; softened to 10–20% tints for destructive button fills).
+- **Warning** (oklch(0.555 0.163 48.998) light / oklch(0.828 0.189 84.429) dark, `--warning`): lateness and attention that is not an error — overdue installments, archived turma, "mudou" notices. 5.0:1 on Paper, 10.4:1 on the dark surface. Used as text or a 10–15% tint (`Badge variant="warning"`), never as a fill behind white text. Replaces every hardcoded `amber-*` utility.
 - **Focus Ring** (oklch(0.585 0.233 277.117)): input borders and focus rings in light mode; lightened in dark mode for contrast against the dark surface.
 - **Chart Blue** (#2a78d6 light / #3987e5 dark): the single validated dataviz series color (4.42:1 on white, 5.44:1 on the dark surface).
 
@@ -190,7 +192,23 @@ Hairline stroke, transparent fill, 8px radius, 32px height (44px on touch). Focu
 
 ### Navigation
 
-A fixed sidebar with a sticky in-app header (menu trigger, product wordmark, theme switcher). Menu items are full-width 8px-radius rows with muted-icon affordances and a tonal active state; the mobile sidebar arrives as a sheet. The skip link targets the content landmark on every route layout.
+One menu per turma (ADR-0025): main items (Início, Votações, Avisos, Dúvidas, Minha situação), a collapsible "Mais" (Tarefas, Fornecedores, Registro da turma) and, for admins only, a labeled "Comissão" group. The turma switcher is a dropdown at the top of the sidebar; on phones the turma name in the sticky header is the switcher itself. The footer holds the person's menu (Minha conta, Tema, Gestão da plataforma, Sair). Menu items are full-width 8px-radius rows with muted-icon affordances and a tonal active state; the mobile sidebar arrives as a sheet. No bottom bar. The skip link targets the content landmark on every route layout.
+
+### Page pattern
+
+Every internal screen follows the same shape (`CabecalhoPagina`): one Display title, at most one sentence of support, and at most **one** primary action on the right ("Novo aviso", "Nova tarefa"). Content comes before management; admins see the participant's screen plus that header button and a "⋯" per row. Sub-sections inside a screen are route tabs (`AbasRota`: each tab is a URL), never client-only state that a reload loses.
+
+### Lists and row actions
+
+Lists are rows (`Item`, or `<ul>` with `divide-y` inside one container), never one Card per row. A row shows at most one visible action; everything else lives in the row's "⋯" menu (`MenuAcoes`, `aria-label="Ações de {nome}"`), destructive item last after a separator. Filters are pill links with the state in the URL (`FiltrosPilula`, 44px on touch); search is `CampoBusca` (submit on Enter, clear inside the field).
+
+### Forms, confirmation and feedback
+
+- Create and edit happen in a Dialog (`FormDialog`) with "Cancelar" and the submit on the right; long forms go to one column on phones with optional fields under "Mais detalhes". No Drawer: dragging has no D-pad equivalent.
+- Fields use `Field` (label, description, error). 2–4 choices are a `ToggleGroup`/`RadioGroup`; 5+ stay a `NativeSelect` (works without JS, native picker on phones, predictable on TV).
+- Destructive actions confirm in an `AlertDialog` (`ConfirmarExclusao`) that names the item; typing a confirmation is reserved for cascading deletes (turma, user, own account).
+- Success is a toast (Sonner, bottom center, announced via `aria-live`, never steals focus). Errors stay inline next to the field or button (`role="alert"`) while the person fixes them.
+- Empty lists use `EstadoVazio` (built on `Empty`): title, one sentence, at most one action (the next step).
 
 ### Chips
 
@@ -218,4 +236,7 @@ Concrete guardrails grounded in the implemented system.
 - **Don't** set gradient text on functional headings or metrics; the vitrine hero title is the single exception.
 - **Don't** add a second chart series without a validated color; the dead gray `--chart-*` tokens were removed, and `--viz-serie-1` covers the single series.
 - **Don't** nest landmarks (a `main` inside a `main`) or label plain paragraphs and divs with `aria-label`; assistive technology ignores both.
-- **Don't** add new overlay scrim opacities; the single 40% scrim covers dialogs and sheets.
+- **Don't** add new overlay scrim opacities; the single 40% scrim covers dialogs, alert dialogs and sheets.
+- **Don't** use `vitrine-cartao`, `vitrine-fundo-hero` or `vitrine-texto-gradiente` inside the app; they belong to the vitrine and the auth/onboarding screens.
+- **Don't** put a Card around each row of a list or more than three Cards on one screen.
+- **Don't** show a success message inline where it can vanish with a closing dialog; use the toast.
