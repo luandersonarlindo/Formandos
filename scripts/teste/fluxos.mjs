@@ -1008,6 +1008,12 @@ await grupo("admin", async () => {
     await nav.clicar("Adicionar pergunta", { escopo: "@[role=dialog]", seletor: "button", contem: false });
     await dormir(1800);
     igual(await perguntas(), "Qual a música da abertura? > Segunda pergunta E2E", "pergunta nova vai para o fim");
+    // O banco já tem a pergunta, mas a tela pode ainda não ter redesenhado.
+    await nav.esperar(
+      "!![...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Subir a pergunta Segunda pergunta E2E')",
+      15000,
+      "botão de subir a pergunta nova",
+    );
     await nav.clicar("Subir a pergunta Segunda pergunta E2E", { seletor: "button" });
     await dormir(1800);
     igual(await perguntas(), "Segunda pergunta E2E > Qual a música da abertura?", "perguntas trocaram de lugar");
