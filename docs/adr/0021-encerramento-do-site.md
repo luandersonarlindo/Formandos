@@ -73,3 +73,16 @@ A seção "Se o Formandos for encerrado" passa a citar o mecanismo: a faixa em t
 ## Para decidir
 
 - Nada além da aprovação. O item já estava prometido na ADR-0009.
+
+### Andamento (2026-11-20)
+
+Feita. Diferenças em relação ao texto acima:
+
+- **O email sai por uma rota, e o script só a chama.** Um `.mjs` não consegue importar o envio de email do site (TypeScript, com `server-only`). Então `scripts/encerramento.sh` faz `POST /api/encerramento` com o mesmo `Authorization: Bearer $CRON_SECRET` dos lembretes, lido do ambiente ou do `.env.local`. Sem `CRON_SECRET`, a rota não existe (404); sem `ENCERRAMENTO_EM`, recusa (409). A resposta diz quantos foram enviados e quantos faltam.
+- **Tabela própria `avisos_encerramento`**, e não `lembretes_enviados`: a chave daquela tabela exige turma, e o aviso vai também a quem não tem turma. A marca some junto com a conta.
+- **Quem recebe:** todo usuário com email confirmado, mesmo quem desligou os emails da turma. Um por vez, até o teto diário; rodado de novo no dia seguinte, continua de onde parou.
+- **Faixa no layout raiz** (`FaixaEncerramento`), e não no `AppShell`: assim aparece em todas as telas, inclusive a vitrine, o login e os Termos. Some na impressão.
+- **Data inválida não liga nada:** `lerDataEncerramento` aceita só `AAAA-MM-DD` que exista no calendário. Melhor não mostrar faixa do que mostrar data errada.
+- **Variável lida no servidor:** no Docker (`next dev`) vale ao recriar o app. Num build de produção, as páginas estáticas guardam o valor do momento do build: defina a variável antes de gerar o build.
+- **Termos, seção 7:** dizem que o email vai a todos com conta, mesmo a quem desligou os emails, e que a faixa fica no topo de todas as telas. `.env.example` explica a variável.
+- Testes: `typecheck`, `npm test` (348; 6 novos em `encerramento.test.ts` e no email). Grupo novo `encerramento` em `fluxos.mjs`, fora da lista padrão (ver `scripts/teste/README.md`): faixa na vitrine e no dashboard, turma nova recusada, aviso por email uma vez só e rota recusando sem segredo. No Docker com `ENCERRAMENTO_EM=2099-03-01`, 3 de 3. O `scripts/encerramento.sh` rodado duas vezes: 7 enviados, depois 0.

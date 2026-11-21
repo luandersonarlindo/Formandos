@@ -19,6 +19,7 @@ import {
 } from "@/lib/email";
 import { gerarCodigoConvite, normalizarCodigo } from "@/lib/convite";
 import { COOKIE_CONVITE } from "@/lib/convite-link";
+import { dataEncerramento, erroTurmaNovaEncerramento } from "@/lib/encerramento";
 import { ipDoCliente, registrarTentativaErrada, tentativasEsgotadas } from "@/lib/convite-turma";
 import { removerMembroDaTurma } from "@/lib/saida-turma";
 import type { EstadoForm } from "./tipos";
@@ -62,6 +63,9 @@ export async function criarTurma(
   formData: FormData,
 ): Promise<EstadoForm> {
   const usuario = await getUsuarioAtual();
+  // ADR-0021: com o encerramento marcado, não se cria turma nova.
+  const encerramento = dataEncerramento();
+  if (encerramento) return { erro: erroTurmaNovaEncerramento(encerramento) };
 
   const dados = esquemaNome.safeParse({ nome: formData.get("nome") });
   if (!dados.success) return { erro: dados.error.issues[0].message };

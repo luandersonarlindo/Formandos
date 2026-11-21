@@ -482,3 +482,11 @@ alter table lembretes_enviados add constraint lembretes_enviados_tipo_check
 -- Entrada / portão do evento (ADR-0019): campo próprio para entrar no "Mudou"
 -- (comparar as observações inteiras faria qualquer vírgula virar mudança).
 alter table turmas add column if not exists entrada varchar(120);
+
+-- Aviso de encerramento do site (ADR-0021): quem já recebeu o email. Não usa
+-- `lembretes_enviados`, que exige turma: o aviso é para todo usuário, com ou
+-- sem turma. Some junto com a conta.
+create table if not exists avisos_encerramento (
+  usuario_id uuid primary key references usuarios(id) on delete cascade,
+  created_at timestamptz not null default now()
+);

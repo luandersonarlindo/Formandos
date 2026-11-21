@@ -2779,6 +2779,63 @@ await grupo("extras", async () => {
   });
 });
 
+// ADR-0021: só roda quando pedido pelo nome (`fluxos.mjs encerramento`), com o
+// app ligado com ENCERRAMENTO_EM=2099-03-01 (ver scripts/teste/README.md).
+// Fora da lista padrão: sem a variável, a faixa não existe e o grupo falharia.
+await grupo("encerramento", async () => {
+  const segredo = (fs.readFileSync(".env.local", "utf8").match(/^CRON_SECRET="?([^"\n]*)"?/m) ?? [])[1];
+  await passo("ADR-0021: faixa na vitrine e nas telas, e turma nova recusada", async () => {
+    await nav.cookie(null);
+    await nav.abrir("/");
+    await nav.esperarTexto("O Formandos será encerrado em 01/03/2099.");
+    await nav.cookie(lerCookie("cookie-admin.txt"));
+    await nav.abrir("/dashboard");
+    await nav.esperarTexto("O Formandos será encerrado em 01/03/2099.");
+    // Admin pode criar outra turma em /convite: com o encerramento, é recusado.
+    const antes = sql("select count(*) from turmas");
+    await nav.abrir("/convite");
+    await nav.preencher("#nome", "Turma Encerramento Teste");
+    await nav.clicar("Criar turma", { seletor: "button", contem: false });
+    await nav.esperarTexto("não aceita turmas novas");
+    igual(sql("select count(*) from turmas"), antes, "nenhuma turma criada");
+  });
+  await passo("ADR-0021: aviso por email a todos, uma vez só", async () => {
+    verdade(segredo, "CRON_SECRET no .env.local");
+    sql("delete from avisos_encerramento");
+    // Quem desligou os emails da turma também recebe.
+    sql(`update usuarios set receber_emails=false, "emailVerified"=true where email='teste-jl@example.invalid'`);
+    try {
+      const chamar = async () => {
+        const r = await fetch(`${nav.base}/api/encerramento`, {
+          method: "POST",
+          headers: { authorization: `Bearer ${segredo}` },
+        });
+        igual(r.status, 200, "rota do encerramento");
+        return r.json();
+      };
+      const primeira = await chamar();
+      igual(primeira.data, "2099-03-01", "data do encerramento");
+      verdade(primeira.enviados > 0 && primeira.faltam === 0, `primeira rodada: ${JSON.stringify(primeira)}`);
+      const email = await ultimoEmail("O Formandos será encerrado em 01/03/2099");
+      verdade(email.includes("/registro"), "email leva ao registro da turma");
+      igual(
+        sql(`select count(*) from avisos_encerramento a join usuarios u on u.id=a.usuario_id
+              where u.email in ('teste-sh@example.invalid','teste-jl@example.invalid')`),
+        "2",
+        "as duas pessoas de teste marcadas",
+      );
+      const segunda = await chamar();
+      igual(segunda.enviados, 0, "ninguém recebe duas vezes");
+      // Sem segredo, a rota recusa.
+      const sem = await fetch(`${nav.base}/api/encerramento`, { method: "POST" });
+      igual(sem.status, 401, "sem segredo");
+    } finally {
+      sql(`update usuarios set receber_emails=true where email='teste-jl@example.invalid'`);
+      sql("delete from avisos_encerramento");
+    }
+  });
+});
+
 await nav.fechar();
 const ruins = resultados.filter((r) => !r.ok);
 console.log(`\n${resultados.length - ruins.length}/${resultados.length} passos ok`);

@@ -65,6 +65,22 @@ Para reiniciar o servidor, mate pelo PID (`ss -ltnp | grep :3000`); `pkill -f`
 derruba o próprio terminal do agente. O grupo `extras` cria e apaga
 temporariamente `src/app/(app)/teste-erro/` para provocar a tela de erro.
 
+### Grupo `encerramento` (ADR-0021)
+
+Fica fora da lista padrão: só roda pedido pelo nome, com o app ligado com
+`ENCERRAMENTO_EM`. Sem mexer no `.env.local`, use um override de compose:
+
+```bash
+printf 'services:\n  app:\n    environment:\n      ENCERRAMENTO_EM: "2099-03-01"\n' > /tmp/encerramento.yaml
+docker compose -f compose.yaml -f /tmp/encerramento.yaml up -d app
+node scripts/teste/fluxos.mjs encerramento
+docker compose up -d app   # volta ao normal, sem a faixa
+```
+
+Precisa de `CRON_SECRET` no `.env.local`. O grupo confere a faixa na vitrine
+e no dashboard, a recusa de turma nova e o aviso por email (`/api/encerramento`)
+saindo uma vez só, inclusive para quem desligou os emails da turma.
+
 ## O que cada arquivo faz
 
 - `fluxos.mjs` e `lib/navegador.mjs`: os testes de fluxo acima e o pequeno

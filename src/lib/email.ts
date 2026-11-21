@@ -674,6 +674,35 @@ export function emailExclusaoTurma(d: {
 
 // Convite por lista (ADR-0007). A pessoa ainda não é usuária: o email diz
 // quem colou o endereço, que nada foi criado e que o endereço some em 90 dias.
+// Encerramento do site (ADR-0021): vai a todo usuário com email confirmado,
+// mesmo com os emails da turma desligados, porque é sobre os dados dele.
+export function emailEncerramento(d: { nome: string; data: string }): Omit<Email, "para"> {
+  const quando = isoParaBr(d.data);
+  const conta = urlDoSite("/conta");
+  const registro = urlDoSite("/registro");
+  const abertura = `O Formandos será encerrado em ${quando}. Até lá tudo continua funcionando, mas não se cria turma nova.`;
+  const fazer = "Antes dessa data, baixe seus dados em Minha conta e o registro da turma (decisões, votações, caixa), para imprimir ou salvar como PDF.";
+  const some = "No dia do encerramento, todos os dados são apagados. As cópias de segurança somem em até 30 dias.";
+  const motivo = "Você recebe este email porque tem conta no Formandos. Ele chega mesmo com os emails da turma desligados, porque é sobre os seus dados.";
+  return {
+    assunto: `O Formandos será encerrado em ${quando}`,
+    texto: [`Olá, ${d.nome}!`, abertura, fazer, some, `Minha conta: ${conta}`, `Registro da turma: ${registro}`, `—\n${motivo}`].join("\n\n"),
+    html: caixaEmail({
+      preheader: `Baixe seus dados até ${quando}.`,
+      titulo: `O Formandos será encerrado em ${quando}`,
+      acento: "aviso",
+      motivo,
+      corpo:
+        p(escapar(abertura)) +
+        p(escapar(fazer)) +
+        p(escapar(some)) +
+        botao(conta, "Baixar meus dados") +
+        linkCru(conta) +
+        pApagado(`Registro da turma: <span style="word-break:break-all">${escapar(registro)}</span>`),
+    }),
+  };
+}
+
 export function emailConviteTurma(d: {
   nome: string | null;
   turma: string;

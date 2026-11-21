@@ -80,10 +80,11 @@ export default function TermosPage() {
         <section>
           <h2 className="font-semibold">7. Se o Formandos for encerrado</h2>
           <p className="mt-1 text-muted-foreground">
-            Avisamos todos os usuários por email e numa faixa no site com 60 dias
-            de antecedência. Nesse prazo, não se cria turma nova, mas tudo continua
-            funcionando: a comissão exporta o registro da turma e cada pessoa
-            baixa os próprios dados em Minha conta. No fim do prazo, todos os
+            Avisamos todos os usuários com 60 dias de antecedência: por email,
+            a todos com conta, mesmo a quem desligou os emails da turma, e numa
+            faixa no topo de todas as telas do site. Nesse prazo, não se cria
+            turma nova, mas tudo continua funcionando: cada pessoa baixa os
+            próprios dados em Minha conta e o registro da turma. No fim do prazo, todos os
             dados são apagados, e as cópias de segurança somem em até 30 dias.
             Quem mantém o site é {EMPRESA.responsavel}. Se outra pessoa assumir,
             todos são avisados por email antes, com o nome de quem assume.

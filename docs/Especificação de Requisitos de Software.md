@@ -432,7 +432,7 @@ Origem: `docs/simulacoes/levantamento-rodada-2.md`, seções 3 e 4. São **espec
 | RF-56 | O texto pronto do evento DEVE começar com "MUDOU: [campo] era X, agora é Y" quando houver mudança dos últimos 14 dias. | S | 0.1 | temas 7, 9 | Atendido (ADR-0017) |
 | RF-57 | O evento DEVE ter um campo "Entrada / portão" que entra no "Mudou em", no EM-14 e no texto pronto. | S | 1.2 | temas 7, 9 | Atendido (ADR-0019) |
 | RF-58 | Todo membro DEVE poder baixar o Registro da turma em PDF, pelo menos com a turma arquivada. | S | 1.3 | tema 8 | Atendido (ADR-0020: sempre, em `/registro`) |
-| RF-59 | O sistema DEVE ter a faixa no site e o email a todos os usuários para o encerramento com 60 dias de aviso, prometidos nos Termos. | S | 1.4 | tema 8; ADR-0009 | Pendente |
+| RF-59 | O sistema DEVE ter a faixa no site e o email a todos os usuários para o encerramento com 60 dias de aviso, prometidos nos Termos. | S | 1.4 | tema 8; ADR-0009 | Atendido (ADR-0021) |
 | RF-60 | A tela de convite DEVE mostrar o nome da turma e de quem convidou. | S | 0.2 | tema 3 | Atendido (ADR-0020) |
 | RF-61 | O "valor por pessoa" DEVE dizer se é o total ou por mês. | S | 0.3 | tema 5 | Proposto |
 | RF-62 | A tela de votação DEVE dizer: "Ninguém da comissão muda o seu voto; mudanças em decisões ficam no histórico". | C | 0.4 | tema 10 | Atendido (ADR-0017) |
@@ -577,7 +577,7 @@ Vale a partir da publicação. Projeto acadêmico, sem compensação financeira 
 | LAC-05 | Sem health check | **Resolvida**: `/api/healthz` (banco e última execução dos lembretes) | — |
 | LAC-06 | Sem integração contínua | **Parcial**: CI com typecheck e testes; sem build e sem E2E (TEST-12) | — |
 | LAC-07 | `fornecedores.turma_id` aceita nulo | Continua | Registro antigo sem turma não aparece. |
-| LAC-08 | Encerramento do site só em texto | Continua (RF-59) | O aviso de 60 dias depende de trabalho manual se for preciso. |
+| LAC-08 | Encerramento do site só em texto | Resolvido (RF-59, ADR-0021) | O aviso de 60 dias depende de trabalho manual se for preciso. |
 | LAC-09 | Sem hospedagem pública | Continua | 3.3.3, 3.3.6 e o monitoramento são alvo, não compromisso. |
 | LAC-10 | Votação nova e aviso novo sem email | Parcial: votação resolvida (RF-55, ADR-0018); aviso novo continua sem email | A comissão cola no grupo; quem silenciou o grupo não fica sabendo. |
 | LAC-11 | O texto pronto do evento não diz que algo mudou | Resolvido (RF-56, ADR-0017) | Quem lê só o grupo não percebe a mudança. |

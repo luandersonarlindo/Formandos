@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   emailDecisao,
+  emailEncerramento,
   emailExclusaoTurma,
   emailEventoMudou,
   emailPrazoParcela,
@@ -394,6 +395,17 @@ describe("emails da turma", () => {
 
   it("evento mostra antes e agora", () => {
     expect(casos[1][1].texto).toContain("Horário: era 20:00, agora é 19:00");
+  });
+});
+
+describe("aviso de encerramento do site (ADR-0021)", () => {
+  it("assunto com a data e o caminho para guardar os dados", () => {
+    const e = emailEncerramento({ nome: "Ana", data: "2027-03-01" });
+    expect(e.assunto).toBe("O Formandos será encerrado em 01/03/2027");
+    expect(e.texto).toContain("baixe seus dados em Minha conta e o registro da turma");
+    expect(e.texto).toContain("/registro");
+    expect(e.texto).toContain("mesmo com os emails da turma desligados");
+    expect(e.texto).not.toContain("desligue em Minha conta");
   });
 });
 

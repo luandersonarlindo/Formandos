@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { FaixaEncerramento } from "@/components/features/faixa-encerramento";
 import { ScriptTema } from "@/components/features/script-tema";
 import "./globals.css";
 
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Pular para o conteúdo
         </a>
+        <FaixaEncerramento />
         {children}
       </body>
     </html>
