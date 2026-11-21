@@ -29,6 +29,8 @@ export type CatalogoAdmin = {
   nome: string;
   padrao: boolean;
   enquetes: number;
+  // Perguntas com decisão fixada nesta turma (P-13 do plano de UX): "3 de 12 decididas".
+  decididas: number;
 };
 
 // `votos` é a trava de remoção: o servidor só apaga uma opção sem voto nenhum
@@ -61,6 +63,8 @@ export type EnqueteAdmin = {
   regra: RegraAdmin;
   // Já tem decisão fixada nesta turma (o texto "Mandar para o grupo" muda).
   decidida: boolean;
+  // Textos das opções fixadas, para o badge "Decidida: Buffet A" (P-13).
+  decisao: string[];
   // Só vale para o catálogo padrão: pergunta que esta turma escolheu não ver.
   oculta: boolean;
   // ADR-0018: prazo marcado e ainda no futuro; quando a turma foi avisada.
@@ -127,7 +131,11 @@ export async function listarCatalogosAdmin(turmaId: string): Promise<CatalogoAdm
     `select c.id, c.nome, c.turma_id is null as padrao,
             (select count(*) from enquetes e
                join categorias ca on ca.id = e.categoria_id
-              where ca.catalogo_id = c.id)::int as enquetes
+              where ca.catalogo_id = c.id)::int as enquetes,
+            (select count(distinct d.enquete_id) from decisoes d
+               join enquetes e on e.id = d.enquete_id
+               join categorias ca on ca.id = e.categoria_id
+              where ca.catalogo_id = c.id and d.turma_id = $1)::int as decididas
        from catalogos c
       where ${catalogoVisivelSql("$1")}
       order by (c.turma_id is null) desc, c.nome`,
@@ -158,6 +166,8 @@ export async function getCatalogoAdmin(
                        where eo.turma_id = $2 and eo.enquete_id = e.id) as oculta,
               exists (select 1 from decisoes d
                        where d.turma_id = $2 and d.enquete_id = e.id) as decidida,
+              array(select d.opcao_id from decisoes d
+                     where d.turma_id = $2 and d.enquete_id = e.id) as "decisaoIds",
               r.prazo, r.quorum_pct as "quorumPct", coalesce(r.secreto, false) as secreto,
               coalesce(to_char(r.prazo at time zone 'America/Sao_Paulo',
                                'YYYY-MM-DD"T"HH24:MI'), '') as "prazoLocal",
@@ -215,6 +225,9 @@ export async function getCatalogoAdmin(
           votantes: n.get(e.id) ?? 0,
           oculta: e.oculta,
           decidida: e.decidida,
+          decisao: opcoes.rows
+            .filter((o) => o.enquete_id === e.id && (e.decisaoIds as string[]).includes(o.id))
+            .map((o) => o.texto as string),
           // ADR-0018: o email de votação aberta sai uma vez por pergunta.
           prazoAberto: e.prazoAberto as boolean,
           avisadaEm: e.avisadaEm as Date | null,

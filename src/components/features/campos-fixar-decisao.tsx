@@ -73,7 +73,7 @@ export function CamposFixarDecisao({
         {opcoes.map((o) => (
           <label
             key={o.id}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-[var(--vitrine-a)] has-checked:bg-[color-mix(in_oklch,var(--vitrine-a)_8%,transparent)] has-checked:font-medium"
+            className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors pointer-coarse:min-h-11 hover:bg-muted has-checked:border-[var(--vitrine-a)] has-checked:bg-[color-mix(in_oklch,var(--vitrine-a)_8%,transparent)] has-checked:font-medium"
           >
             <input
               type={tipo === "unica" ? "radio" : "checkbox"}
@@ -101,9 +101,9 @@ export function CamposFixarDecisao({
       {exige && (
         <div
           role="status"
-          className="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+          className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
         >
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
           <div>
             <p className="font-medium">Esta decisão foge da regra combinada.</p>
             <ul className="mt-1 list-disc pl-4 text-muted-foreground">

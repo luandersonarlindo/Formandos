@@ -1,27 +1,27 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Crown, Eye, Landmark, ListPlus, MailCheck, RefreshCw, RotateCw, Search, ShieldCheck, ShieldOff, TriangleAlert, UserMinus, Users, X } from "lucide-react";
+import { RefreshCw, RotateCw, UserMinus, X } from "lucide-react";
 import { alterarPapel, regenerarConvite, removerMembro } from "@/actions/admin";
 import { alternarTesouraria } from "@/actions/tesouraria";
+import type { EstadoForm } from "@/actions/tipos";
 import { ROTULO_PAPEL } from "@/lib/papeis";
 import { removerConvite, reenviarConvite } from "@/actions/convites";
-import { FormConvitesLista } from "@/components/features/form-convites-lista";
-import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
-import { formatarDataHora } from "@/lib/datas";
+import { AvatarUsuario } from "@/components/features/avatar-usuario";
 import { BotaoConvite } from "@/components/features/botao-convite";
 import { BotaoCopiar } from "@/components/features/botao-copiar";
-import { ConfirmarExclusao } from "@/components/features/confirmar-exclusao";
-import { AvatarUsuario } from "@/components/features/avatar-usuario";
+import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
+import { CampoBusca } from "@/components/features/campo-busca";
 import { EstadoVazio } from "@/components/features/estado-vazio";
-import { FormDialog } from "@/components/features/form-dialog";
+import { ConvidarPorEmail } from "@/components/features/form-convites-lista";
+import { AcaoDialogo, MenuAcoes } from "@/components/features/menu-acoes";
+import { MenuGestao, type ConfirmacaoMenu } from "@/components/features/menu-gestao";
+import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { Paginacao } from "@/components/features/paginacao";
 import { EquipeAmico } from "@/components/ilustracoes/equipe-amico";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { listarMembrosAdmin } from "@/lib/admin";
 import { lerBusca } from "@/lib/busca";
+import { formatarDataHora } from "@/lib/datas";
 import { exigirAdmin } from "@/lib/dal";
 import { pool } from "@/lib/db";
 import { formatarReal } from "@/lib/orcamento";
@@ -29,6 +29,20 @@ import { lerPagina } from "@/lib/paginacao";
 
 export const metadata: Metadata = { title: "Membros" };
 
+// A action da tesouraria não devolve estado; a confirmação do menu precisa de
+// um texto para o toast (e de fechar o diálogo).
+async function tesouraria(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
+  "use server";
+  await alternarTesouraria(dados);
+  return { ok: "Tesouraria atualizada." };
+}
+
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+
+// Membros da turma: uma linha por pessoa e um "⋯" com as mudanças de papel
+// (D-05). Antes eram até quatro botões do mesmo peso por pessoa — numa turma de
+// 40, uns 160 botões e dezenas de paradas no D-pad. Toda mudança de poder
+// (papel, observador, tesouraria) agora pede confirmação (P-16).
 export default async function MembrosPage({ searchParams }: PageProps<"/admin/membros">) {
   const admin = await exigirAdmin();
   const { busca: buscaParametro, pagina: paginaParametro } = await searchParams;
@@ -55,150 +69,100 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
 
   return (
     <div className="mx-auto w-full max-w-4xl 2xl:max-w-6xl">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Membros</h1>
-      <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
-        <span>
-          {totais.membros} {totais.membros === 1 ? "membro" : "membros"} na turma
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-sm">
-          <Crown className="size-4 text-[var(--vitrine-a)]" aria-hidden />
-          {totalAdmins} {totalAdmins === 1 ? "administrador" : "administradores"}
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-sm">
-          <Users className="size-4 text-[var(--vitrine-a)]" aria-hidden />
-          {participantes} {participantes === 1 ? "participante" : "participantes"}
-        </span>
-        {observadores > 0 && (
-          <span className="inline-flex items-center gap-1.5 text-sm">
-            <Eye className="size-4 text-[var(--vitrine-a)]" aria-hidden />
-            {observadores} {observadores === 1 ? "observador" : "observadores"}
-          </span>
-        )}
-      </p>
+      <CabecalhoPagina
+        titulo="Membros"
+        descricao={[
+          `${plural(totais.membros, "membro", "membros")} na turma`,
+          plural(totalAdmins, "administrador", "administradores"),
+          plural(participantes, "participante", "participantes"),
+          observadores > 0 ? plural(observadores, "observador", "observadores") : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        acao={<ConvidarPorEmail desligado={!!admin.arquivadaEm} />}
+      />
 
-      <Card className="vitrine-fundo-hero mt-6">
-        <CardHeader>
-          <CardDescription>
-            Código de convite de {admin.turmaNome}: quem tiver este código entra
-            como participante.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          <div
-            role="img"
-            aria-label={`Código de convite: ${codigo}`}
-            className="flex flex-wrap gap-2"
-          >
-            {[...codigo].map((letra, i) => (
-              <span
-                key={i}
-                aria-hidden
-                className="vitrine-texto-gradiente flex h-14 w-11 items-center justify-center rounded-xl border bg-background/80 font-mono text-3xl font-semibold sm:h-16 sm:w-13 sm:text-4xl"
-              >
-                {letra}
-              </span>
-            ))}
+      {/* O código é o caminho mais comum para entrar: fica compacto, com
+          "Copiar mensagem de convite" à vista. Trocar o código é raro e
+          invalida o atual, então vai para o "⋯". */}
+      <section aria-labelledby="titulo-convite" className="mt-6 rounded-xl border px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <div className="min-w-0 flex-1 basis-48">
+            <h2 id="titulo-convite" className="text-sm text-muted-foreground">
+              Código de convite
+            </h2>
+            <p className="font-mono text-2xl font-semibold tracking-[0.2em] break-all">{codigo}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <BotaoCopiar texto={codigo} rotulo="Copiar código" />
             <BotaoConvite nomeTurma={admin.turmaNome} codigo={codigo} />
-            <FormDialog
-              rotulo="Gerar novo código"
-              icone={<RefreshCw aria-hidden />}
-              titulo="Gerar um novo código"
-              descricao="O código anterior deixa de funcionar. Quem já entrou continua na turma."
-              acao={regenerarConvite}
-              rotuloSubmit="Gerar novo código"
-              rotuloPendente="Gerando…"
-            />
+            <BotaoCopiar texto={codigo} rotulo="Copiar código" variante="outline" />
+            <MenuAcoes nome="código de convite">
+              <AcaoDialogo
+                rotulo="Gerar novo código"
+                icone={<RefreshCw aria-hidden />}
+                titulo="Gerar um novo código"
+                descricao="O código anterior deixa de funcionar. Quem já entrou continua na turma."
+                acao={regenerarConvite}
+                rotuloSubmit="Gerar novo código"
+                rotuloPendente="Gerando…"
+              />
+            </MenuAcoes>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* ADR-0007: trazer a lista da turma de uma vez, por convite. */}
-      <Card className="mt-4">
-        <CardHeader>
-          <p className="flex items-center gap-2 text-lg font-semibold">
-            <ListPlus className="size-5 text-[var(--vitrine-a)]" aria-hidden /> Convidar por lista
-          </p>
-          <CardDescription className="text-pretty">
-            Cole os emails da turma e cada pessoa recebe o link de convite por email. Ninguém ganha conta nem entra
-            sem tocar no link.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <FormConvitesLista />
-          {convidados.length > 0 && (
-            <PainelRecolhivel className="rounded-xl border p-3">
-              <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-                <MailCheck className="size-4 text-[var(--vitrine-a)]" aria-hidden />
-                Convidados que ainda não entraram ({convidados.length})
-              </summary>
-              <ul className="mt-3 divide-y text-sm">
-                {convidados.map((c) => (
-                  <li key={c.email} data-convidado={c.email} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
-                    <span className="min-w-0 flex-1 truncate">
-                      {c.nome ? `${c.nome} · ` : ""}
-                      {c.email}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      enviado em {formatarDataHora.format(c.enviadoEm)}
-                    </span>
-                    {!admin.arquivadaEm && (
-                      <span className="flex gap-1">
-                        {c.podeReenviar && (
-                          <form action={reenviarConvite}>
-                            <input type="hidden" name="email" value={c.email} />
-                            <Button type="submit" size="sm" variant="outline">
-                              <RotateCw aria-hidden /> Reenviar
-                            </Button>
-                          </form>
-                        )}
-                        <form action={removerConvite}>
+        </div>
+        {convidados.length > 0 && (
+          <PainelRecolhivel className="mt-3 border-t pt-3">
+            <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium pointer-coarse:min-h-11">
+              Convidados que ainda não entraram ({convidados.length})
+            </summary>
+            <ul className="mt-2 divide-y text-sm">
+              {convidados.map((c) => (
+                <li key={c.email} data-convidado={c.email} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                  <span className="min-w-0 flex-1 truncate">
+                    {c.nome ? `${c.nome} · ` : ""}
+                    {c.email}
+                  </span>
+                  <span className="text-xs text-muted-foreground">enviado em {formatarDataHora.format(c.enviadoEm)}</span>
+                  {!admin.arquivadaEm && (
+                    <span className="flex gap-1">
+                      {c.podeReenviar && (
+                        <form action={reenviarConvite}>
                           <input type="hidden" name="email" value={c.email} />
-                          <Button type="submit" size="sm" variant="ghost" aria-label={`Tirar ${c.email} da lista`}>
-                            <X aria-hidden />
+                          <Button type="submit" size="sm" variant="outline">
+                            <RotateCw aria-hidden /> Reenviar
                           </Button>
                         </form>
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Reenvio no máximo uma vez por dia. O endereço some quando a pessoa entra, ou em 90 dias.
-              </p>
-            </PainelRecolhivel>
-          )}
-        </CardContent>
-      </Card>
-
-      <form action="/admin/membros" role="search" className="mt-6 flex gap-2">
-        <div className="relative flex-1">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            type="search"
-            name="busca"
-            defaultValue={busca}
-            maxLength={100}
-            placeholder="Buscar por nome ou email"
-            aria-label="Buscar membro por nome ou email"
-            autoComplete="off"
-            className="h-10 pl-9"
-          />
-        </div>
-        <Button type="submit" size="lg">
-          Buscar
-        </Button>
-        {busca && (
-          <Link href="/admin/membros" className={buttonVariants({ variant: "outline", size: "lg" })}>
-            Limpar
-          </Link>
+                      )}
+                      <form action={removerConvite}>
+                        <input type="hidden" name="email" value={c.email} />
+                        <Button
+                          type="submit"
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label={`Tirar ${c.email} da lista`}
+                          title={`Tirar ${c.email} da lista`}
+                        >
+                          <X aria-hidden />
+                        </Button>
+                      </form>
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Reenvio no máximo uma vez por dia. O endereço some quando a pessoa entra, ou em 90 dias.
+            </p>
+          </PainelRecolhivel>
         )}
-      </form>
+      </section>
+
+      <CampoBusca
+        acao="/admin/membros"
+        valor={busca}
+        placeholder="Buscar por nome ou email"
+        rotulo="Buscar membro por nome ou email"
+        className="mt-6"
+      />
       {busca && (
         <p role="status" className="mt-3 text-sm text-muted-foreground">
           {encontrados} {encontrados === 1 ? "membro encontrado" : "membros encontrados"} para “{busca}”.
@@ -213,126 +177,100 @@ export default async function MembrosPage({ searchParams }: PageProps<"/admin/me
           titulo="Nenhum membro encontrado"
         />
       ) : (
-        <>
-          <p className="mt-4 flex items-start gap-1.5 text-sm text-muted-foreground">
-            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            Remover alguém tira a pessoa da turma e apaga o que ela deixou nela: votos,
-            dúvidas, confirmações de presença e votos nas dúvidas dos outros.
-          </p>
-          <ul data-grupo className="mt-4 grid gap-3">
+        <ul data-grupo className="mt-4 divide-y rounded-xl border">
           {rows.map((m) => {
             const ehVoce = m.id === admin.usuarioId;
             const ultimoAdmin = m.papel === "admin" && totalAdmins === 1;
+            const confirmacoes: ConfirmacaoMenu[] = [];
+            if (!ultimoAdmin) {
+              confirmacoes.push({
+                rotulo: m.papel === "admin" ? "Tornar participante" : "Promover",
+                titulo: m.papel === "admin" ? `Tornar ${m.name} participante?` : `Promover ${m.name}?`,
+                descricao:
+                  m.papel === "admin"
+                    ? `${m.name} deixa de ser administrador e vira participante.`
+                    : `Promover ${m.name} a administrador. Administradores gerenciam a turma inteira.`,
+                acao: alterarPapel,
+                campos: { usuarioId: m.id, papel: m.papel === "admin" ? "participante" : "admin" },
+                confirmar: m.papel === "admin" ? "Sim, tornar participante" : "Sim, promover",
+              });
+            }
+            // Observador (ADR-0012): professor ou orientador que acompanha sem
+            // votar e sem pagar. A troca passa por participante.
+            if (m.papel !== "admin") {
+              const volta = m.papel === "observador";
+              confirmacoes.push({
+                rotulo: volta ? "Voltar a participante" : "Tornar observador",
+                titulo: volta ? `${m.name} volta a participante?` : `Tornar ${m.name} observador?`,
+                descricao: volta
+                  ? `${m.name} volta a votar, a contar no quórum e a ter parcelas.`
+                  : `${m.name} passa a acompanhar a turma sem votar e sem pagar: sai do quórum, das parcelas e dos lembretes de prazo. Continua vendo tudo e confirmando a própria presença. Os votos de ${m.name} em perguntas ainda abertas serão apagados. Para professor, orientador ou coordenador.`,
+                acao: alterarPapel,
+                campos: { usuarioId: m.id, papel: volta ? "participante" : "observador" },
+                confirmar: volta ? "Sim, voltar a participante" : "Sim, tornar observador",
+              });
+            }
+            // Só admin cuida do dinheiro (ADR-0005). Quem é tesouraria vê e
+            // lança quanto cada pessoa pagou.
+            if (m.papel === "admin") {
+              const rotulo = m.tesouraria ? "Tirar da tesouraria" : "Pôr na tesouraria";
+              confirmacoes.push({
+                rotulo,
+                titulo: `${rotulo}: ${m.name}?`,
+                descricao: m.tesouraria
+                  ? `${m.name} deixa de ver e lançar os pagamentos de cada pessoa.`
+                  : `${m.name} passa a ver e lançar os pagamentos de cada pessoa da turma.`,
+                acao: tesouraria,
+                campos: { usuarioId: m.id },
+                confirmar: m.tesouraria ? "Sim, tirar da tesouraria" : "Sim, pôr na tesouraria",
+              });
+            }
             return (
-              <li key={m.id}>
-                <Card>
-                  <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-3">
-                    <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
-                      <AvatarUsuario nome={m.name} imagem={m.image} className="size-10" />
-                      <div className="min-w-0">
-                        <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium">
-                          <span className="truncate">{m.name}</span>
-                          {ehVoce && <span className="font-normal text-muted-foreground">(você)</span>}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">{m.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-                      <Badge variant={m.papel === "admin" ? "default" : "secondary"}>
-                        {ROTULO_PAPEL[m.papel]}
-                      </Badge>
-                      {m.tesouraria && (
-                        <Badge variant="outline">
-                          <Landmark aria-hidden /> Tesouraria
-                        </Badge>
-                      )}
-                      {/* Só admin cuida do dinheiro (ADR-0005). Quem é tesouraria
-                          vê e lança quanto cada pessoa pagou. */}
-                      {m.papel === "admin" && (
-                        <form action={alternarTesouraria}>
-                          <input type="hidden" name="usuarioId" value={m.id} />
-                          <Button type="submit" size="sm" variant="outline">
-                            <Landmark aria-hidden />
-                            {m.tesouraria ? "Tirar da tesouraria" : "Pôr na tesouraria"}
-                          </Button>
-                        </form>
-                      )}
-                      {!ultimoAdmin && (
-                        <FormDialog
-                          rotulo={
-                            m.papel === "admin" ? "Tornar participante" : "Promover"
+              <li key={m.id} className="flex items-center gap-3 px-4 py-3">
+                <AvatarUsuario nome={m.name} imagem={m.image} className="size-10" />
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium">
+                    <span className="truncate">{m.name}</span>
+                    {ehVoce && <span className="font-normal text-muted-foreground">(você)</span>}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+                  {/* Papel embaixo do nome: no celular, ao lado, espremia o email. */}
+                  <p className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <Badge variant={m.papel === "admin" ? "default" : "secondary"}>{ROTULO_PAPEL[m.papel]}</Badge>
+                    {m.tesouraria && <Badge variant="outline">Tesouraria</Badge>}
+                  </p>
+                </div>
+                {(confirmacoes.length > 0 || !ehVoce) && (
+                  <MenuGestao
+                    nome={m.name}
+                    confirmacoes={confirmacoes}
+                    excluir={
+                      ehVoce
+                        ? undefined
+                        : {
+                            acao: removerMembro,
+                            campos: { usuarioId: m.id },
+                            alvo: "o membro",
+                            nome: `${m.name} (${m.email})`,
+                            aviso:
+                              m.pagou > 0
+                                ? `Some da turma junto com o que deixou nela: votos, dúvidas e presença. ${
+                                    admin.tesouraria
+                                      ? `Pagou ${formatarReal.format(m.pagou)}: `
+                                      : "Tem pagamentos registrados: "
+                                  }os confirmados continuam no caixa da turma, sem o nome. Se houver devolução, a tesouraria deve lançar antes.`
+                                : "Some da turma junto com o que deixou nela: votos, dúvidas, confirmações de presença e votos nas dúvidas dos outros.",
+                            rotulo: "Remover",
+                            icone: <UserMinus aria-hidden />,
+                            sucesso: "Membro removido.",
                           }
-                          icone={
-                            m.papel === "admin" ? (
-                              <ShieldOff aria-hidden />
-                            ) : (
-                              <ShieldCheck aria-hidden />
-                            )
-                          }
-                          titulo="Trocar papel"
-                          descricao={
-                            m.papel === "admin"
-                              ? `${m.name} deixa de ser administrador e vira participante.`
-                              : `Promover ${m.name} a administrador.`
-                          }
-                          acao={alterarPapel}
-                          campos={{
-                            usuarioId: m.id,
-                            papel: m.papel === "admin" ? "participante" : "admin",
-                          }}
-                          rotuloSubmit="Trocar papel"
-                          rotuloPendente="Salvando…"
-                        />
-                      )}
-                      {/* Observador (ADR-0012): professor ou orientador que acompanha
-                          sem votar e sem pagar. A troca passa por participante. */}
-                      {/* Um diálogo só para os dois sentidos: assim ele continua
-                          na tela depois da troca e mostra a confirmação. */}
-                      {m.papel !== "admin" && (
-                        <FormDialog
-                          rotulo={m.papel === "observador" ? "Voltar a participante" : "Tornar observador"}
-                          icone={m.papel === "observador" ? <Users aria-hidden /> : <Eye aria-hidden />}
-                          titulo={m.papel === "observador" ? "Voltar a participante" : "Tornar observador"}
-                          descricao={
-                            m.papel === "observador"
-                              ? `${m.name} volta a votar, a contar no quórum e a ter parcelas.`
-                              : `${m.name} passa a acompanhar a turma sem votar e sem pagar: sai do quórum, das parcelas e dos lembretes de prazo. Continua vendo tudo e confirmando a própria presença. Os votos de ${m.name} em perguntas ainda abertas serão apagados. Para professor, orientador ou coordenador.`
-                          }
-                          acao={alterarPapel}
-                          campos={{
-                            usuarioId: m.id,
-                            papel: m.papel === "observador" ? "participante" : "observador",
-                          }}
-                          rotuloSubmit={m.papel === "observador" ? "Voltar a participante" : "Tornar observador"}
-                          rotuloPendente="Salvando…"
-                        />
-                      )}
-                      {!ehVoce && (
-                        <ConfirmarExclusao
-                          acao={removerMembro}
-                          campos={{ usuarioId: m.id }}
-                          alvo="o membro"
-                          nome={`${m.name} (${m.email})`}
-                          aviso={
-                            m.pagou > 0
-                              ? `Some da turma junto com o que ele deixou nela. ${
-                                  admin.tesouraria ? `Pagou ${formatarReal.format(m.pagou)}: ` : "Tem pagamentos registrados: "
-                                }os confirmados continuam no caixa da turma, sem o nome. Se houver devolução, a tesouraria deve lançar antes.`
-                              : "Some da turma junto com o que ele deixou nela."
-                          }
-                          rotulo="Remover"
-                          descricao={`Remover ${m.name}`}
-                          icone={<UserMinus aria-hidden />}
-                        />
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                    }
+                  />
+                )}
               </li>
             );
           })}
-          </ul>
-        </>
+        </ul>
       )}
       <Paginacao
         pagina={pagina}

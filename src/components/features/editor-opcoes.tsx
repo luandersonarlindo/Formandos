@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,11 @@ import { Input } from "@/components/ui/input";
 //   texto, `remover-<id>` para as marcadas e `exclusivaId` com o id escolhido.
 //   Contrato de atualizarEnquete, que preserva o id — e o voto — de tudo que
 //   sobrar.
+//
+// Os dois modos têm o mesmo desenho (P do plano de UX, Fase 3): as mesmas
+// linhas, "Exclusiva" como Checkbox em cada uma (antes era rádio ao editar, com
+// um rádio a mais "Nenhuma opção exclusiva") e "Adicionar opção" no rodapé.
+// Ao editar, o servidor (atualizarEnquete) aceita uma opção nova por vez.
 //
 // A opção exclusiva é a saída lógica da pergunta ("Sem preferência", "Nenhuma
 // restrição"): só existe em escolha múltipla e é marcada com um clique na
@@ -69,7 +75,7 @@ function CamposDetalhe({
           inputMode="decimal"
           placeholder="95,00"
           maxLength={14}
-          className="h-9 tabular-nums"
+          className="h-10 tabular-nums pointer-coarse:h-11"
           aria-label={`Valor total por pessoa de ${rotulo}`}
           {...(controlado
             ? { value: valores.valor, onChange: (e) => aoMudar({ ...valores, valor: e.target.value }) }
@@ -84,7 +90,7 @@ function CamposDetalhe({
           inputMode="url"
           placeholder="https://"
           maxLength={500}
-          className="h-9 min-w-0"
+          className="h-10 min-w-0 pointer-coarse:h-11"
           aria-label={`Link de ${rotulo}`}
           {...(controlado
             ? { value: valores.link, onChange: (e) => aoMudar({ ...valores, link: e.target.value }) }
@@ -94,6 +100,44 @@ function CamposDetalhe({
     </div>
   );
 }
+
+// Fora do EditorOpcoes: componente declarado dentro do render seria outro a
+// cada render, e o React remontaria a caixa (o foco sumiria no clique).
+function Exclusiva({
+  marcada,
+  aoMudar,
+  nome,
+}: {
+  marcada: boolean;
+  aoMudar: (marcada: boolean) => void;
+  nome: string;
+}) {
+  return (
+    <label className="flex shrink-0 cursor-pointer items-center gap-2 px-1 text-xs text-muted-foreground pointer-coarse:min-h-11">
+      <Checkbox
+        checked={marcada}
+        onCheckedChange={(v) => aoMudar(v === true)}
+        aria-label={`Marcar opção ${nome} como exclusiva`}
+      />
+      Exclusiva
+    </label>
+  );
+}
+
+function BotaoTirar({ rotulo, aoClicar }: { rotulo: string; aoClicar: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={aoClicar}
+      aria-label={rotulo}
+      title={rotulo}
+      className="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-destructive pointer-coarse:size-11"
+    >
+      <X className="size-4" aria-hidden />
+    </button>
+  );
+}
+
 
 const valorComoTexto = (v?: number | null) =>
   v === null || v === undefined ? "" : v.toFixed(2).replace(".", ",");
@@ -122,6 +166,7 @@ export function EditorOpcoes({
   // textos existentes são inputs com valor inicial, preservados pelo navegador.
   const [removidos, setRemovidos] = useState<string[]>([]);
   const [novaOpcao, setNovaOpcao] = useState("");
+  const [comNova, setComNova] = useState(false);
   const [exclusivaId, setExclusivaId] = useState(
     opcoesIniciais.find((o) => o.exclusiva)?.id ?? "",
   );
@@ -222,9 +267,17 @@ export function EditorOpcoes({
     setNovaOpcao((atual) => atual.trim());
   }
 
+  function tirarNova() {
+    setNovaOpcao("");
+    setComNova(false);
+    if (exclusivaId === "nova") setExclusivaId("");
+  }
+
   // ---- desenho -----------------------------------------------------------
 
   const linhaExclusiva = (i: number) => multipla && linhas[i].trim() === exclusiva;
+  // 44px de alvo no toque, nos campos e nos controles de cada linha.
+  const campo = "h-10 min-w-0 pointer-coarse:h-11";
 
   return (
     <div className="flex flex-col gap-2">
@@ -233,153 +286,112 @@ export function EditorOpcoes({
             const removido = removidos.includes(o.id);
             return (
               <div key={o.id} className="flex flex-col gap-1.5">
-              <div
-                className={`flex items-center gap-2 ${removido ? "opacity-60" : ""}`}
-              >
-                <Input
-                  name={`opcao-${o.id}`}
-                  defaultValue={o.texto}
-                  maxLength={255}
-                  className={`h-9 min-w-0 ${removido ? "line-through" : ""}`}
-                  aria-label={`Opção ${o.texto}`}
-                />
-                {multipla && (
-                  <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                    <input
-                      type="radio"
-                      name="exclusivaId"
-                      value={o.id}
-                      checked={!removido && exclusivaId === o.id}
-                      onChange={() => setExclusivaId(o.id)}
+                <div className={`flex items-center gap-1.5 ${removido ? "opacity-60" : ""}`}>
+                  <Input
+                    name={`opcao-${o.id}`}
+                    defaultValue={o.texto}
+                    maxLength={255}
+                    className={`${campo} ${removido ? "line-through" : ""}`}
+                    aria-label={`Opção ${o.texto}`}
+                  />
+                  {multipla && (
+                    <Exclusiva
+                      marcada={!removido && exclusivaId === o.id}
+                      aoMudar={(v) => setExclusivaId(v ? o.id : "")}
+                      nome={o.texto}
                     />
-                    Exclusiva
-                  </label>
-                )}
-                {o.votos > 0 ? (
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {o.votos} {o.votos === 1 ? "voto" : "votos"}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => marcarRemover(o.id)}
-                    aria-label={
-                      removido
-                        ? `Restaurar opção ${o.texto}`
-                        : `Remover opção ${o.texto}`
-                    }
-                    className="shrink-0 rounded-md p-2 text-muted-foreground hover:text-destructive pointer-coarse:grid pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:place-items-center pointer-coarse:p-0"
-                  >
-                    <X className="size-3.5" aria-hidden />
-                  </button>
-                )}
-                {/* Só existe quando marcado: o servidor compara com "on". */}
-                {removido && <input type="hidden" name={`remover-${o.id}`} value="on" />}
-              </div>
-              <CamposDetalhe
-                visivel={comDetalhes && !removido}
-                rotulo={o.texto}
-                nomes={{ valor: `valor-${o.id}`, link: `link-${o.id}` }}
-                valores={{ valor: valorComoTexto(o.valorPessoa), link: o.link ?? "" }}
-              />
+                  )}
+                  {o.votos > 0 ? (
+                    <span className="w-14 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                      {o.votos} {o.votos === 1 ? "voto" : "votos"}
+                    </span>
+                  ) : (
+                    <BotaoTirar
+                      rotulo={removido ? `Restaurar opção ${o.texto}` : `Remover opção ${o.texto}`}
+                      aoClicar={() => marcarRemover(o.id)}
+                    />
+                  )}
+                  {/* Só existe quando marcado: o servidor compara com "on". */}
+                  {removido && <input type="hidden" name={`remover-${o.id}`} value="on" />}
+                </div>
+                <CamposDetalhe
+                  visivel={comDetalhes && !removido}
+                  rotulo={o.texto}
+                  nomes={{ valor: `valor-${o.id}`, link: `link-${o.id}` }}
+                  valores={{ valor: valorComoTexto(o.valorPessoa), link: o.link ?? "" }}
+                />
               </div>
             );
           })
         : linhas.map((linha, i) => (
             <div key={i} className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <Input
-                value={linha}
-                onChange={(e) => editarLinha(i, e.target.value)}
-                onKeyDown={(e) => teclaLinha(e, i)}
-                onPaste={(e) => colarLista(e, i)}
-                maxLength={255}
-                className="h-9 min-w-0"
-                aria-label={`Opção ${i + 1}`}
-                // A última linha é a que "cria" a próxima: é nela que o Enter
-                // adiciona, e o texto diz isso.
-                placeholder={i === linhas.length - 1 ? "Escreva e pressione Enter para adicionar outra" : undefined}
-              />
-              {multipla && (
-                <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={linhaExclusiva(i)}
-                    onChange={() => alternarExclusiva(i)}
-                    aria-label={`Marcar opção ${linha.trim() || i + 1} como exclusiva`}
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={linha}
+                  onChange={(e) => editarLinha(i, e.target.value)}
+                  onKeyDown={(e) => teclaLinha(e, i)}
+                  onPaste={(e) => colarLista(e, i)}
+                  maxLength={255}
+                  className={campo}
+                  aria-label={`Opção ${i + 1}`}
+                  // A última linha é a que "cria" a próxima: é nela que o Enter
+                  // adiciona, e o texto diz isso.
+                  placeholder={i === linhas.length - 1 ? "Escreva e pressione Enter para adicionar outra" : undefined}
+                />
+                {multipla && (
+                  <Exclusiva
+                    marcada={linhaExclusiva(i)}
+                    aoMudar={() => alternarExclusiva(i)}
+                    nome={linha.trim() || String(i + 1)}
                   />
-                  Exclusiva
-                </label>
-              )}
-              {linhas.length > MIN && (
-                <button
-                  type="button"
-                  onClick={() => apagarLinha(i)}
-                  aria-label={`Remover opção ${linha.trim() || i + 1}`}
-                  className="shrink-0 rounded-md p-2 text-muted-foreground hover:text-destructive pointer-coarse:grid pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:place-items-center pointer-coarse:p-0"
-                >
-                  <X className="size-3.5" aria-hidden />
-                </button>
-              )}
-            </div>
-            <CamposDetalhe
-              visivel={comDetalhes && !linhaExclusiva(i)}
-              rotulo={linha.trim() || `opção ${i + 1}`}
-              valores={detalhes[i] ?? semDetalhe()}
-              aoMudar={(d) => setDetalhes((atual) => atual.map((x, j) => (j === i ? d : x)))}
-            />
+                )}
+                {linhas.length > MIN && (
+                  <BotaoTirar rotulo={`Remover opção ${linha.trim() || i + 1}`} aoClicar={() => apagarLinha(i)} />
+                )}
+              </div>
+              <CamposDetalhe
+                visivel={comDetalhes && !linhaExclusiva(i)}
+                rotulo={linha.trim() || `opção ${i + 1}`}
+                valores={detalhes[i] ?? semDetalhe()}
+                aoMudar={(d) => setDetalhes((atual) => atual.map((x, j) => (j === i ? d : x)))}
+              />
             </div>
           ))}
 
-      {editando && (
-        <div className="flex items-center gap-2">
-          <Input
-            name="novaOpcao"
-            value={novaOpcao}
-            onChange={(e) => setNovaOpcao(e.target.value)}
-            onKeyDown={digitarNovaOpcao}
-            maxLength={255}
-            className="h-9"
-            aria-label="Nova opção"
-            placeholder="Nova opção (opcional)"
-          />
-          {multipla && (
-            <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-              <input
-                type="radio"
-                name="exclusivaId"
-                value="nova"
-                checked={exclusivaId === "nova"}
-                onChange={() => setExclusivaId("nova")}
+      {editando && comNova && (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <Input
+              name="novaOpcao"
+              value={novaOpcao}
+              onChange={(e) => setNovaOpcao(e.target.value)}
+              onKeyDown={digitarNovaOpcao}
+              maxLength={255}
+              className={campo}
+              aria-label="Nova opção"
+              placeholder="Nova opção"
+              autoFocus
+            />
+            {multipla && (
+              <Exclusiva
+                marcada={exclusivaId === "nova"}
+                aoMudar={(v) => setExclusivaId(v ? "nova" : "")}
+                nome={novaOpcao.trim() || "nova"}
               />
-              Exclusiva
-            </label>
-          )}
-        </div>
-      )}
-      {editando && (
-        <CamposDetalhe
-          visivel={comDetalhes && novaOpcao.trim() !== ""}
-          rotulo="nova opção"
-          nomes={{ valor: "novaValor", link: "novaLink" }}
-          valores={semDetalhe()}
-        />
-      )}
-
-      {multipla && editando && (
-        <label className="flex items-center gap-1 text-xs text-muted-foreground">
-          <input
-            type="radio"
-            name="exclusivaId"
-            value=""
-            checked={exclusivaId === ""}
-            onChange={() => setExclusivaId("")}
+            )}
+            <BotaoTirar rotulo="Tirar a opção nova" aoClicar={tirarNova} />
+          </div>
+          <CamposDetalhe
+            visivel={comDetalhes && novaOpcao.trim() !== ""}
+            rotulo="nova opção"
+            nomes={{ valor: "novaValor", link: "novaLink" }}
+            valores={semDetalhe()}
           />
-          Nenhuma opção exclusiva
-        </label>
+        </div>
       )}
 
       {/* Campos que o servidor lê. Em "editar" quem vale é opcao-<id>. */}
+      {editando && multipla && <input type="hidden" name="exclusivaId" value={exclusivaId} />}
       {!editando && (
         <>
           <input type="hidden" name="opcoes" value={novosTextos().filter((t) => t !== exclusiva).join("\n")} />
@@ -396,23 +408,24 @@ export function EditorOpcoes({
         </>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {!editando && (
-          <Button type="button" variant="outline" size="sm" onClick={() => novaLinha()} disabled={total() >= MAX}>
-            <Plus className="size-3.5" aria-hidden /> Adicionar opção
-          </Button>
-        )}
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={comDetalhes}
-            onChange={(e) => setComDetalhes(e.target.checked)}
-          />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => (editando ? setComNova(true) : novaLinha())}
+          disabled={total() >= MAX || (editando && comNova)}
+        >
+          <Plus className="size-3.5" aria-hidden /> Adicionar opção
+        </Button>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground pointer-coarse:min-h-11">
+          <Checkbox checked={comDetalhes} onCheckedChange={(v) => setComDetalhes(v === true)} />
           Valor total por pessoa e link
         </label>
         <p role="status" className="text-xs text-muted-foreground">
           {total()} {total() === 1 ? "opção" : "opções"}
           {aviso() ? ` · ${aviso()}` : ""}
+          {editando && comNova ? " · Salve para acrescentar outra" : ""}
         </p>
       </div>
       {/* Item 0.3 da rodada 2 (RF-61): o valor é o total de cada um, não a parcela. */}

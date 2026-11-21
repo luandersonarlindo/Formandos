@@ -38,6 +38,8 @@ export function PreviaEnquete({
   categoria,
   posicao,
   total,
+  aberto: abertoFora,
+  onAbertoChange,
 }: {
   titulo: string;
   tipo: "unica" | "multipla";
@@ -45,20 +47,28 @@ export function PreviaEnquete({
   categoria: string;
   posicao: number;
   total: number;
+  /** Modo controlado, sem botão próprio: aberto pelo item "Ver como o formando
+   *  vê" do menu "⋯" da pergunta (menu-gestao.tsx). */
+  aberto?: boolean;
+  onAbertoChange?: (aberto: boolean) => void;
 }) {
-  const [aberto, setAberto] = useState(false);
+  const [abertoAqui, setAbertoAqui] = useState(false);
+  const controlado = abertoFora !== undefined;
+  const aberto = abertoFora ?? abertoAqui;
+  const setAberto = (valor: boolean) => {
+    setAbertoAqui(valor);
+    onAbertoChange?.(valor);
+  };
 
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-        >
-          <Eye className="size-3.5" aria-hidden /> Ver como o formando vê
-        </Button>
-      </DialogTrigger>
+      {!controlado && (
+        <DialogTrigger asChild>
+          <Button type="button" variant="ghost" size="sm">
+            <Eye className="size-3.5" aria-hidden /> Ver como o formando vê
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Como o formando vê</DialogTitle>

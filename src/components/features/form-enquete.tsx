@@ -3,12 +3,57 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { adicionarEnquete } from "@/actions/catalogos";
 import type { EstadoForm } from "@/actions/tipos";
-import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditorOpcoes } from "@/components/features/editor-opcoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Spinner } from "@/components/ui/spinner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+type Tipo = "unica" | "multipla";
+
+// Tipo da pergunta, igual ao criar e ao editar: duas opções viram ToggleGroup
+// (kit do plano de UX), com 44px no toque. Os rádios nativos não tinham área de
+// toque e a edição usava um NativeSelect. O valor vai num campo oculto `tipo`.
+export function CampoTipo({
+  valor,
+  aoMudar,
+  id = "tipo",
+}: {
+  valor?: Tipo;
+  aoMudar?: (tipo: Tipo) => void;
+  id?: string;
+}) {
+  const [aqui, setAqui] = useState<Tipo>(valor ?? "unica");
+  const atual = aoMudar ? (valor ?? "unica") : aqui;
+  return (
+    <div role="group" aria-labelledby={`${id}-rotulo`} className="flex flex-col gap-1.5">
+      <span id={`${id}-rotulo`} className="text-sm font-medium">
+        Tipo
+      </span>
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={atual}
+        onValueChange={(v) => {
+          if (v !== "unica" && v !== "multipla") return; // clicar no marcado não desmarca
+          setAqui(v);
+          aoMudar?.(v);
+        }}
+        className="w-full sm:w-fit"
+      >
+        <ToggleGroupItem value="unica" className="flex-1 px-3 pointer-coarse:h-11">
+          Escolha única
+        </ToggleGroupItem>
+        <ToggleGroupItem value="multipla" className="flex-1 px-3 pointer-coarse:h-11">
+          Escolha múltipla
+        </ToggleGroupItem>
+      </ToggleGroup>
+      <input type="hidden" name="tipo" value={atual} />
+    </div>
+  );
+}
 
 const inicial: EstadoForm = {};
 
@@ -29,7 +74,7 @@ export function FormEnquete({
   aoSucesso?: (id?: string) => void;
 }) {
   const [estado, acao, pendente] = useActionState(adicionarEnquete, inicial);
-  const [tipo, setTipo] = useState<"unica" | "multipla">("unica");
+  const [tipo, setTipo] = useState<Tipo>("unica");
   // Se houve erro, o servidor devolve o que foi digitado.
   const v = estado.valores;
   const [categoriaId, setCategoriaId] = useState(v?.categoriaId ?? categorias[0]?.id ?? "");
@@ -75,38 +120,14 @@ export function FormEnquete({
         <Label htmlFor={`${id}-titulo`}>Pergunta</Label>
         <Input id={`${id}-titulo`} name="titulo" defaultValue={v?.titulo} minLength={5} maxLength={500} required />
       </div>
-      <fieldset className="flex flex-wrap gap-4 text-sm">
-        <legend className="mb-1.5 text-sm font-medium">Tipo</legend>
-        <label className="flex items-center gap-2">
-          <input
-            type="radio"
-            name="tipo"
-            value="unica"
-            checked={tipo === "unica"}
-            onChange={() => setTipo("unica")}
-            className="accent-[var(--vitrine-a)]"
-          />
-          Escolha única
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="radio"
-            name="tipo"
-            value="multipla"
-            checked={tipo === "multipla"}
-            onChange={() => setTipo("multipla")}
-            className="accent-[var(--vitrine-a)]"
-          />
-          Escolha múltipla
-        </label>
-      </fieldset>
+      <CampoTipo valor={tipo} aoMudar={setTipo} id={`${id}-tipo`} />
       <fieldset className="flex flex-col gap-1.5">
         <legend className="mb-1.5 p-0 text-sm font-medium">Opções (de 2 a 12)</legend>
         <EditorOpcoes modo="nova" tipo={tipo} />
       </fieldset>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="sm" disabled={pendente}>
-          {pendente && <LoaderCircle className="animate-spin" aria-hidden />}
+          {pendente && <Spinner />}
           {pendente ? "Adicionando…" : "Adicionar pergunta"}
         </Button>
         <p

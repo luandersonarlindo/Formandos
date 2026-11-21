@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { BotaoImprimir } from "@/components/features/botao-imprimir";
+import { LinkVoltar } from "@/components/features/link-voltar";
 import { getEventoAdmin } from "@/lib/admin";
 import { exigirAdmin } from "@/lib/dal";
 import { formatarDataHora } from "@/lib/datas";
@@ -22,12 +21,9 @@ export default async function ListaPortariaPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl print:max-w-none">
-      <Link
-        href="/admin/presenca"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground print:hidden"
-      >
-        <ArrowLeft className="size-4" aria-hidden /> Presença
-      </Link>
+      <LinkVoltar href="/admin/presenca" className="print:hidden">
+        Presença
+      </LinkVoltar>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs text-muted-foreground">Lista da portaria · gerada em {geradoEm}</p>

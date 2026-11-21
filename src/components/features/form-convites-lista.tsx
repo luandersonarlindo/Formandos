@@ -1,10 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
-import { Eye, LoaderCircle, Send } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Eye, MailPlus, Send } from "lucide-react";
 import { convidarPorLista } from "@/actions/convites";
 import type { EstadoForm } from "@/actions/tipos";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -42,7 +51,7 @@ export function FormConvitesLista() {
           <Eye aria-hidden /> Ver prévia
         </Button>
         <Button type="submit" name="etapa" value="enviar" size="sm" disabled={pendente}>
-          {pendente ? <LoaderCircle className="animate-spin" aria-hidden /> : <Send aria-hidden />}
+          {pendente ? <Spinner /> : <Send aria-hidden />}
           Enviar convites
         </Button>
       </div>
@@ -53,5 +62,31 @@ export function FormConvitesLista() {
         {estado.erro ?? estado.ok}
       </p>
     </form>
+  );
+}
+
+// Ação primária de /admin/membros: abre a lista num diálogo. O diálogo não usa
+// o FormDialog porque o formulário tem dois botões (prévia e envio) e a
+// mensagem da prévia precisa ficar à vista, com o diálogo aberto.
+export function ConvidarPorEmail({ desligado = false }: { desligado?: boolean }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <Dialog open={aberto} onOpenChange={setAberto}>
+      <DialogTrigger asChild>
+        <Button type="button" disabled={desligado}>
+          <MailPlus aria-hidden /> Convidar por email
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Convidar por email</DialogTitle>
+          <DialogDescription>
+            Cole os emails da turma e cada pessoa recebe o link de convite. Ninguém ganha conta nem entra sem tocar
+            no link.
+          </DialogDescription>
+        </DialogHeader>
+        <FormConvitesLista />
+      </DialogContent>
+    </Dialog>
   );
 }
