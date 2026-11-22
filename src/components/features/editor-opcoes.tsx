@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,8 @@ import { Input } from "@/components/ui/input";
 // Os dois modos têm o mesmo desenho (P do plano de UX, Fase 3): as mesmas
 // linhas, "Exclusiva" como Checkbox em cada uma (antes era rádio ao editar, com
 // um rádio a mais "Nenhuma opção exclusiva") e "Adicionar opção" no rodapé.
-// Ao editar, o servidor (atualizarEnquete) aceita uma opção nova por vez.
+// Ao editar, dá para acrescentar várias opções novas antes de salvar
+// (novaOpcao-<n> no form; atualizarEnquete lê todas).
 //
 // A opção exclusiva é a saída lógica da pergunta ("Sem preferência", "Nenhuma
 // restrição"): só existe em escolha múltipla e é marcada com um clique na
@@ -165,8 +166,10 @@ export function EditorOpcoes({
   // Modo editar: a pessoa só decide o que remover e qual é a exclusiva; os
   // textos existentes são inputs com valor inicial, preservados pelo navegador.
   const [removidos, setRemovidos] = useState<string[]>([]);
-  const [novaOpcao, setNovaOpcao] = useState("");
-  const [comNova, setComNova] = useState(false);
+  // Opções novas na edição: várias de uma vez. `chave` é só para o React e
+  // para o nome dos campos (novaOpcao-<chave>); não vai para o banco.
+  const [novas, setNovas] = useState<{ chave: number; texto: string }[]>([]);
+  const proximaChave = useRef(0);
   const [exclusivaId, setExclusivaId] = useState(
     opcoesIniciais.find((o) => o.exclusiva)?.id ?? "",
   );
@@ -182,7 +185,7 @@ export function EditorOpcoes({
       return (
         opcoesIniciais.length -
         removidos.length +
-        (novaOpcao.trim() ? 1 : 0)
+        novas.filter((n) => n.texto.trim()).length
       );
     }
     return novosTextos().length;
@@ -261,16 +264,26 @@ export function EditorOpcoes({
     );
   }
 
-  function digitarNovaOpcao(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    setNovaOpcao((atual) => atual.trim());
+  function acrescentarNova() {
+    const chave = proximaChave.current++;
+    setNovas((atual) => [...atual, { chave, texto: "" }]);
   }
 
-  function tirarNova() {
-    setNovaOpcao("");
-    setComNova(false);
-    if (exclusivaId === "nova") setExclusivaId("");
+  function editarNova(chave: number, texto: string) {
+    setNovas((atual) => atual.map((n) => (n.chave === chave ? { ...n, texto } : n)));
+  }
+
+  // Enter na última opção nova abre outra, como no modo de criar.
+  function digitarNovaOpcao(e: React.KeyboardEvent<HTMLInputElement>, chave: number) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const ultima = novas[novas.length - 1];
+    if (ultima?.chave === chave && ultima.texto.trim() && total() < MAX) acrescentarNova();
+  }
+
+  function tirarNova(chave: number) {
+    setNovas((atual) => atual.filter((n) => n.chave !== chave));
+    if (exclusivaId === `nova-${chave}`) setExclusivaId("");
   }
 
   // ---- desenho -----------------------------------------------------------
@@ -358,37 +371,38 @@ export function EditorOpcoes({
             </div>
           ))}
 
-      {editando && comNova && (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5">
-            <Input
-              name="novaOpcao"
-              value={novaOpcao}
-              onChange={(e) => setNovaOpcao(e.target.value)}
-              onKeyDown={digitarNovaOpcao}
-              maxLength={255}
-              className={campo}
-              aria-label="Nova opção"
-              placeholder="Nova opção"
-              autoFocus
-            />
-            {multipla && (
-              <Exclusiva
-                marcada={exclusivaId === "nova"}
-                aoMudar={(v) => setExclusivaId(v ? "nova" : "")}
-                nome={novaOpcao.trim() || "nova"}
+      {editando &&
+        novas.map((nova, i) => (
+          <div key={nova.chave} className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <Input
+                name={`novaOpcao-${nova.chave}`}
+                value={nova.texto}
+                onChange={(e) => editarNova(nova.chave, e.target.value)}
+                onKeyDown={(e) => digitarNovaOpcao(e, nova.chave)}
+                maxLength={255}
+                className={campo}
+                aria-label={`Nova opção ${i + 1}`}
+                placeholder={i === novas.length - 1 ? "Escreva e pressione Enter para adicionar outra" : "Nova opção"}
+                autoFocus
               />
-            )}
-            <BotaoTirar rotulo="Tirar a opção nova" aoClicar={tirarNova} />
+              {multipla && (
+                <Exclusiva
+                  marcada={exclusivaId === `nova-${nova.chave}`}
+                  aoMudar={(v) => setExclusivaId(v ? `nova-${nova.chave}` : "")}
+                  nome={nova.texto.trim() || `nova ${i + 1}`}
+                />
+              )}
+              <BotaoTirar rotulo={`Tirar a opção nova ${nova.texto.trim() || i + 1}`} aoClicar={() => tirarNova(nova.chave)} />
+            </div>
+            <CamposDetalhe
+              visivel={comDetalhes && nova.texto.trim() !== ""}
+              rotulo={nova.texto.trim() || `nova opção ${i + 1}`}
+              nomes={{ valor: `novaValor-${nova.chave}`, link: `novaLink-${nova.chave}` }}
+              valores={semDetalhe()}
+            />
           </div>
-          <CamposDetalhe
-            visivel={comDetalhes && novaOpcao.trim() !== ""}
-            rotulo="nova opção"
-            nomes={{ valor: "novaValor", link: "novaLink" }}
-            valores={semDetalhe()}
-          />
-        </div>
-      )}
+        ))}
 
       {/* Campos que o servidor lê. Em "editar" quem vale é opcao-<id>. */}
       {editando && multipla && <input type="hidden" name="exclusivaId" value={exclusivaId} />}
@@ -413,8 +427,8 @@ export function EditorOpcoes({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => (editando ? setComNova(true) : novaLinha())}
-          disabled={total() >= MAX || (editando && comNova)}
+          onClick={() => (editando ? acrescentarNova() : novaLinha())}
+          disabled={total() >= MAX || (editando && novas.some((n) => !n.texto.trim()))}
         >
           <Plus className="size-3.5" aria-hidden /> Adicionar opção
         </Button>
@@ -425,7 +439,6 @@ export function EditorOpcoes({
         <p role="status" className="text-xs text-muted-foreground">
           {total()} {total() === 1 ? "opção" : "opções"}
           {aviso() ? ` · ${aviso()}` : ""}
-          {editando && comNova ? " · Salve para acrescentar outra" : ""}
         </p>
       </div>
       {/* Item 0.3 da rodada 2 (RF-61): o valor é o total de cada um, não a parcela. */}

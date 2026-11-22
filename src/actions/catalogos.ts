@@ -559,9 +559,11 @@ const esquemaAtualizarEnquete = z.object({
     .min(5, "A pergunta precisa ter pelo menos 5 caracteres.")
     .max(500, "A pergunta pode ter no máximo 500 caracteres."),
   tipo: z.enum(["unica", "multipla"], "Escolha o tipo da pergunta."),
-  novaOpcao: z.string().max(255, "A opção pode ter no máximo 255 caracteres.").optional().default(""),
   exclusivaId: z.string().optional().default(""),
 });
+
+// Teto de opções por pergunta, o mesmo do editor (editor-opcoes.tsx).
+const MAX_OPCOES_EDICAO = 12;
 
 // Edita título, tipo e opções de uma pergunta já criada. Preserva o id das
 // opções existentes (e os votos ligados a elas): só apaga uma opção marcada
@@ -575,7 +577,7 @@ export async function atualizarEnquete(
   const enviados = Object.fromEntries(formData) as Record<string, string>;
   const dados = esquemaAtualizarEnquete.safeParse(enviados);
   if (!dados.success) return { erro: dados.error.issues[0].message };
-  const { enqueteId, titulo, tipo, novaOpcao, exclusivaId } = dados.data;
+  const { enqueteId, titulo, tipo, exclusivaId } = dados.data;
 
   const edicoes = new Map<string, { texto: string; remover: boolean } & DetalheOpcao>();
   for (const [chave, valor] of formData) {
@@ -591,12 +593,23 @@ export async function atualizarEnquete(
     if ("erro" in detalhe) return { erro: detalhe.erro };
     edicoes.set(id, { texto, remover: formData.get(`remover-${id}`) === "on", ...detalhe });
   }
-  const detalheNova = lerDetalheOpcao(
-    novaOpcao.trim(),
-    String(formData.get("novaValor") ?? ""),
-    String(formData.get("novaLink") ?? ""),
-  );
-  if ("erro" in detalheNova) return { erro: detalheNova.erro };
+  // Opções novas: novaOpcao-<n>, com novaValor-<n> e novaLink-<n>; a exclusiva
+  // nova chega como exclusivaId "nova-<n>". Várias de uma vez, na ordem do form.
+  const novas: ({ texto: string; exclusiva: boolean } & DetalheOpcao)[] = [];
+  for (const [chave, valor] of formData) {
+    if (typeof valor !== "string" || !chave.startsWith("novaOpcao-")) continue;
+    const texto = valor.trim();
+    if (!texto) continue;
+    if (texto.length > 255) return { erro: "A opção pode ter no máximo 255 caracteres." };
+    const n = chave.slice("novaOpcao-".length);
+    const detalhe = lerDetalheOpcao(
+      texto,
+      String(formData.get(`novaValor-${n}`) ?? ""),
+      String(formData.get(`novaLink-${n}`) ?? ""),
+    );
+    if ("erro" in detalhe) return { erro: detalhe.erro };
+    novas.push({ texto, exclusiva: tipo === "multipla" && exclusivaId === `nova-${n}`, ...detalhe });
+  }
 
   const resultado = await transacao(async (db) => {
     const { rows } = await db.query(
@@ -631,8 +644,9 @@ export async function atualizarEnquete(
     for (const [id, e] of edicoes) {
       if (e.remover && votosPorOpcao.get(id) === 0) restantes--;
     }
-    if (novaOpcao.trim()) restantes++;
+    restantes += novas.length;
     if (restantes < 2) return { estado: "poucasOpcoes" as const };
+    if (restantes > MAX_OPCOES_EDICAO) return { estado: "muitasOpcoes" as const };
 
     await db.query("update enquetes set titulo = $1, tipo = $2 where id = $3", [
       titulo,
@@ -670,23 +684,19 @@ export async function atualizarEnquete(
       }
     }
 
-    if (novaOpcao.trim()) {
+    if (novas.length) {
       const { rows: ordemRows } = await db.query(
         "select coalesce(max(ordem), -1) + 1 as proxima from opcoes where enquete_id = $1",
         [enqueteId],
       );
-      await db.query(
-        `insert into opcoes (enquete_id, texto, exclusiva, ordem, valor_pessoa, link)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [
-          enqueteId,
-          novaOpcao.trim().slice(0, 255),
-          tipo === "multipla" && exclusivaId === "nova",
-          ordemRows[0].proxima,
-          detalheNova.valorPessoa,
-          detalheNova.link,
-        ],
-      );
+      let ordem: number = ordemRows[0].proxima;
+      for (const nova of novas) {
+        await db.query(
+          `insert into opcoes (enquete_id, texto, exclusiva, ordem, valor_pessoa, link)
+           values ($1, $2, $3, $4, $5, $6)`,
+          [enqueteId, nova.texto, nova.exclusiva, ordem++, nova.valorPessoa, nova.link],
+        );
+      }
     }
     return { estado: "ok" as const };
   });
@@ -700,6 +710,9 @@ export async function atualizarEnquete(
   }
   if (resultado.estado === "poucasOpcoes") {
     return { erro: "A pergunta precisa ter pelo menos 2 opções." };
+  }
+  if (resultado.estado === "muitasOpcoes") {
+    return { erro: `A pergunta pode ter no máximo ${MAX_OPCOES_EDICAO} opções.` };
   }
   revalidarCatalogo();
   return { ok: "Pergunta atualizada." };
