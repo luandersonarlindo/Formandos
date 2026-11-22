@@ -112,7 +112,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                             </Badge>
                           )}
                           {d.respondida ? (
-                            <Badge variant="secondary">
+                            <Badge variant="success">
                               <CircleCheck aria-hidden /> Respondida
                             </Badge>
                           ) : (

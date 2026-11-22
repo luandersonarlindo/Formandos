@@ -22,12 +22,13 @@ import { listarMembros, listarTarefas, ROTULO_STATUS, STATUS_TAREFA, type Status
 
 export const metadata: Metadata = { title: "Tarefas" };
 
-// Um sinal só por estado: o Badge. Antes eram faixa colorida, ícone e badge
-// dizendo a mesma coisa.
-const VARIANTE_STATUS: Record<StatusTarefa, "outline" | "secondary"> = {
+// Um sinal só por estado: o Badge, com uma cor por situação. Pendente fica
+// neutra, em andamento na cor principal e concluída em verde; atrasada ganha
+// um segundo badge vermelho.
+const VARIANTE_STATUS: Record<StatusTarefa, "outline" | "destaque" | "success"> = {
   pendente: "outline",
-  em_andamento: "secondary",
-  concluida: "outline",
+  em_andamento: "destaque",
+  concluida: "success",
 };
 
 function OpcoesStatus() {
@@ -134,11 +135,11 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
                     >
                       {t.titulo}
                     </p>
-                    <Badge variant={VARIANTE_STATUS[t.status]} className={concluida ? "text-muted-foreground" : undefined}>
+                    <Badge variant={VARIANTE_STATUS[t.status]}>
                       {concluida && <CircleCheck aria-hidden />}
                       {ROTULO_STATUS[t.status]}
                     </Badge>
-                    {atrasada && <Badge variant="warning">Atrasada</Badge>}
+                    {atrasada && <Badge variant="destructive">Atrasada</Badge>}
                   </div>
                   {t.descricao && (
                     <p className="mt-1 wrap-break-word whitespace-pre-wrap text-sm text-muted-foreground">{t.descricao}</p>

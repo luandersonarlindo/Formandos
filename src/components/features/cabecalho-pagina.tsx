@@ -1,7 +1,9 @@
 import { cn } from "@/lib/utils";
 
 // Cabeçalho padrão das telas internas: um título (o único h1), no máximo uma
-// frase de apoio e, à direita, a ação primária da tela ("Novo aviso"…).
+// frase de apoio e, à direita, a ação primária da tela ("Novo aviso"…). Tem
+// uma faixa na cor principal à esquerda do título: a marca presente em toda
+// tela, sem pintar o conteúdo.
 export function CabecalhoPagina({
   titulo,
   descricao,
@@ -21,7 +23,7 @@ export function CabecalhoPagina({
     <header className={cn("flex flex-col gap-3", className)}>
       {antes}
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-        <div className="min-w-0 flex-1 basis-64">
+        <div className="min-w-0 flex-1 basis-64 border-l-4 border-primary pl-3">
           <h1 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">{titulo}</h1>
           {descricao ? <p className="mt-1.5 max-w-2xl text-muted-foreground text-pretty">{descricao}</p> : null}
         </div>

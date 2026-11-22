@@ -69,7 +69,7 @@ function EstadoPergunta({ e }: { e: EnqueteAdmin }) {
   }
   if (e.oculta) return <Badge variant="secondary">Oculta para sua turma</Badge>;
   if (e.regra.prazo && !e.prazoAberto) return <Badge variant="outline">Prazo encerrado</Badge>;
-  return <Badge variant="outline">Aberta</Badge>;
+  return <Badge variant="destaque">Aberta</Badge>;
 }
 
 // O catálogo fica só com a estrutura (D-07 do plano de UX): categorias,

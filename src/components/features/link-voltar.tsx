@@ -8,7 +8,7 @@ export function LinkVoltar({ href, children, className }: { href: string; childr
     <Link
       href={href}
       className={cn(
-        "-ml-1 inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11",
+        "-ml-1 inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-destaque transition-colors hover:underline underline-offset-4 pointer-coarse:min-h-11",
         className,
       )}
     >

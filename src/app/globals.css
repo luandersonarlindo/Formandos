@@ -22,6 +22,8 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-destaque: var(--destaque);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -62,6 +64,10 @@
   --destructive: oklch(0.577 0.245 27.325);
   /* Atraso e atenção (não é erro). Âmbar 700: 5,0:1 sobre o branco. */
   --warning: oklch(0.555 0.163 48.998);
+  /* Concluído, em dia. Esmeralda 700: 5,5:1 sobre o branco. */
+  --success: oklch(0.508 0.118 165.612);
+  /* A cor principal como texto e ícone sobre fundo claro (6,2:1). */
+  --destaque: oklch(0.511 0.262 276.966);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   /* Indigo 500. */
@@ -96,6 +102,10 @@
   --destructive: oklch(0.704 0.191 22.216);
   /* Âmbar 400 no escuro: 10,4:1 sobre o fundo. */
   --warning: oklch(0.828 0.189 84.429);
+  /* Esmeralda 400 no escuro. */
+  --success: oklch(0.765 0.177 163.223);
+  /* Índigo 300 no escuro: o índigo da marca some sobre o fundo escuro como texto. */
+  --destaque: oklch(0.785 0.115 274.713);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   /* Indigo 400: mais claro que no modo claro, para contrastar com o fundo escuro. */
@@ -288,6 +298,17 @@ html:not([data-tema]) [data-tema-icone="sistema"] {
    O `main` está na lista para o alvo do skip link (#conteudo) mostrar o foco
    ao pular para o conteúdo. */
 :where(a, button, summary, select, input, textarea, main):focus-visible {
+  outline: 3px solid var(--vitrine-a);
+  outline-offset: 2px;
+}
+
+/* Campo dentro de um InputGroup (ex.: "R$" + valor): o contorno vai no grupo,
+   que tem os cantos arredondados. No input de dentro (sem raio) ele saía como
+   uma caixa quadrada por cima da borda do grupo. */
+[data-slot="input-group-control"]:focus-visible {
+  outline: none;
+}
+[data-slot="input-group"]:has([data-slot="input-group-control"]:focus-visible) {
   outline: 3px solid var(--vitrine-a);
   outline-offset: 2px;
 }

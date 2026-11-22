@@ -42,7 +42,7 @@ export function SeletorTurma({
       {!compacto && (
         <span
           aria-hidden
-          className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background text-base"
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-base text-primary-foreground"
         >
           🎓
         </span>

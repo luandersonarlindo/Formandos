@@ -51,7 +51,7 @@ export function EnqueteCard({
               </Badge>
             ) : (
               respondida && (
-                <Badge variant="secondary" className="shrink-0">
+                <Badge variant="success" className="shrink-0">
                   <CircleCheck aria-hidden /> Respondida
                 </Badge>
               )

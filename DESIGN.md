@@ -126,7 +126,9 @@ A neutral light-first palette with one fixed brand accent. Dark mode remaps the 
 
 ### Named Rules
 
-**The One Voice Rule.** The indigo accent appears on ≤10% of any given screen: primary actions, decided states, and key figures. Its rarity is the point — when everything is indigo, nothing is decided.
+**The One Voice Rule (revised 2026-11-22).** Indigo is still the only accent, but the owner asked for more of it: the app read too neutral. Solid indigo is for primary actions and the Início header card (one per screen). Indigo tints (`bg-primary/10`, text in `--destaque`) mark identity and state: the left rule of every page title, the active sidebar item, the icons of pending items, "em andamento" badges, links. Status colors carry meaning, not decoration: `--success` (concluído, respondido, em dia), `--warning` (atenção), `--destructive` (atrasado, erro).
+- **Destaque** (`--destaque`): indigo as text and icons; same as primary in light mode, lightened to indigo 300 in dark mode so it keeps contrast on the dark surface.
+- **Success** (`--success`): emerald 700 light / 400 dark, for done states (`Badge variant="success"`).
 **The Same Brand Both Themes Rule.** The primary value never changes between themes; only neutrals and the focus ring remap. Brand recognition must survive a theme switch.
 
 ## Typography
