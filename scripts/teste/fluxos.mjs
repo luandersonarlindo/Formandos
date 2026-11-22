@@ -152,6 +152,12 @@ const novaCategoria = async (nome) => {
   await nav.esperar("!!document.querySelector('[role=dialog] #nome-categoria')", 10000, "diálogo de nova categoria");
   await nav.preencher("#nome-categoria", nome);
   await nav.clicar("Adicionar categoria", { escopo: "@[role=dialog]", seletor: "button" });
+  // Espera o diálogo sair do DOM: durante a animação de fechar ele ainda é o
+  // primeiro [role=dialog], e o próximo passo preencheria o diálogo errado.
+  // Nome repetido deixa o diálogo aberto com o erro; aí quem chamou confere.
+  await nav
+    .esperar("!document.querySelector('[role=dialog]') || !!document.querySelector('[role=dialog] [role=alert]')", 10000, "diálogo de categoria fechar")
+    .catch(() => {});
 };
 // Itens do menu "⋯" de uma linha, sem escolher nenhum (fecha com Esc).
 const itensDoMenu = async (dono) => {
@@ -618,6 +624,14 @@ await grupo("app", async () => {
     await nav.esperarTexto("Tarefa E2E");
     verdade(!(await nav.tem("Fechar o buffet")), "filtro deveria esconder tarefa não concluída");
   });
+  await passo("filtro Minhas mostra só as tarefas abertas da pessoa", async () => {
+    await nav.abrir("/tarefas");
+    await nav.clicar("Minhas", { seletor: "a" });
+    await nav.esperarUrl("status=minhas");
+    await nav.esperarTexto("Contratar o fotógrafo");
+    verdade(!(await nav.tem("Fechar o buffet")), "tarefa de outra pessoa fica de fora");
+    verdade(!(await nav.tem("Reservar a chácara")), "tarefa concluída fica de fora");
+  });
   await passo("excluir tarefa", async () => {
     await nav.abrir("/tarefas");
     await nav.acaoMenu("Tarefa E2E", "Excluir tarefa");
@@ -987,6 +1001,15 @@ await grupo("admin", async () => {
     await nav.acaoMenu("Posso levar acompanhante", "Destacar");
     await dormir(1800);
     igual(sql("select destaque from duvidas where conteudo like 'Posso levar%'"), "t", "destaque");
+    // "Desfazer" no toast volta ao estado de antes; destacar de novo para seguir.
+    await nav.esperarTexto("Dúvida destacada.");
+    await nav.clicar("Desfazer", { seletor: "button" });
+    for (let i = 0; i < 20 && sql("select destaque from duvidas where conteudo like 'Posso levar%'") !== "f"; i++) await dormir(300);
+    igual(sql("select destaque from duvidas where conteudo like 'Posso levar%'"), "f", "desfeito pelo toast");
+    await nav.abrir("/duvidas");
+    await nav.acaoMenu("Posso levar acompanhante", "Destacar");
+    await dormir(1800);
+    igual(sql("select destaque from duvidas where conteudo like 'Posso levar%'"), "t", "destacada de novo");
     await nav.abrir("/duvidas");
     await nav.acaoMenu("Posso levar acompanhante", "Reabrir");
     await dormir(1800);
@@ -1322,6 +1345,26 @@ await grupo("admin", async () => {
         "95>110",
         "mudança de valor no histórico",
       );
+
+      // Duas opções novas num salvar só (antes era uma por vez).
+      const antesNovas = sql(`select count(*) from opcoes where enquete_id='${enqCat}'`);
+      await nav.acaoMenu(sql(`select titulo from enquetes where id='${enqCat}'`), "Editar pergunta");
+      await nav.esperar("!!document.querySelector('[role=dialog]')", 10000, "diálogo de editar");
+      for (const [i, texto] of ["Nova A E2E", "Nova B E2E"].entries()) {
+        await nav.clicar("Adicionar opção", { escopo: "@[role=dialog]", seletor: "button" });
+        await nav.esperar(`document.querySelectorAll("[role=dialog] [name^='novaOpcao-']").length === ${i + 1}`, 5000, "campo da opção nova");
+        await nav.ev(`(() => { const c = [...document.querySelectorAll("[role=dialog] [name^='novaOpcao-']")][${i}];
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(c, ${JSON.stringify(texto)});
+          c.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+      }
+      await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      await dormir(2000);
+      igual(
+        sql(`select count(*) from opcoes where enquete_id='${enqCat}'`),
+        String(Number(antesNovas) + 2),
+        "duas opções novas gravadas de uma vez",
+      );
+      sql(`delete from opcoes where enquete_id='${enqCat}' and texto in ('Nova A E2E','Nova B E2E')`);
 
       // Diálogo de fixar: empate na escolha única e a regra combinada aparecem antes de confirmar.
       sql(`update regras_enquete set prazo = null, quorum_pct = 90 where turma_id='${turma}' and enquete_id='${enq}'`);

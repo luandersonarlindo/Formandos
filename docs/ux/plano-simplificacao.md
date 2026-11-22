@@ -328,8 +328,8 @@ Todas as fases (0 a 7) foram implementadas. O dono aprovou a remoção do caminh
 |---|---|---|
 | 0 Fundação | Feita | Kit em `src/components/features/` (`menu-acoes`, `cabecalho-pagina`, `abas-rota`, `campo-busca`, `filtros-pilula`, `link-voltar`) + componentes shadcn novos, toast (Sonner), token `--warning`, 9 correções. |
 | 1 Navegação | Feita | ADR-0025. `src/lib/menu.ts`, seletor de turma, menu da pessoa, "Mais", grupo "Comissão", `/admin/evento`. |
-| 2 Participante | Feita | Ficou de fora: filtro "Minhas" em Tarefas (pede parâmetro novo em `listarTarefas`) e "Desfazer" no toast de Destacar/Respondida (o "⋯" desfaz em um clique). |
-| 3 Comissão | Feita | Ficou de fora: acrescentar várias opções de uma vez ao editar pergunta (`atualizarEnquete` aceita uma `novaOpcao` por envio). `campos-fixar-decisao` mantém os controles nativos (os testes usam `input[name=opcaoId]`). |
+| 2 Participante | Feita | Depois: filtro "Minhas" em Tarefas e "Desfazer" no toast de Destacar/Respondida (as actions aceitam `valor=sim/nao`). |
+| 3 Comissão | Feita | Depois: várias opções novas de uma vez ao editar pergunta (`novaOpcao-<n>`, teto de 12 no servidor). `campos-fixar-decisao` mantém os controles nativos (os testes usam `input[name=opcaoId]`). |
 | 4 Tesouraria | Feita | Nova aba-rota `/admin/tesouraria/plano`. "Importar" só libera depois de uma prévia sem problema. |
 | 5 Master | Feita | Troca de papel com AlertDialog; paginação na página (a query não mudou). |
 | 6 Público, convite e conta | Feita | Na aba "Criar conta", o Google fica desabilitado até a pessoa marcar o aceite dos termos, para a mesma caixa cobrir os dois caminhos de cadastro. Novo `?criar=1` em `/convite`. |
@@ -338,5 +338,6 @@ Todas as fases (0 a 7) foram implementadas. O dono aprovou a remoção do caminh
 **Bugs encontrados e corrigidos durante os testes**
 - O Switch do catálogo padrão enviava a action duas vezes por clique (o checkbox oculto do Radix dentro do `<form>`).
 - Na gaveta do celular, o primeiro Esc fechava a dica (tooltip) em vez da gaveta.
+- O "Desfazer" do toast lia o estado já revalidado e repetia a ação; agora guarda os campos do momento do envio.
 
 **Pendente:** validação com pessoas reais (seção 5).
