@@ -38,7 +38,7 @@ export function FiltrosPilula({
           className={cn(
             "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm whitespace-nowrap transition-colors pointer-coarse:h-11 pointer-coarse:px-4",
             f.ativo
-              ? "border-primary/40 bg-primary/10 font-medium text-foreground"
+              ? "border-destaque-borda bg-destaque-suave font-medium text-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >

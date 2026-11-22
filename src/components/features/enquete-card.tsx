@@ -106,10 +106,10 @@ export function EnqueteCard({
               className={
                 fechada
                   ? decisao.includes(o.id)
-                    ? "flex min-h-11 items-center gap-3 rounded-lg border border-primary bg-primary/5 px-3 py-2 text-sm font-medium"
+                    ? "flex min-h-11 items-center gap-3 rounded-lg border border-primary bg-destaque-suave px-3 py-2 text-sm font-medium"
                     : "flex min-h-11 items-center gap-3 rounded-lg border px-3 py-2 text-sm text-muted-foreground"
                   : // 44px no toque (DESIGN.md): a linha inteira é o alvo do voto.
-                    "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-primary/5 has-checked:font-medium has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 pointer-coarse:py-3"
+                    "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-destaque-suave has-checked:font-medium has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 pointer-coarse:py-3"
               }
             >
               <input
@@ -146,7 +146,7 @@ export function EnqueteCard({
                 )}
               </span>
               {decisao.includes(o.id) && (
-                <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-primary">
+                <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-destaque">
                   <Gavel className="size-3.5" aria-hidden /> Escolha da turma
                 </span>
               )}

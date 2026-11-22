@@ -73,7 +73,7 @@ const ICONE_CATEGORIA: Record<string, LucideIcon> = {
 // Só vira link o que é claramente um site, e-mail ou telefone; qualquer outro
 // texto aparece como texto puro.
 function Contato({ valor }: { valor: string }) {
-  const classe = "inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-primary pointer-coarse:py-2";
+  const classe = "inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-destaque pointer-coarse:py-2";
   if (/^https?:\/\//i.test(valor)) {
     return (
       <a href={valor} target="_blank" rel="noopener noreferrer" className={classe}>

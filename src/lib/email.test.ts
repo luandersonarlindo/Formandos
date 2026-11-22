@@ -167,7 +167,7 @@ describe("aparência dos emails", () => {
 
   it("usa a indigo da marca no botão, não o preto que estava antes", () => {
     expect(emailVerificacao("Ana", "https://formandos.app/v").html).toContain(
-      "background:#4f46e5",
+      "background:#4f39f6",
     );
   });
 
@@ -233,26 +233,28 @@ describe("contraste do texto do email", () => {
 
   it.each([
     ["corpo do texto", "#525252"],
-    ["título", "#252525"],
-    ["texto apagado (link de reserva e rodapé)", "#6b6b6b"],
+    ["título", "#0a0a0a"],
+    ["texto apagado (link de reserva e rodapé)", "#696969"],
     ["texto do botão", "#ffffff"],
   ])("%s tem contraste suficiente sobre o branco", (_nome, cor) => {
-    const fundo = cor === "#ffffff" ? "#4f46e5" : "#ffffff";
+    const fundo = cor === "#ffffff" ? "#4f39f6" : "#ffffff";
     expect(contraste(cor, fundo)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("o cinza do site reprovaria, o do email passa", () => {
-    expect(contraste("#8e8e8e", "#ffffff")).toBeLessThan(4.5);
-    expect(contraste("#6b6b6b", "#ffffff")).toBeGreaterThanOrEqual(4.5);
+  it("o apagado é o mesmo --muted-foreground do site e passa sobre o fundo cinza", () => {
+    // #696969 = oklch(0.52 0 0). O padrão do shadcn (0.556, #737373) dava
+    // 4,3:1 sobre o --muted e reprovava; o site e o email escureceram juntos.
+    expect(contraste("#696969", "#f5f5f5")).toBeGreaterThanOrEqual(4.5);
+    expect(contraste("#737373", "#f5f5f5")).toBeLessThan(4.5);
   });
 
-  it("o email não usa o cinza reprovado em lugar nenhum", () => {
+  it("o email não usa o cinza antigo, que reprovava sobre o fundo cinza", () => {
     for (const email of [
       emailVerificacao("Ana", "https://formandos.app/v"),
       emailContaExcluida("Ana", []),
       emailSaiuDaTurma("Ana", "Turma 2026", "https://formandos.app/x"),
     ]) {
-      expect(email.html).not.toContain("#8e8e8e");
+      expect(email.html).not.toContain("#737373");
     }
   });
 });
@@ -277,14 +279,14 @@ describe("email de exclusão de conta", () => {
   });
 
   it("marca remoção e exclusão com a cor de aviso, não com a da marca", () => {
-    const vermelho = "linear-gradient(90deg,#dc2626,#f87171)";
+    const vermelho = "linear-gradient(90deg,#c10007,#ff6467)";
     expect(emailRemovidoDaTurma("Ana", "Turma 2026", "https://formandos.app/x").html).toContain(
       vermelho,
     );
     expect(emailContaExcluida("Ana", []).html).toContain(vermelho);
     // Sair por vontade própria é ação normal: fica na cor da marca.
     expect(emailSaiuDaTurma("Ana", "Turma 2026", "https://formandos.app/x").html).toContain(
-      "linear-gradient(90deg,#4f46e5,#818cf8)",
+      "linear-gradient(90deg,#4f39f6,#615fff)",
     );
   });
 });

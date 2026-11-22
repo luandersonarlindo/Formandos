@@ -94,7 +94,7 @@ export function SeletorTurma({
                   {t.arquivada && (
                     <span className="shrink-0 rounded-full border px-1.5 text-[10px] text-muted-foreground">arquivada</span>
                   )}
-                  {atual && <Check className="size-4 shrink-0 text-primary" aria-hidden />}
+                  {atual && <Check className="size-4 shrink-0 text-destaque" aria-hidden />}
                 </button>
               </DropdownMenuItem>
             </form>

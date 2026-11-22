@@ -43,7 +43,7 @@ function Indicador({ titulo, valor, total, href }: { titulo: string; valor: numb
     <li>
       <Link
         href={href}
-        className="flex h-full flex-col gap-1 rounded-lg border border-primary/20 bg-primary/[0.03] p-2.5 transition-colors sm:p-3 hover:bg-primary/10 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="flex h-full flex-col gap-1 rounded-lg border border-destaque-borda bg-destaque-suave/50 p-2.5 transition-colors sm:p-3 hover:bg-destaque-suave focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <span className="text-xs leading-tight text-muted-foreground sm:text-sm">{titulo}</span>
         <span className="text-xl font-semibold tabular-nums">
@@ -81,7 +81,7 @@ function Pendencia({
         className={
           feito
             ? "flex size-9 shrink-0 items-center justify-center rounded-full bg-success/10 text-success"
-            : "flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-destaque dark:bg-primary/25"
+            : "flex size-9 shrink-0 items-center justify-center rounded-full bg-destaque-suave text-destaque"
         }
         aria-hidden
       >
@@ -286,7 +286,7 @@ export default async function DashboardPage() {
         </div>
       </PainelRecolhivel>
 
-      <section aria-labelledby="para-voce" className="rounded-xl border border-primary/25 bg-primary/[0.03] p-4 md:p-5">
+      <section aria-labelledby="para-voce" className="rounded-xl border border-destaque-borda bg-destaque-suave/50 p-4 md:p-5">
         <h2 id="para-voce" className="mb-3 text-lg font-semibold">
           Para você fazer
         </h2>

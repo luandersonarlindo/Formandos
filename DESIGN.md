@@ -8,12 +8,15 @@ colors:
   foreground: "oklch(0.145 0 0)"
   card: "oklch(1 0 0)"
   muted: "oklch(0.97 0 0)"
-  muted-foreground: "oklch(0.556 0 0)"
+  muted-foreground: "oklch(0.52 0 0)"
   border: "oklch(0.922 0 0)"
-  destructive: "oklch(0.577 0.245 27.325)"
-  warning: "oklch(0.555 0.163 48.998)"
+  destructive: "oklch(0.505 0.213 27.518)"
+  warning: "oklch(0.473 0.137 46.201)"
   ring: "oklch(0.585 0.233 277.117)"
-  dataviz: "#2a78d6"
+  destaque: "oklch(0.457 0.24 277.023)"
+  destaque-suave: "oklch(0.962 0.018 272.314)"
+  destaque-borda: "oklch(0.87 0.065 274.039)"
+  dataviz: "#2a6fc9"
 typography:
   display:
     fontFamily: "Geist Sans, system-ui, sans-serif"
@@ -106,30 +109,45 @@ The mood is claro e acolhedor: light surfaces, generous whitespace, plain pt-BR 
 
 ## Colors
 
-A neutral light-first palette with one fixed brand accent. Dark mode remaps the neutrals, never the brand.
+A neutral light-first palette with one brand hue, Indigo, used as a scale: each role takes the shade that passes WCAG on its surface. Dark mode remaps the neutrals and moves each indigo role along the same scale.
 
 ### Primary
 
-- **Indigo Institucional** (oklch(0.511 0.262 276.966), ≈ #4F46E5): the only accent. Primary buttons, fixed-decision markers, vote highlights, the invite-code gradient, and focus outlines. Identical value in light and dark; white text on it measures 6.17:1 in both themes.
+- **Indigo Institucional** (`--primary`): the only accent hue. Primary buttons, fixed-decision markers, vote highlights, the invite-code gradient. Light mode: Indigo 600 (#4F39F6) with white text (6.4:1). Dark mode: Indigo 400 (#7C86FF) with **dark** text (#0A0A0A, 6.3:1), the same inversion shadcn uses for its neutral primary. No indigo can hold 4.5:1 against white text and against the dark card at the same time (Indigo 500 measured 4.58 and 3.92), so dark mode flips the text instead of compromising.
+
+**The 4.5 Rule (owner decision, 2026-11-22).** Every pair that carries meaning (text, icons, solid borders, chart marks, focus rings, badges on their own tint) measures **4.5:1 or more in both themes**, including the 3:1 cases WCAG allows for UI. Checked with a WCAG script, the WebAIM API and the Adobe Color contrast analyzer. Purely decorative hairlines (`--border`, `--destaque-borda` around a tinted card) are exempt.
+
+Indigo roles:
+
+| Role | Token | Light | Dark |
+|---|---|---|---|
+| Primary action fill | `--primary` / `--primary-foreground` | 600 + white (6.4:1) | 400 + #0A0A0A (6.3:1); 5.7:1 on card |
+| Text, links, icons | `--destaque` (`text-destaque`) | 700 (8.1:1) | 300 (9.9:1) |
+| Tinted fill (active, selected, highlighted) | `--destaque-suave` | 50 | 950 |
+| Border of tinted fills, badge hover | `--destaque-borda` | 200 | 800 |
+| Focus ring | `--ring` | 500 (4.6:1) | 400 (6.3:1) |
+| Vitrine gradient (text on it: `--primary-foreground`) | `--vitrine-a` → `--vitrine-b` | 600 → 500 | 400 → 300 |
+
+Never use `text-primary` for text: it fails in dark mode (3.1:1). Use `text-destaque`. Never use `bg-primary/N` tints: use `bg-destaque-suave`. Never use `text-white` on indigo: use `text-primary-foreground`, which flips with the theme.
 
 ### Neutral
 
 - **Paper** (oklch(1 0 0)): page and card background in light mode.
 - **Ink** (oklch(0.145 0 0)): body text in light mode; page background in dark mode (19.79:1 / 18.96:1 against its counterpart).
 - **Muted Surface** (oklch(0.97 0 0)): secondary fills, hover states, footer strips.
-- **Muted Text** (oklch(0.556 0 0)): descriptions, metadata, placeholders (4.73:1 on Paper; 7.63:1 in dark mode).
+- **Muted Text** (oklch(0.52 0 0)): descriptions, metadata, placeholders (5.5:1 on Paper, 5.0:1 on Muted Surface, 4.9:1 on `--destaque-suave`; 7.63:1 in dark mode). Darker than the shadcn default 0.556, which gave 4.3:1 on Muted Surface.
 - **Hairline** (oklch(0.922 0 0)): borders and input strokes in light mode.
-- **Destructive** (oklch(0.577 0.245 27.325)): errors and destructive actions (4.76:1 on Paper; softened to 10–20% tints for destructive button fills).
-- **Warning** (oklch(0.555 0.163 48.998) light / oklch(0.828 0.189 84.429) dark, `--warning`): lateness and attention that is not an error — overdue installments, archived turma, "mudou" notices. 5.0:1 on Paper, 10.4:1 on the dark surface. Used as text or a 10–15% tint (`Badge variant="warning"`), never as a fill behind white text. Replaces every hardcoded `amber-*` utility.
+- **Destructive** (Red 700, oklch(0.505 0.213 27.518) light / oklch(0.704 0.191 22.216) dark): errors and destructive actions (6.4:1 on Paper, 5.3:1 on its own 10% tint; Red 600 gave 4.0:1 in the badge).
+- **Warning** (Amber 800, oklch(0.473 0.137 46.201) light / oklch(0.828 0.189 84.429) dark, `--warning`): lateness and attention that is not an error — overdue installments, archived turma, "mudou" notices. 7.1:1 on Paper, 6.1:1 on its own tint (Amber 700 gave 4.4:1), 10.4:1 on the dark surface. Used as text or a 10–15% tint (`Badge variant="warning"`), never as a fill behind white text. Replaces every hardcoded `amber-*` utility.
 - **Focus Ring** (oklch(0.585 0.233 277.117)): input borders and focus rings in light mode; lightened in dark mode for contrast against the dark surface.
-- **Chart Blue** (#2a78d6 light / #3987e5 dark): the single validated dataviz series color (4.42:1 on white, 5.44:1 on the dark surface).
+- **Chart Blue** (#2a6fc9 light / #3987e5 dark): the single dataviz series color (5.0:1 on white, 4.9:1 on the dark card). The dataviz default #2a78d6 gave 4.4:1 and broke the 4.5 Rule.
 
 ### Named Rules
 
-**The One Voice Rule (revised 2026-11-22).** Indigo is still the only accent, but the owner asked for more of it: the app read too neutral. Solid indigo is for primary actions and the Início header card (one per screen). Indigo tints (`bg-primary/10`, text in `--destaque`) mark identity and state: the left rule of every page title, the active sidebar item, the icons of pending items, "em andamento" badges, links. Status colors carry meaning, not decoration: `--success` (concluído, respondido, em dia), `--warning` (atenção), `--destructive` (atrasado, erro).
-- **Destaque** (`--destaque`): indigo as text and icons; same as primary in light mode, lightened to indigo 300 in dark mode so it keeps contrast on the dark surface.
+**The One Voice Rule (revised 2026-11-22).** Indigo is still the only accent, but the owner asked for more of it: the app read too neutral. Solid indigo is for primary actions and the Início header card (one per screen). Indigo tints (`bg-destaque-suave`, text in `--destaque`) mark identity and state: the left rule of every page title, the active sidebar item, the icons of pending items, "em andamento" badges, links. Status colors carry meaning, not decoration: `--success` (concluído, respondido, em dia), `--warning` (atenção), `--destructive` (atrasado, erro).
+- **Destaque** (`--destaque`): indigo as text and icons; indigo 700 in light mode (one step darker than the button, so "clickable" reads apart from "primary action"), indigo 300 in dark mode.
 - **Success** (`--success`): emerald 700 light / 400 dark, for done states (`Badge variant="success"`).
-**The Same Brand Both Themes Rule.** The primary value never changes between themes; only neutrals and the focus ring remap. Brand recognition must survive a theme switch.
+**The One Hue Rule (replaces Same Brand Both Themes, 2026-11-22).** The brand hue never changes between themes; the shade does. Each role picks the Indigo step that passes contrast on its surface (table above), so the app reads as one family of indigos instead of one flat 600 everywhere.
 
 ## Typography
 

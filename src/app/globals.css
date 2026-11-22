@@ -24,6 +24,8 @@
   --color-warning: var(--warning);
   --color-success: var(--success);
   --color-destaque: var(--destaque);
+  --color-destaque-suave: var(--destaque-suave);
+  --color-destaque-borda: var(--destaque-borda);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -52,22 +54,36 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  /* Indigo 600 (ui.shadcn.com/colors): cor de marca, igual nos dois temas. */
+  /* Escala Indigo (ui.shadcn.com/colors) por papel, conferida com o verificador
+     de contraste WCAG. Regra do projeto: todo par de texto, ícone ou borda com
+     significado fica em 4,5:1 ou mais, nos dois temas.
+       600 primary (botão, branco sobre ele 6,5:1) · 700 destaque (texto 8,1:1)
+       500 ring (4,6:1) · 600→500 vitrine · 50 destaque-suave · 200 destaque-borda */
   --primary: oklch(0.511 0.262 276.966);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Branco puro: com o 0.985 o fim do gradiente (indigo 500) ficava em 4,4:1. */
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* 0.52 em vez do 0.556 do shadcn: o padrão dava 4,3:1 sobre --muted. Agora
+     5,0:1 sobre --muted, 4,8:1 sobre --destaque-suave e 5,4:1 no branco. */
+  --muted-foreground: oklch(0.52 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  /* Atraso e atenção (não é erro). Âmbar 700: 5,0:1 sobre o branco. */
-  --warning: oklch(0.555 0.163 48.998);
+  /* Red 700: o 600 dava 4,0:1 no badge (texto sobre o próprio tom a 10%). */
+  --destructive: oklch(0.505 0.213 27.518);
+  /* Atraso e atenção (não é erro). Âmbar 800: 7,1:1 no branco e 6,1:1 no
+     badge (o 700 dava 4,4:1 no badge). */
+  --warning: oklch(0.473 0.137 46.201);
   /* Concluído, em dia. Esmeralda 700: 5,5:1 sobre o branco. */
   --success: oklch(0.508 0.118 165.612);
-  /* A cor principal como texto e ícone sobre fundo claro (6,2:1). */
-  --destaque: oklch(0.511 0.262 276.966);
+  /* Indigo 700: texto, link e ícone em índigo. Um tom abaixo do botão separa
+     "clicável" de "ação principal" (8,1:1 no branco, 7,2:1 sobre destaque-suave). */
+  --destaque: oklch(0.457 0.24 277.023);
+  /* Indigo 50: fundo de item ativo, selecionado ou em destaque (antes primary/10). */
+  --destaque-suave: oklch(0.962 0.018 272.314);
+  /* Indigo 200: borda desses fundos e hover dos badges. */
+  --destaque-borda: oklch(0.87 0.065 274.039);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   /* Indigo 500. */
@@ -76,7 +92,7 @@
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.511 0.262 276.966);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
@@ -90,9 +106,12 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  /* Mesmo Indigo 600 do modo claro: a cor de marca não muda entre temas. */
-  --primary: oklch(0.511 0.262 276.966);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Indigo 400 com texto escuro no escuro (como o shadcn faz com o neutro).
+     Nenhum índigo passa 4,5:1 ao mesmo tempo com texto branco em cima e
+     sobre o card escuro; com texto escuro passa tudo: 6,3:1 no fundo,
+     5,7:1 no card, 4,8:1 no --muted e o texto do botão em 6,3:1. */
+  --primary: oklch(0.673 0.182 276.935);
+  --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -106,14 +125,18 @@
   --success: oklch(0.765 0.177 163.223);
   /* Índigo 300 no escuro: o índigo da marca some sobre o fundo escuro como texto. */
   --destaque: oklch(0.785 0.115 274.713);
+  /* Indigo 950: fundo em destaque (destaque sobre ele 8,0:1). */
+  --destaque-suave: oklch(0.257 0.09 281.288);
+  /* Indigo 800: borda desses fundos. */
+  --destaque-borda: oklch(0.398 0.195 277.366);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   /* Indigo 400: mais claro que no modo claro, para contrastar com o fundo escuro. */
   --ring: oklch(0.673 0.182 276.935);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.511 0.262 276.966);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.673 0.182 276.935);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
@@ -131,9 +154,10 @@
     @apply font-sans;
   }
 }
-/* Cor da série nos gráficos (validada com o validador de paleta do dataviz). */
+/* Cor da série nos gráficos. No claro, #2a6fc9 (5,0:1 no branco): o #2a78d6
+   do validador do dataviz dava 4,4:1 e ficava abaixo da regra de 4,5:1. */
 :root {
-  --viz-serie-1: #2a78d6;
+  --viz-serie-1: #2a6fc9;
 }
 .dark {
   --viz-serie-1: #3987e5;
@@ -141,10 +165,12 @@
 
 /* Vitrine (página inicial) -------------------------------------------------- */
 /* Gradiente e destaques em Indigo (ui.shadcn.com/colors): "a" é o tom mais
-   forte, "b" um tom mais claro da mesma cor — nunca cruza para outro matiz. */
+   forte, "b" um tom vizinho da mesma cor — nunca cruza para outro matiz.
+   Texto sobre o gradiente usa --primary-foreground (branco no claro, escuro
+   no escuro), que passa 4,5:1 nas duas pontas. */
 :root {
   --vitrine-a: oklch(0.511 0.262 276.966); /* indigo-600 */
-  --vitrine-b: oklch(0.673 0.182 276.935); /* indigo-400 */
+  --vitrine-b: oklch(0.585 0.233 277.117); /* indigo-500: texto branco 4,6:1 */
 }
 .dark {
   --vitrine-a: oklch(0.673 0.182 276.935); /* indigo-400 */

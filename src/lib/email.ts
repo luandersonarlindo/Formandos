@@ -63,30 +63,30 @@ export function enviarEmailSilencioso(email: Email) {
 // Aparência
 //
 // Email não carrega o CSS do site, então a paleta vai aqui trocada pelo hex
-// equivalente de src/app/globals.css. Os dois ficam juntos de propósito: mexer
-// na marca é mexer nos dois lugares.
-//   --primary           oklch(0.511 0.262 276.966) -> #4f46e5
-//   --vitrine-b         oklch(0.673 0.182 276.935) -> #818cf8
-//   --foreground        oklch(0.145 0 0)          -> #252525
+// equivalente de src/app/globals.css (modo claro). Os dois ficam juntos de
+// propósito: mexer na marca é mexer nos dois lugares. Hex calculados de
+// oklch para sRGB (o mesmo que o navegador mostra numa tela comum):
+//   --primary           oklch(0.511 0.262 276.966) -> #4f39f6 (indigo 600)
+//   --vitrine-b         oklch(0.585 0.233 277.117) -> #615fff (indigo 500)
+//   --foreground        oklch(0.145 0 0)          -> #0a0a0a
+//   --muted-foreground  oklch(0.52 0 0)           -> #696969
 //   --muted             oklch(0.97 0 0)           -> #f5f5f5
-//   --muted-foreground  oklch(0.556 0 0)          -> #8e8e8e
 //   --border            oklch(0.922 0 0)          -> #e5e5e5
-//   --destructive       oklch(0.577 0.245 27.325) -> #dc2626
+//   --destructive       oklch(0.505 0.213 27.518) -> #c10007 (red 700)
+//   red 400                                       -> #ff6467 (ponta clara do gradiente)
+// O texto do corpo (#525252, neutral 600) é a única cor sem token no site:
+// fica entre o título e o apagado para dar hierarquia ao parágrafo.
 const TINTA = {
-  marca: "#4f46e5",
-  marcaClara: "#818cf8",
-  titulo: "#252525",
+  marca: "#4f39f6",
+  marcaClara: "#615fff",
+  titulo: "#0a0a0a",
   texto: "#525252",
-  // Única cor que NÃO copia o site: o --muted-foreground dele dá 3,3:1 no
-  // branco e reprova o contraste mínimo da WCAG (4,5:1). No navegador o apagado
-  // nunca passa de 14px; aqui ele é de 12 e 13px, dentro de um cliente que
-  // costuma aumentar o zoom. #6b6b6b é a mesma família de cinza e sobe para
-  // 5,3:1. src/lib/email.test.ts trava o número.
-  apagado: "#6b6b6b",
+  // 5,4:1 sobre o branco. src/lib/email.test.ts trava o número.
+  apagado: "#696969",
   fundo: "#f5f5f5",
   borda: "#e5e5e5",
-  aviso: "#dc2626",
-  avisoClara: "#f87171",
+  aviso: "#c10007",
+  avisoClara: "#ff6467",
 } as const;
 
 // Geist é webfont e webfont não roda em cliente de email. Esta é a pilha de

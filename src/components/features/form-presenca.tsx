@@ -132,7 +132,7 @@ function CamposPresenca({
         {STATUS_PRESENCA.map((s) => (
           <label
             key={s}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-primary/5 has-checked:font-medium pointer-coarse:py-3"
+            className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-destaque-suave has-checked:font-medium pointer-coarse:py-3"
           >
             <input
               type="radio"

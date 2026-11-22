@@ -64,12 +64,12 @@ export function Cabecalho({ logado }: Sessao) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
+        <Link href="/" className="inline-flex items-center text-lg font-semibold tracking-tight pointer-coarse:min-h-11">
           Formandos <span aria-hidden>🎓</span>
         </Link>
         <nav aria-label="Seções da página" className="hidden items-center gap-6 text-sm md:flex">
           {links.map(([href, rotulo]) => (
-            <a key={href} href={href} className="text-muted-foreground transition-colors hover:text-foreground">
+            <a key={href} href={href} className="inline-flex items-center text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11">
               {rotulo}
             </a>
           ))}
@@ -392,7 +392,7 @@ export function Papeis() {
         <div data-grupo className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {PAPEIS.map(({ icone: Icone, titulo, itens }) => (
             <article key={titulo} data-item className="vitrine-cartao rounded-xl border bg-card p-6">
-              <span className="grid size-11 place-items-center rounded-lg bg-[color-mix(in_oklch,var(--vitrine-b)_14%,transparent)] text-[var(--vitrine-b)]">
+              <span className="grid size-11 place-items-center rounded-lg bg-[color-mix(in_oklch,var(--vitrine-b)_14%,transparent)] text-[var(--vitrine-a)]">
                 <Icone className="size-5" aria-hidden />
               </span>
               <h3 className="mt-4 font-semibold">{titulo}</h3>
@@ -444,7 +444,7 @@ export function Equipe() {
           <li key={nome} data-item className="vitrine-cartao rounded-xl border bg-card p-6 text-center">
             <span
               aria-hidden
-              className="mx-auto grid size-14 place-items-center rounded-full bg-gradient-to-br from-[var(--vitrine-a)] to-[var(--vitrine-b)] text-lg font-semibold text-white"
+              className="mx-auto grid size-14 place-items-center rounded-full bg-gradient-to-br from-[var(--vitrine-a)] to-[var(--vitrine-b)] text-lg font-semibold text-primary-foreground"
             >
               {iniciais(nome)}
             </span>
@@ -493,7 +493,7 @@ export function Ilustracao() {
           <ul data-grupo className="mt-6 space-y-2.5">
           {MOTIVOS.map((motivo) => (
             <li key={motivo} data-item className="flex items-center gap-2.5">
-              <span aria-hidden className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--vitrine-a)] text-white">
+              <span aria-hidden className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--vitrine-a)] text-primary-foreground">
                 <Check className="size-3.5" />
               </span>
               <span className="text-sm">{motivo}</span>
@@ -514,13 +514,13 @@ export function ChamadaFinal({ logado }: Sessao) {
     <section className="px-4 pb-16 md:pb-24">
       <div
         data-reveal
-        className="mx-auto max-w-4xl rounded-3xl bg-gradient-to-br from-[var(--vitrine-a)] to-[var(--vitrine-b)] px-6 py-14 text-center text-white"
+        className="mx-auto max-w-4xl rounded-3xl bg-gradient-to-br from-[var(--vitrine-a)] to-[var(--vitrine-b)] px-6 py-14 text-center text-primary-foreground"
       >
         <GraduationCap className="mx-auto size-9" aria-hidden />
         <h2 className="mt-4 text-3xl font-semibold tracking-tight text-balance md:text-4xl">
           Pronto para organizar a formatura da sua turma?
         </h2>
-        <p className="mx-auto mt-3 max-w-xl text-white/85 text-pretty">
+        <p className="mx-auto mt-3 max-w-xl text-primary-foreground text-pretty">
           Entre, junte-se à sua turma pelo link de convite e comece a decidir em conjunto.
         </p>
         <Button asChild size="lg" variant="secondary" className="mt-8">

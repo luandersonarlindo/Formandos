@@ -80,7 +80,7 @@ export function CamposLancamentoCliente({
             className="w-full"
           >
             {Object.entries(rotulosTipo).map(([valor, rotulo]) => (
-              <ToggleGroupItem key={valor} value={valor} className="flex-1 pointer-coarse:min-h-11 data-[state=on]:border-primary/40 data-[state=on]:bg-primary/10 data-[state=on]:font-medium data-[state=on]:text-foreground">
+              <ToggleGroupItem key={valor} value={valor} className="flex-1 pointer-coarse:min-h-11 data-[state=on]:border-destaque-borda data-[state=on]:bg-destaque-suave data-[state=on]:font-medium data-[state=on]:text-foreground">
                 {rotulo}
               </ToggleGroupItem>
             ))}

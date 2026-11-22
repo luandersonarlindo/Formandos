@@ -25,7 +25,7 @@ export function AvatarUsuario({
     <span
       aria-hidden
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--vitrine-a),var(--vitrine-b))] text-sm font-semibold text-white",
+        "flex size-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--vitrine-a),var(--vitrine-b))] text-sm font-semibold text-primary-foreground",
         className,
       )}
     >
