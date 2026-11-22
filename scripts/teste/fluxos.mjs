@@ -1240,7 +1240,7 @@ await grupo("admin", async () => {
     await nav.esperarTexto("Participação nesta pergunta");
   });
   const enqueteLocal = () => sql("select id from enquetes where titulo='Onde vai ser o nosso evento?'");
-  await passo("decisão da turma: fixar, aparecer no dashboard, encerrar a votação e reabrir", async () => {
+  await passo("decisão da turma: fixar, aparecer em Decisões, encerrar a votação e reabrir", async () => {
     // A Chácara precisa ser a mais votada para o Rooftop (sem votos) fugir da
     // regra. O grupo "app" já deixa o voto da Maria nela; rodando só o
     // "admin", o voto entra aqui.
@@ -1260,8 +1260,8 @@ await grupo("admin", async () => {
     await nav.esperarTexto("Decisão fixada");
     igual(sql(`select o.texto from decisoes d join opcoes o on o.id=d.opcao_id where d.turma_id='${turmaTeste()}' and d.enquete_id='${enqueteLocal()}'`), "Rooftop Urbano", "decisão no banco");
     igual(sql(`select justificativa from decisoes where turma_id='${turmaTeste()}' and enquete_id='${enqueteLocal()}'`), "A chácara mais votada não tem a data livre.", "justificativa no banco");
-    await nav.abrir("/dashboard");
-    await nav.esperarTexto("Decisões da turma");
+    // As decisões moram na aba "Decisões" de Votações.
+    await nav.abrir("/votacoes/decisoes");
     await nav.esperarTexto("Rooftop Urbano");
     await nav.esperarTexto("Fora da regra");
     await nav.esperarTexto("Ver histórico das decisões");
@@ -1500,11 +1500,11 @@ await grupo("admin", async () => {
       await fixar(link);
       await nav.esperarTexto("Decisão fixada");
       igual(sql(`select distinct link_documento from decisoes where turma_id='${turma}' and enquete_id='${enq}'`), link, "link no banco");
-      // A turma vê no dashboard.
+      // A turma vê na aba Decisões de Votações.
       await nav.cookie(lerCookie("cookie-participante.txt"));
-      await nav.abrir("/dashboard");
+      await nav.abrir("/votacoes/decisoes");
       await nav.esperarTexto("Ver documento");
-      verdade(await nav.ev(`!!document.querySelector('a[href="${link}"][target=_blank]')`), "link do documento no dashboard");
+      verdade(await nav.ev(`!!document.querySelector('a[href="${link}"][target=_blank]')`), "link do documento em Decisões");
       // Fornecedor: participante não vê o link.
       sql(`update fornecedores set link_documento='https://drive.google.com/orcamento-e2e' where id='${forn}'`);
       await nav.abrir("/terceiros");
@@ -1830,6 +1830,41 @@ await grupo("admin", async () => {
       sql(`delete from fornecedores where turma_id='${turma}' and nome='Buffet E2E'`);
       sql(`delete from parcelas where turma_id='${turma}'`);
       sql(`delete from auditoria where turma_id='${turma}' and acao in ('saida.lancada','saida.editada','saida.excluida','turma.exportada')`);
+      sql(`update membros set tesouraria=false where turma_id='${turma}'`);
+    }
+  });
+  await passo("ADR-0026: valor por acompanhante entra na situação de quem leva alguém", async () => {
+    const turma = turmaTeste();
+    const joao = sql("select id from usuarios where email='teste-jl@example.invalid'");
+    const presencaAntes = sql(`select coalesce(status,'') || '|' || acompanhantes from presencas where turma_id='${turma}' and usuario_id='${joao}'`);
+    sql(`update membros set tesouraria=true where turma_id='${turma}' and usuario_id=(select id from usuarios where email='teste-sh@example.invalid')`);
+    try {
+      await nav.abrir("/admin/tesouraria/plano");
+      await nav.clicar("Cobrar por acompanhante", { seletor: "button" });
+      await nav.esperar("!!document.querySelector('[role=dialog] #acomp-valor')", 10000, "diálogo do valor");
+      await nav.preencher("#acomp-valor", "80");
+      await nav.clicar("Salvar", { escopo: "@[role=dialog]", seletor: "button[type=submit]" });
+      await nav.esperarTexto("por acompanhante, a pagar até");
+      igual(sql(`select valor_acompanhante from turmas where id='${turma}'`), "80.00", "valor no banco");
+      igual(sql(`select count(*) from auditoria where turma_id='${turma}' and acao='plano.acompanhante'`), "1", "mudança no histórico");
+
+      sql(`insert into presencas (turma_id,usuario_id,status,acompanhantes) values ('${turma}','${joao}','vou',2)
+           on conflict (turma_id,usuario_id) do update set status='vou', acompanhantes=2`);
+      await nav.abrir("/admin/presenca");
+      await nav.esperarTexto("Acompanhantes a pagar");
+      await nav.cookie(lerCookie("cookie-participante.txt"));
+      await nav.abrir("/minha-situacao");
+      await nav.esperarTexto("Acompanhantes (2 × R$\u00a080,00)");
+    } finally {
+      await nav.cookie(lerCookie("cookie-admin.txt"));
+      sql(`update turmas set valor_acompanhante=null, vencimento_acompanhante=null where id='${turma}'`);
+      sql(`delete from auditoria where turma_id='${turma}' and acao='plano.acompanhante'`);
+      if (presencaAntes) {
+        const [st, n] = presencaAntes.split("|");
+        sql(`update presencas set status=${st ? `'${st}'` : "null"}, acompanhantes=${n} where turma_id='${turma}' and usuario_id='${joao}'`);
+      } else {
+        sql(`delete from presencas where turma_id='${turma}' and usuario_id='${joao}'`);
+      }
       sql(`update membros set tesouraria=false where turma_id='${turma}'`);
     }
   });
