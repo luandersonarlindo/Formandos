@@ -25,7 +25,7 @@ export default async function OnboardingLayout({
     <div className="flex flex-1 flex-col">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-4xl 2xl:max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href={vinculos.length > 0 ? "/dashboard" : "/"} className="text-lg font-semibold tracking-tight">
+          <Link href={vinculos.length > 0 ? "/dashboard" : "/"} className="inline-flex items-center text-lg font-semibold tracking-tight pointer-coarse:min-h-11">
             Formandos <span aria-hidden>🎓</span>
           </Link>
           <div className="flex items-center gap-1">

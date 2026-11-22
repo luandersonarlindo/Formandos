@@ -115,7 +115,7 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
                 <li data-informe={i.nome} className="rounded-none not-first:border-t-border">
                   <ItemContent className="min-w-0 basis-56">
                     <ItemTitle>
-                      <Link href={`/admin/tesouraria/${i.usuarioId}`} className="underline-offset-2 hover:underline">
+                      <Link href={`/admin/tesouraria/${i.usuarioId}`} className="underline-offset-2 hover:underline pointer-coarse:py-2.5">
                         {i.nome}
                       </Link>
                       <span className="tabular-nums">{formatarReal.format(i.valor)}</span>
@@ -178,7 +178,7 @@ export default async function TesourariaPage({ searchParams }: PageProps<"/admin
                     <ItemTitle className="max-w-full">
                       <Link
                         href={`/admin/tesouraria/${m.usuarioId}`}
-                        className="truncate underline-offset-2 hover:underline"
+                        className="truncate underline-offset-2 hover:underline pointer-coarse:py-2.5"
                       >
                         {m.nome}
                       </Link>

@@ -24,7 +24,7 @@ export function LayoutAuth({
     <main id="conteudo" tabIndex={-1} className="grid flex-1 outline-none lg:grid-cols-2">
       <aside className="vitrine-fundo-hero hidden border-r bg-muted/30 p-12 lg:flex lg:flex-col lg:justify-between">
         <AnimarPagina className="flex h-full flex-col justify-between gap-10">
-          <Link href="/" className="text-lg font-semibold tracking-tight">
+          <Link href="/" className="inline-flex items-center text-lg font-semibold tracking-tight pointer-coarse:min-h-11">
             Formandos <span aria-hidden>🎓</span>
           </Link>
           <div>

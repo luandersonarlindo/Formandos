@@ -158,7 +158,10 @@ export async function AppShell({
           <SidebarRail />
         </Sidebar>
 
-        <SidebarInset>
+        {/* min-w-0: sem ele, uma faixa com rolagem lateral (pílulas de categoria,
+            tabelas) alarga a coluna inteira entre 768px e 1024px, quando a
+            barra lateral já aparece e sobra pouco espaço para o conteúdo. */}
+        <SidebarInset className="min-w-0">
           <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-background/95 px-4 py-2 backdrop-blur print:hidden">
             <SidebarTrigger />
             {/* Celular: o nome da turma é o próprio seletor (D-02). */}
