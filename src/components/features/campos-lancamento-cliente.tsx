@@ -1,5 +1,6 @@
 "use client";
 
+import { CampoValor } from "@/components/features/campo-valor";
 import * as React from "react";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -88,17 +89,8 @@ export function CamposLancamentoCliente({
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field>
-          <FieldLabel htmlFor={id("valor")}>Valor (R$)</FieldLabel>
-          <Input
-            id={id("valor")}
-            name="valor"
-            inputMode="decimal"
-            placeholder="150,00"
-            maxLength={14}
-            required
-            defaultValue={inicial ? inicial.valor.toFixed(2).replace(".", ",") : undefined}
-            className="tabular-nums"
-          />
+          <FieldLabel htmlFor={id("valor")}>Valor</FieldLabel>
+          <CampoValor id={id("valor")} name="valor" placeholder="150,00" maxLength={14} required defaultValue={inicial?.valor} />
         </Field>
         <Field>
           <FieldLabel htmlFor={id("pagoEm")}>Data</FieldLabel>

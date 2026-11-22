@@ -1,6 +1,8 @@
 "use client";
 
+import { CampoValor } from "@/components/features/campo-valor";
 import { useState } from "react";
+import { valorInicial } from "@/lib/mascara-valor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -22,7 +24,7 @@ export function CamposOrcamento({
   status: StatusOrcamento;
   valorOrcado: number | null;
 }) {
-  const [valor, setValor] = useState(valorOrcado?.toFixed(2).replace(".", ",") ?? "");
+  const [valor, setValor] = useState(valorInicial(valorOrcado));
 
   return (
     <>
@@ -38,15 +40,13 @@ export function CamposOrcamento({
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`valor-${fornecedorId}`}>Valor orçado</Label>
-        <Input
+        <CampoValor
           id={`valor-${fornecedorId}`}
           name="valorOrcado"
-          inputMode="decimal"
-          placeholder="Ex.: 1500,00"
+          placeholder="1.500,00"
           value={valor}
-          onChange={(e) => setValor(e.target.value)}
+          onValueChange={setValor}
           maxLength={20}
-          className="h-10"
         />
       </div>
     </>

@@ -1,4 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox";
+import { CampoValor } from "@/components/features/campo-valor";
 import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -35,15 +36,8 @@ export function CamposSaida({
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field>
-          <FieldLabel htmlFor={`${prefixo}-valor`}>Valor (R$)</FieldLabel>
-          <Input
-            id={`${prefixo}-valor`}
-            name="valor"
-            inputMode="decimal"
-            defaultValue={inicial ? inicial.valor.toFixed(2).replace(".", ",") : undefined}
-            placeholder="1500,00"
-            required
-          />
+          <FieldLabel htmlFor={`${prefixo}-valor`}>Valor</FieldLabel>
+          <CampoValor id={`${prefixo}-valor`} name="valor" defaultValue={inicial?.valor} placeholder="1.500,00" required />
         </Field>
         <Field>
           <FieldLabel htmlFor={`${prefixo}-data`}>Data do pagamento</FieldLabel>

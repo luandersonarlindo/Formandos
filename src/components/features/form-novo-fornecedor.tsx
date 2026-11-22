@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { CampoValor } from "@/components/features/campo-valor";
 import { criarFornecedor } from "@/actions/terceiros";
 import { FormDialog } from "@/components/features/form-dialog";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
@@ -65,7 +66,7 @@ export function FormNovoFornecedor({ categorias }: { categorias: readonly string
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="valorOrcado">Valor orçado</Label>
-            <Input id="valorOrcado" name="valorOrcado" inputMode="decimal" maxLength={20} placeholder="Ex.: 1500,00" />
+            <CampoValor id="valorOrcado" name="valorOrcado" maxLength={20} placeholder="1.500,00" />
           </div>
         </div>
       </PainelRecolhivel>

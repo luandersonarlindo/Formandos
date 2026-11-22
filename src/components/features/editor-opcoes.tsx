@@ -1,5 +1,6 @@
 "use client";
 
+import { CampoValor } from "@/components/features/campo-valor";
 import { useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -68,18 +69,16 @@ function CamposDetalhe({
 }) {
   const controlado = aoMudar !== undefined;
   return (
-    <div className={visivel ? "grid grid-cols-[7rem_1fr] gap-2 pl-3" : "hidden"}>
+    <div className={visivel ? "grid grid-cols-[9rem_1fr] gap-2 pl-3" : "hidden"}>
       <div className="flex flex-col gap-1">
         <Label className="text-xs text-muted-foreground">R$ total por pessoa</Label>
-        <Input
+        <CampoValor
           name={nomes?.valor}
-          inputMode="decimal"
           placeholder="95,00"
           maxLength={14}
-          className="h-10 tabular-nums pointer-coarse:h-11"
           aria-label={`Valor total por pessoa de ${rotulo}`}
           {...(controlado
-            ? { value: valores.valor, onChange: (e) => aoMudar({ ...valores, valor: e.target.value }) }
+            ? { value: valores.valor, onValueChange: (v: string) => aoMudar({ ...valores, valor: v }) }
             : { defaultValue: valores.valor })}
         />
       </div>
