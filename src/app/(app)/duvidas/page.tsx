@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 import { CircleCheck, MessageSquareReply, Pencil, RotateCcw, Star, StarOff, Trash2 } from "lucide-react";
 import { alternarDestaque, alternarRespondida, apagarDuvida, responderDuvida } from "@/actions/admin";
@@ -93,7 +94,7 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
             const minha = !observador && d.autorId === membro.usuarioId;
             const temMenu = ehAdmin || minha;
             return (
-              <li key={d.id} data-duvida={d.id} className={d.destaque ? "flex gap-4 bg-primary/5 p-4" : "flex gap-4 p-4"}>
+              <li key={d.id} data-duvida={d.id} className={cn("flex gap-4 p-4 first:rounded-t-[calc(var(--radius-xl)-1px)] last:rounded-b-[calc(var(--radius-xl)-1px)]", d.destaque && "bg-destaque-suave")}>
                 <BotaoUpvote
                   duvidaId={d.id}
                   duvida={d.conteudo}
