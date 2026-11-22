@@ -111,6 +111,8 @@ export function descreverAcao(
         detalhes: [],
       };
     }
+    case "plano.acompanhante":
+      return { frase: `${fraseAcompanhante(d.antes, d.depois)}.`, detalhes: [] };
     case "evento.alterado": {
       const mud = ((d.mudancas ?? []) as { rotulo: string; antes: string; depois: string }[]).map(
         (m) => `${m.rotulo} de ${m.antes} para ${m.depois}`,
@@ -224,4 +226,15 @@ export function descreverAcao(
     case "conta.excluida":
       return { frase: "excluiu a conta.", detalhes: [] };
   }
+}
+
+// ADR-0026: "passou a cobrar R$ 80,00 por acompanhante (pagar até 01/12/2026)".
+type Acomp = { valor: number | null; vencimento: string | null } | undefined;
+export function fraseAcompanhante(antes: Acomp, depois: Acomp): string {
+  const prazo = (a: Acomp) => (a?.vencimento ? ` (pagar até ${a.vencimento.split("-").reverse().join("/")})` : "");
+  const valor = (a: Acomp) =>
+    `${(a?.valor ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} por acompanhante${prazo(a)}`;
+  if (!depois?.valor) return "deixou de cobrar por acompanhante";
+  if (!antes?.valor) return `passou a cobrar ${valor(depois)}`;
+  return `mudou o valor dos acompanhantes: de ${valor(antes)} para ${valor(depois)}`;
 }

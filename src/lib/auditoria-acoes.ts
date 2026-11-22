@@ -40,6 +40,8 @@ export const ACOES_AUDITORIA = [
   "saida.lancada",
   "saida.editada",
   "saida.excluida",
+  // ADR-0026: valor por acompanhante e prazo para pagar.
+  "plano.acompanhante",
 ] as const;
 export type AcaoAuditoria = (typeof ACOES_AUDITORIA)[number];
 
@@ -69,6 +71,8 @@ export const ACOES_VISIVEIS_TURMA = [
   "saida.lancada",
   "saida.editada",
   "saida.excluida",
+  // ADR-0026: vale para todos; o detalhe leva só o valor e a data.
+  "plano.acompanhante",
 ] as const satisfies readonly AcaoAuditoria[];
 
 // Pagamentos individuais: só a tesouraria vê no histórico (ADR-0005). Os

@@ -520,3 +520,10 @@ alter table turmas add column if not exists acess_rampa boolean;
 alter table turmas add column if not exists acess_estacionamento boolean;
 alter table turmas add column if not exists acess_banheiro boolean;
 alter table turmas add column if not exists acess_obs varchar(200);
+
+-- Valor por acompanhante (ADR-0026): quem confirma presença com acompanhantes
+-- deve acompanhantes × valor, como um item a mais da sua situação. Nulo = não
+-- cobra. O prazo é opcional; sem ele vale o vencimento da última parcela.
+alter table turmas add column if not exists valor_acompanhante numeric(10,2)
+  check (valor_acompanhante is null or valor_acompanhante >= 0);
+alter table turmas add column if not exists vencimento_acompanhante date;

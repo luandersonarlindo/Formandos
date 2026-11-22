@@ -5,6 +5,8 @@ import { normalizar } from "./busca";
 import { calcularPaginas, deslocamento, limitarPagina } from "./paginacao";
 import {
   calcularSituacao,
+  planoDaPessoa,
+  type CobrancaAcompanhante,
   type Lancamento,
   type Parcela,
   type Situacao,
@@ -54,6 +56,43 @@ export async function getPlano(turmaId: string): Promise<Parcela[]> {
   return rows;
 }
 
+// ---- Acompanhantes (ADR-0026) ----------------------------------------------
+
+export type ConfigAcompanhante = CobrancaAcompanhante & {
+  /** Vencimento quando não há prazo nem plano: o dia do evento, ou hoje. */
+  reserva: string;
+};
+
+export async function getCobrancaAcompanhante(turmaId: string, hoje: string): Promise<ConfigAcompanhante> {
+  const { rows } = await pool.query(
+    `select valor_acompanhante::float8 as valor,
+            to_char(vencimento_acompanhante, 'YYYY-MM-DD') as vencimento,
+            to_char((data_evento at time zone 'America/Sao_Paulo')::date, 'YYYY-MM-DD') as evento
+       from turmas where id = $1`,
+    [turmaId],
+  );
+  const r = rows[0] ?? {};
+  return { valor: r.valor ?? null, vencimento: r.vencimento ?? null, reserva: r.evento ?? hoje };
+}
+
+type PresencaCobrada = { status: string | null; acompanhantes: number };
+
+async function presencasDaTurma(turmaId: string): Promise<Map<string, PresencaCobrada>> {
+  const { rows } = await pool.query(
+    "select usuario_id, status, acompanhantes from presencas where turma_id = $1",
+    [turmaId],
+  );
+  return new Map(rows.map((r) => [r.usuario_id, { status: r.status, acompanhantes: r.acompanhantes }]));
+}
+
+async function presencaDe(turmaId: string, usuarioId: string): Promise<PresencaCobrada | null> {
+  const { rows } = await pool.query(
+    "select status, acompanhantes from presencas where turma_id = $1 and usuario_id = $2",
+    [turmaId, usuarioId],
+  );
+  return rows[0] ?? null;
+}
+
 async function lancamentosDe(turmaId: string, usuarioId: string): Promise<LancamentoDetalhe[]> {
   const { rows } = await pool.query(
     `select p.id, p.tipo, p.valor::float8 as valor, to_char(p.pago_em, 'YYYY-MM-DD') as "pagoEm",
@@ -85,9 +124,11 @@ export async function getMinhaSituacao(
   usuarioId: string,
   hoje: string,
 ): Promise<MinhaSituacao> {
-  const [plano, lancamentos, extra] = await Promise.all([
+  const [plano, lancamentos, cobranca, presenca, extra] = await Promise.all([
     getPlano(turmaId),
     lancamentosDe(turmaId, usuarioId),
+    getCobrancaAcompanhante(turmaId, hoje),
+    presencaDe(turmaId, usuarioId),
     pool.query(
       `select
          (select max(updated_at) from pagamentos where turma_id = $1 and status <> 'informado') as ultima,
@@ -98,7 +139,7 @@ export async function getMinhaSituacao(
     ),
   ]);
   return {
-    situacao: calcularSituacao(plano, confirmados(lancamentos), hoje),
+    situacao: calcularSituacao(planoDaPessoa(plano, cobranca, presenca, cobranca.reserva), confirmados(lancamentos), hoje),
     lancamentos,
     ultimaAtualizacao: extra.rows[0].ultima,
     tesouraria: extra.rows[0].tesouraria,
@@ -123,7 +164,7 @@ export const POR_PAGINA_TESOURARIA = 20;
 // Todos os membros com a situação calculada. Cabe em memória: a turma tem
 // dezenas ou poucas centenas de pessoas, e a situação depende do plano inteiro.
 export async function todasSituacoes(turmaId: string, hoje: string) {
-  const [plano, membros, lancamentos] = await Promise.all([
+  const [plano, membros, lancamentos, cobranca, presencas] = await Promise.all([
     getPlano(turmaId),
     pool.query(
       `select u.id, u.name as nome, u.email, u.image as imagem
@@ -136,6 +177,8 @@ export async function todasSituacoes(turmaId: string, hoje: string) {
          from pagamentos where turma_id = $1 and usuario_id is not null`,
       [turmaId],
     ),
+    getCobrancaAcompanhante(turmaId, hoje),
+    presencasDaTurma(turmaId),
   ]);
 
   const porPessoa = new Map<string, { tipo: TipoLancamento; valor: number; status: string }[]>();
@@ -153,7 +196,7 @@ export async function todasSituacoes(turmaId: string, hoje: string) {
       email: m.email,
       imagem: m.imagem,
       situacao: calcularSituacao(
-        plano,
+        planoDaPessoa(plano, cobranca, presencas.get(m.id), cobranca.reserva),
         dela.filter((l) => l.status === "confirmado"),
         hoje,
       ),
@@ -216,13 +259,15 @@ export async function getPessoaTesouraria(turmaId: string, usuarioId: string, ho
     [turmaId, usuarioId],
   );
   if (rows.length === 0) return null;
-  const [plano, lancamentos] = await Promise.all([
+  const [plano, lancamentos, cobranca, presenca] = await Promise.all([
     getPlano(turmaId),
     lancamentosDe(turmaId, usuarioId),
+    getCobrancaAcompanhante(turmaId, hoje),
+    presencaDe(turmaId, usuarioId),
   ]);
   return {
     pessoa: rows[0] as { id: string; nome: string; email: string; imagem: string | null },
-    situacao: calcularSituacao(plano, confirmados(lancamentos), hoje),
+    situacao: calcularSituacao(planoDaPessoa(plano, cobranca, presenca, cobranca.reserva), confirmados(lancamentos), hoje),
     lancamentos,
   };
 }

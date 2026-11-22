@@ -8,7 +8,8 @@
 // Contas em centavos (inteiros) para não acumular erro de ponto flutuante.
 // Datas como texto "AAAA-MM-DD": compara direto, sem fuso.
 
-export type Parcela = { numero: number; valor: number; vencimento: string };
+// `rotulo`: item que não é parcela do plano (ex.: acompanhantes, ADR-0026).
+export type Parcela = { numero: number; valor: number; vencimento: string; rotulo?: string };
 export type TipoLancamento = "pagamento" | "devolucao" | "ajuste";
 export type Lancamento = { tipo: TipoLancamento; valor: number };
 
@@ -30,7 +31,7 @@ export type Situacao = {
   pago: number;
   falta: number;
   parcelas: ParcelaCalculada[];
-  proxima: { numero: number; vencimento: string; falta: number } | null;
+  proxima: { numero: number; vencimento: string; falta: number; rotulo?: string } | null;
 };
 
 const centavos = (v: number) => Math.round(v * 100);
@@ -70,7 +71,7 @@ export function calcularSituacao(
 
   const aberta = calculadas.find((p) => p.falta > 0);
   const proxima = aberta
-    ? { numero: aberta.numero, vencimento: aberta.vencimento, falta: aberta.falta }
+    ? { numero: aberta.numero, vencimento: aberta.vencimento, falta: aberta.falta, rotulo: aberta.rotulo }
     : null;
 
   // Devido até hoje: parcelas que vencem hoje ou antes.
@@ -138,4 +139,50 @@ export function hojeBrasil(agora = new Date()): string {
 export function dataBr(iso: string): string {
   const [a, m, d] = iso.split("-");
   return `${d}/${m}/${a}`;
+}
+
+// ---- Acompanhantes (ADR-0026) ----------------------------------------------
+
+export type CobrancaAcompanhante = {
+  /** Valor por acompanhante; nulo ou zero = a turma não cobra. */
+  valor: number | null;
+  /** "Pagar até" escolhido pela tesouraria (AAAA-MM-DD), ou nulo. */
+  vencimento: string | null;
+};
+
+/**
+ * O item "Acompanhantes" da situação de uma pessoa: acompanhantes × valor,
+ * só para quem respondeu "vou". Vence na data escolhida; sem ela, junto com a
+ * última parcela do plano; sem plano, na data de reserva (dia do evento ou
+ * hoje). Como as parcelas, entra na fila por vencimento; no empate com a última
+ * parcela, vem depois dela.
+ */
+export function itemAcompanhantes(
+  cobranca: CobrancaAcompanhante,
+  presenca: { status: string | null; acompanhantes: number },
+  plano: Parcela[],
+  reserva: string,
+): Parcela | null {
+  if (!cobranca.valor || cobranca.valor <= 0) return null;
+  if (presenca.status !== "vou" || presenca.acompanhantes <= 0) return null;
+  const ultima = [...plano].sort((a, b) => b.vencimento.localeCompare(a.vencimento))[0];
+  const valorC = centavos(cobranca.valor) * presenca.acompanhantes;
+  const unitario = cobranca.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return {
+    numero: plano.reduce((m, p) => Math.max(m, p.numero), 0) + 1,
+    valor: reais(valorC),
+    vencimento: cobranca.vencimento ?? ultima?.vencimento ?? reserva,
+    rotulo: `Acompanhantes (${presenca.acompanhantes} × ${unitario})`,
+  };
+}
+
+/** O plano da pessoa: as parcelas da turma e, se houver, o item de acompanhantes. */
+export function planoDaPessoa(
+  plano: Parcela[],
+  cobranca: CobrancaAcompanhante,
+  presenca: { status: string | null; acompanhantes: number } | null | undefined,
+  reserva: string,
+): Parcela[] {
+  const item = presenca ? itemAcompanhantes(cobranca, presenca, plano, reserva) : null;
+  return item ? [...plano, item] : plano;
 }

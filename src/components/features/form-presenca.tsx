@@ -28,11 +28,14 @@ type Inicial = {
 export function FormPresenca({
   inicial,
   limite,
+  valorAcompanhante = null,
   variante = "outline",
 }: {
   inicial: Inicial;
   // Quantos acompanhantes a turma permite (escolha do administrador).
   limite: number;
+  // ADR-0026: quanto cada acompanhante custa (nulo = a turma não cobra).
+  valorAcompanhante?: number | null;
   // "default" quando a presença é a ação primária do Início (algo pendente).
   variante?: "default" | "outline";
 }) {
@@ -52,16 +55,26 @@ export function FormPresenca({
       rotuloSubmit="Salvar resposta"
       rotuloPendente="Salvando…"
     >
-      <CamposPresenca inicial={inicial} limite={limite} />
+      <CamposPresenca inicial={inicial} limite={limite} valorAcompanhante={valorAcompanhante} />
     </FormDialog>
   );
 }
 
 type Linha = Acompanhante & { chave: number };
 
+const real = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 // Campos controlados: o React limpa formulários depois da ação, e assim a
 // resposta salva continua na tela.
-function CamposPresenca({ inicial, limite }: { inicial: Inicial; limite: number }) {
+function CamposPresenca({
+  inicial,
+  limite,
+  valorAcompanhante,
+}: {
+  inicial: Inicial;
+  limite: number;
+  valorAcompanhante: number | null;
+}) {
   const [status, setStatus] = useState<StatusPresenca | null>(inicial.status);
   const [observacao, setObservacao] = useState(inicial.observacao);
   // Resposta antiga (ADR-0013) tem quantidade e nenhum nome: as linhas que
@@ -205,6 +218,16 @@ function CamposPresenca({ inicial, limite }: { inicial: Inicial; limite: number 
             {linhas.length === 0
               ? "Você vai sem acompanhantes."
               : `${linhas.length} ${linhas.length === 1 ? "acompanhante" : "acompanhantes"} na lista.`}
+            {/* ADR-0026: o custo aparece antes de salvar, não só na situação. */}
+            {valorAcompanhante && linhas.length > 0 ? (
+              <>
+                {" "}
+                <strong className="font-medium text-foreground">
+                  {linhas.length} × {real(valorAcompanhante)} = {real(linhas.length * valorAcompanhante)}
+                </strong>
+                , que entram em “Minha situação”.
+              </>
+            ) : null}
           </p>
         </fieldset>
       )}

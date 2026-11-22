@@ -1,5 +1,6 @@
 import { formatarDataHora } from "@/lib/datas";
 import type { MudancaPlano } from "@/lib/auditoria";
+import { fraseAcompanhante } from "@/lib/historico-texto";
 import { formatarReal } from "@/lib/orcamento";
 import { dataBr } from "@/lib/situacao-regras";
 
@@ -22,6 +23,15 @@ function resumoPlano(lista: P[]) {
 function Descricao({ m }: { m: MudancaPlano }) {
   const autor = m.autor ?? "Conta excluída";
   const d = m.detalhe as { parcela?: number; antes: P | P[]; depois: P | P[] };
+  // ADR-0026: valor por acompanhante (detalhe { antes, depois } com valor e data).
+  if (!Array.isArray(d.depois) && typeof d.parcela !== "number" && d.depois && "vencimento" in d.depois && !("numero" in d.depois)) {
+    const a = m.detalhe as { antes: { valor: number | null; vencimento: string | null }; depois: { valor: number | null; vencimento: string | null } };
+    return (
+      <p>
+        <strong className="font-medium">{autor}</strong> {fraseAcompanhante(a.antes, a.depois)}.
+      </p>
+    );
+  }
   if (typeof d.parcela === "number") {
     return (
       <p>

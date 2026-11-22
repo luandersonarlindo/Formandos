@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { calcularSituacao, dataBr, gerarPlano, hojeBrasil, type Lancamento } from "./situacao-regras";
+import {
+  calcularSituacao,
+  dataBr,
+  gerarPlano,
+  hojeBrasil,
+  itemAcompanhantes,
+  planoDaPessoa,
+  type Lancamento,
+} from "./situacao-regras";
 
 const plano = gerarPlano(3, 100, "2026-10-10"); // 10/10, 10/11, 10/12
 const pag = (valor: number): Lancamento => ({ tipo: "pagamento", valor });
@@ -104,4 +112,44 @@ describe("datas", () => {
     expect(hojeBrasil(new Date("2026-12-11T02:00:00Z"))).toBe("2026-12-10");
   });
   it("dataBr", () => expect(dataBr("2026-12-10")).toBe("10/12/2026"));
+});
+
+describe("acompanhantes (ADR-0026)", () => {
+  const plano = [
+    { numero: 1, valor: 100, vencimento: "2026-10-10" },
+    { numero: 2, valor: 100, vencimento: "2026-11-10" },
+  ];
+  const cobra = { valor: 80, vencimento: null };
+
+  it("só cobra de quem vai e leva acompanhante", () => {
+    expect(itemAcompanhantes(cobra, { status: "talvez", acompanhantes: 2 }, plano, "2026-12-31")).toBeNull();
+    expect(itemAcompanhantes(cobra, { status: "vou", acompanhantes: 0 }, plano, "2026-12-31")).toBeNull();
+    expect(itemAcompanhantes({ valor: null, vencimento: null }, { status: "vou", acompanhantes: 2 }, plano, "2026-12-31")).toBeNull();
+  });
+
+  it("acompanhantes × valor, vencendo com a última parcela", () => {
+    expect(itemAcompanhantes(cobra, { status: "vou", acompanhantes: 2 }, plano, "2026-12-31")).toEqual({
+      numero: 3,
+      valor: 160,
+      vencimento: "2026-11-10",
+      rotulo: "Acompanhantes (2 × R$ 80,00)",
+    });
+  });
+
+  it("usa o prazo da tesouraria e, sem plano, a data de reserva", () => {
+    expect(itemAcompanhantes({ valor: 80, vencimento: "2026-12-01" }, { status: "vou", acompanhantes: 1 }, plano, "x")?.vencimento).toBe("2026-12-01");
+    expect(itemAcompanhantes(cobra, { status: "vou", acompanhantes: 1 }, [], "2026-12-31")?.vencimento).toBe("2026-12-31");
+  });
+
+  it("entra no total e o pago cobre primeiro as parcelas", () => {
+    const s = calcularSituacao(planoDaPessoa(plano, cobra, { status: "vou", acompanhantes: 2 }, "x"), [{ tipo: "pagamento", valor: 250 }], "2026-12-20");
+    expect(s.totalPlano).toBe(360);
+    expect(s.falta).toBe(110);
+    expect(s.parcelas.at(-1)).toMatchObject({ rotulo: "Acompanhantes (2 × R$ 80,00)", coberto: 50, falta: 110, emAtraso: true });
+    expect(s.estado).toBe("atrasado");
+  });
+
+  it("sem acompanhantes, o plano fica igual", () => {
+    expect(planoDaPessoa(plano, cobra, null, "x")).toBe(plano);
+  });
 });

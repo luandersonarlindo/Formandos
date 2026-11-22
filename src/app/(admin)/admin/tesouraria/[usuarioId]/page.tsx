@@ -110,7 +110,7 @@ export default async function PessoaTesourariaPage(props: PageProps<"/admin/teso
               <TableBody>
                 {s.parcelas.map((p) => (
                   <TableRow key={p.numero}>
-                    <TableCell className="font-medium">{p.numero}</TableCell>
+                    <TableCell className="font-medium">{p.rotulo ?? p.numero}</TableCell>
                     <TableCell className="text-right">{formatarReal.format(p.valor)}</TableCell>
                     <TableCell>{dataBr(p.vencimento)}</TableCell>
                     <TableCell className="text-right">

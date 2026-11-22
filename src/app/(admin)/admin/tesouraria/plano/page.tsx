@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { CalendarRange, Pencil, ScrollText } from "lucide-react";
-import { atualizarParcela, salvarPlano, salvarRegrasDinheiro } from "@/actions/tesouraria";
+import { CampoValor } from "@/components/features/campo-valor";
+import { CalendarRange, Pencil, ScrollText, Users } from "lucide-react";
+import { atualizarParcela, salvarCobrancaAcompanhante, salvarPlano, salvarRegrasDinheiro } from "@/actions/tesouraria";
 import { AbasTesouraria } from "@/components/features/abas-tesouraria";
 import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
 import { FormDialog } from "@/components/features/form-dialog";
@@ -13,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { exigirTesouraria } from "@/lib/dal";
 import { formatarReal } from "@/lib/orcamento";
-import { getCaixa, getPlano } from "@/lib/pagamentos";
+import { getCaixa, getCobrancaAcompanhante, getPlano } from "@/lib/pagamentos";
 import { dataBr, hojeBrasil } from "@/lib/situacao-regras";
 
 export const metadata: Metadata = { title: "Plano e regras" };
@@ -26,7 +27,12 @@ export default async function PlanoTesourariaPage() {
   const tesouraria = await exigirTesouraria();
   const hoje = hojeBrasil();
   const editavel = !tesouraria.arquivadaEm;
-  const [plano, caixa] = await Promise.all([getPlano(tesouraria.turmaId), getCaixa(tesouraria.turmaId)]);
+  const [plano, caixa, acompanhante] = await Promise.all([
+    getPlano(tesouraria.turmaId),
+    getCaixa(tesouraria.turmaId),
+    getCobrancaAcompanhante(tesouraria.turmaId, hoje),
+  ]);
+  const ultimaParcela = plano.at(-1)?.vencimento;
   const totalPlano = plano.reduce((s, p) => s + p.valor, 0);
 
   return (
@@ -66,8 +72,8 @@ export default async function PlanoTesourariaPage() {
                   <Input id="plano-quantidade" name="quantidade" type="number" min={1} max={60} inputMode="numeric" defaultValue={plano.length || 10} required />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="plano-valor">Valor de cada uma (R$)</FieldLabel>
-                  <Input id="plano-valor" name="valor" inputMode="decimal" placeholder="150,00" required />
+                  <FieldLabel htmlFor="plano-valor">Valor de cada uma</FieldLabel>
+                  <CampoValor id="plano-valor" name="valor" placeholder="150,00" required />
                 </Field>
               </div>
               <Field>
@@ -113,14 +119,8 @@ export default async function PlanoTesourariaPage() {
                               rotuloSubmit="Salvar parcela"
                             >
                               <Field>
-                                <FieldLabel htmlFor={`parcela-valor-${p.numero}`}>Valor (R$)</FieldLabel>
-                                <Input
-                                  id={`parcela-valor-${p.numero}`}
-                                  name="valor"
-                                  inputMode="decimal"
-                                  defaultValue={p.valor.toFixed(2).replace(".", ",")}
-                                  required
-                                />
+                                <FieldLabel htmlFor={`parcela-valor-${p.numero}`}>Valor</FieldLabel>
+                                <CampoValor id={`parcela-valor-${p.numero}`} name="valor" defaultValue={p.valor} required />
                               </Field>
                               <Field>
                                 <FieldLabel htmlFor={`parcela-venc-${p.numero}`}>Vencimento</FieldLabel>
@@ -135,6 +135,60 @@ export default async function PlanoTesourariaPage() {
                 </Table>
               </PainelRecolhivel>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ADR-0026: cada acompanhante confirmado vira um valor a pagar na
+          situação de quem vai levá-lo. */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle nivel={2} className="flex items-center gap-2 text-lg">
+            <Users className="size-5 text-muted-foreground" aria-hidden /> Acompanhantes
+          </CardTitle>
+          <CardDescription className="text-pretty">
+            Quem confirmar presença com acompanhantes paga este valor por pessoa. Aparece em “Minha situação” como um
+            item a mais, junto das parcelas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-start gap-3">
+          <p className="text-sm">
+            {acompanhante.valor ? (
+              <>
+                <strong className="font-medium tabular-nums">{formatarReal.format(acompanhante.valor)}</strong> por
+                acompanhante, a pagar até{" "}
+                {acompanhante.vencimento
+                  ? dataBr(acompanhante.vencimento)
+                  : ultimaParcela
+                    ? `${dataBr(ultimaParcela)} (com a última parcela)`
+                    : `${dataBr(acompanhante.reserva)} (dia do evento)`}
+                .
+              </>
+            ) : (
+              <span className="text-muted-foreground">Acompanhantes sem cobrança.</span>
+            )}
+          </p>
+          {editavel && (
+            <FormDialog
+              rotulo={acompanhante.valor ? "Mudar valor por acompanhante" : "Cobrar por acompanhante"}
+              icone={<Pencil aria-hidden />}
+              titulo="Valor por acompanhante"
+              descricao="Deixe o valor vazio para não cobrar. A mudança vale para todos e fica no histórico do plano."
+              acao={salvarCobrancaAcompanhante}
+              rotuloSubmit="Salvar"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="acomp-valor">Valor por acompanhante</FieldLabel>
+                  <CampoValor id="acomp-valor" name="valor" defaultValue={acompanhante.valor} placeholder="80,00" />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="acomp-vencimento">Pagar até (opcional)</FieldLabel>
+                  <Input id="acomp-vencimento" name="vencimento" type="date" defaultValue={acompanhante.vencimento ?? ""} />
+                  <FieldDescription className="text-xs">Sem data, vence junto com a última parcela.</FieldDescription>
+                </Field>
+              </div>
+            </FormDialog>
           )}
         </CardContent>
       </Card>

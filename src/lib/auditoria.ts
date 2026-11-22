@@ -89,7 +89,7 @@ export async function listarMudancasPlano(turmaId: string): Promise<MudancaPlano
     `select a.id::text, a.created_at as quando, u.name as autor, a.detalhe
        from auditoria a
        left join usuarios u on u.id = a.usuario_id
-      where a.turma_id = $1 and a.acao = 'plano.alterado'
+      where a.turma_id = $1 and a.acao in ('plano.alterado', 'plano.acompanhante')
       order by a.created_at desc, a.id desc
       limit 50`,
     [turmaId],
@@ -105,6 +105,7 @@ export const ASSUNTOS_HISTORICO = {
   evento: ["evento.alterado", "evento.link_publico"],
   dinheiro: [
     "plano.alterado",
+    "plano.acompanhante",
     "fornecedor.alterado",
     "pagamento.lancado",
     "pagamento.informado",

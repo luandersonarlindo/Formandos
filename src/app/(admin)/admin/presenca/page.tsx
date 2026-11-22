@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatarReal } from "@/lib/orcamento";
 import Link from "next/link";
 import { FileDown, ListChecks, TriangleAlert } from "lucide-react";
 import { AbasEvento } from "@/components/features/abas-evento";
@@ -93,6 +94,17 @@ export default async function PresencaAdminPage({ searchParams }: PageProps<"/ad
             {resumo.semNome > 0 &&
               ` ${resumo.semNome} ${resumo.semNome === 1 ? "acompanhante ainda sem nome informado (conta" : "acompanhantes ainda sem nome informado (contam"} como adulto).`}
           </p>
+          {/* ADR-0026: total a receber pelos acompanhantes (soma da turma, sem
+              valor de ninguém em particular). */}
+          {admin.valorAcompanhante && resumo.acompanhantes > 0 ? (
+            <p className="mt-1 text-sm">
+              Acompanhantes a pagar:{" "}
+              <strong className="font-medium tabular-nums">
+                {resumo.acompanhantes} × {formatarReal.format(admin.valorAcompanhante)} ={" "}
+                {formatarReal.format(resumo.acompanhantes * admin.valorAcompanhante)}
+              </strong>
+            </p>
+          ) : null}
         </div>
         <Button asChild variant="ghost" size="sm">
           <a href="/admin/turma/exportar?tipo=portaria" download>

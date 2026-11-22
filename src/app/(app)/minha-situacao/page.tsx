@@ -28,9 +28,9 @@ export const metadata: Metadata = { title: "Minha situação" };
 
 const COR_ESTADO: Record<EstadoGeral, string> = {
   sem_plano: "",
-  quitado: "text-emerald-700 dark:text-emerald-400",
-  em_dia: "text-emerald-700 dark:text-emerald-400",
-  adiantado: "text-emerald-700 dark:text-emerald-400",
+  quitado: "text-success",
+  em_dia: "text-success",
+  adiantado: "text-success",
   atrasado: "text-warning",
 };
 
@@ -161,7 +161,7 @@ export default async function MinhaSituacaoPage({ searchParams }: PageProps<"/mi
               <ol className="mt-2 divide-y">
                 {s.parcelas.map((p) => (
                   <li key={p.numero} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm">
-                    <span className="w-24 shrink-0 font-medium">Parcela {p.numero}</span>
+                    <span className="min-w-24 shrink-0 font-medium">{p.rotulo ?? `Parcela ${p.numero}`}</span>
                     <span className="tabular-nums">{formatarReal.format(p.valor)}</span>
                     <span className="text-muted-foreground tabular-nums">vence {dataBr(p.vencimento)}</span>
                     <Badge

@@ -480,6 +480,57 @@ export async function salvarRegrasDinheiro(_estado: EstadoForm, formData: FormDa
   return { ok: "Regras salvas. A turma vê em “Minha situação”." };
 }
 
+// ---- Valor por acompanhante (ADR-0026) -------------------------------------
+
+// Quanto cada acompanhante custa e até quando pagar. Vazio = não cobra. Entra na
+// situação de quem confirmou presença com acompanhantes, e a mudança fica no
+// histórico do plano, como as parcelas.
+export async function salvarCobrancaAcompanhante(_estado: EstadoForm, formData: FormData): Promise<EstadoForm> {
+  const tesouraria = await exigirTesourariaEditavel();
+  const enviados = Object.fromEntries(formData) as Record<string, string>;
+  const valor = lerValorPessoa(String(enviados.valor ?? ""));
+  if (valor === "invalido") {
+    return { erro: "Valor inválido. Use só números, como 80 ou 80,50.", valores: enviados };
+  }
+  const vencimento = String(enviados.vencimento ?? "").trim();
+  if (vencimento && !/^\d{4}-\d{2}-\d{2}$/.test(vencimento)) {
+    return { erro: "Data inválida.", valores: enviados };
+  }
+  const novo = { valor: valor && valor > 0 ? valor : null, vencimento: vencimento || null };
+
+  await transacao(async (db) => {
+    const { rows } = await db.query(
+      `select valor_acompanhante::float8 as valor, to_char(vencimento_acompanhante, 'YYYY-MM-DD') as vencimento
+         from turmas where id = $1 for update`,
+      [tesouraria.turmaId],
+    );
+    const antes = { valor: rows[0]?.valor ?? null, vencimento: rows[0]?.vencimento ?? null };
+    await db.query("update turmas set valor_acompanhante = $1, vencimento_acompanhante = $2 where id = $3", [
+      novo.valor,
+      novo.vencimento,
+      tesouraria.turmaId,
+    ]);
+    if (antes.valor !== novo.valor || antes.vencimento !== novo.vencimento) {
+      await registrarAuditoria(db, {
+        usuarioId: tesouraria.usuarioId,
+        turmaId: tesouraria.turmaId,
+        acao: "plano.acompanhante",
+        entidade: "turma",
+        entidadeId: tesouraria.turmaId,
+        detalhe: { antes, depois: novo },
+      });
+    }
+  });
+  revalidarDinheiro();
+  revalidatePath("/dashboard");
+  revalidatePath("/admin/presenca");
+  return {
+    ok: novo.valor
+      ? `Cada acompanhante custa ${formatarReal.format(novo.valor)}. Já aparece na situação de quem vai levar alguém.`
+      : "Acompanhantes sem cobrança.",
+  };
+}
+
 // ---- Importar da planilha (ADR-0014) ---------------------------------------
 
 const esquemaImportacao = z.object({
