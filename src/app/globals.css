@@ -341,13 +341,15 @@ html:not([data-tema]) [data-tema-icone="sistema"] {
 
 /* Telas de toque (celular e tablet): alvos de pelo menos 44px (HIG). */
 @media (pointer: coarse) {
+  /* O switch fica de fora: ele já aumenta a área de toque com um ::after
+     invisível, e a altura mínima esticava o trilho numa pílula alta. */
   a[class*="rounded-full"],
-  button[class*="rounded-full"],
+  button[class*="rounded-full"]:not([data-slot="switch"]),
   summary {
     min-height: 2.75rem;
   }
   a[class*="rounded-full"],
-  button[class*="rounded-full"] {
+  button[class*="rounded-full"]:not([data-slot="switch"]) {
     display: inline-flex;
     align-items: center;
   }

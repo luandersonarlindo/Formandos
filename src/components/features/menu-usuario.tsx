@@ -85,15 +85,25 @@ export function MenuUsuario({
             </Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Palette aria-hidden />
-            Tema
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="min-w-40">
+        {isMobile ? (
+          // No celular o menu ocupa a largura da barra lateral e um submenu à
+          // direita sairia da tela. As três opções vêm direto no menu.
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Tema</DropdownMenuLabel>
             <ItensTema tema={tema} escolher={escolher} />
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </>
+        ) : (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Palette aria-hidden />
+              Tema
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-40">
+              <ItensTema tema={tema} escolher={escolher} />
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           disabled={saindo}
