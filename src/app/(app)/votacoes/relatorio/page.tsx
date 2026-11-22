@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ChevronRight, Trophy } from "lucide-react";
-import { AbasRota } from "@/components/features/abas-rota";
+import { AbasVotacoes } from "@/components/features/abas-votacoes";
 import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { FiltrosPilula } from "@/components/features/filtros-pilula";
@@ -39,14 +39,7 @@ export default async function RelatorioPage(
         titulo="Votações"
         descricao="Preferências da turma em cada pergunta, da opção mais votada para a menos votada. Só aparecem totais."
       />
-      <AbasRota
-        className="mt-4"
-        rotulo="Votações"
-        abas={[
-          { rotulo: "Votar", href: "/votacoes", ativa: false },
-          { rotulo: "Resultados", href: "/votacoes/relatorio", ativa: true },
-        ]}
-      />
+      <AbasVotacoes atual="resultados" className="mt-4" />
 
       {catalogos.length > 1 && (
         <FiltrosPilula

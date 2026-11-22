@@ -23,11 +23,11 @@ Open decision: no formal success metric was confirmed (e.g. decision completion 
 
 ## Positioning
 
-The mechanism a generic form tool cannot truthfully copy: **votação com decisão fixada**. Enquetes are organized by category, votes are identified (the admin sees who voted what and participants can change their vote), and the admin **fixes the turma's decision** on a question — the choice appears on everyone's dashboard and voting on that question closes, with reopening possible. The default catalog ships with 10 predefined categories.
+The mechanism a generic form tool cannot truthfully copy: **votação com decisão fixada**. Enquetes are organized by category, votes are identified (the admin sees who voted what and participants can change their vote), and the admin **fixes the turma's decision** on a question — the choice appears for everyone in the "Decisões" tab of Votações and voting on that question closes, with reopening possible. The default catalog ships with 10 predefined categories.
 
 ## Operating Context
 
-Confirmed workflows: private invite code per turma; standard catalog plus custom catalogs (including profile templates); single/multiple/exclusive voting; fixed decisions surfaced on the dashboard; Q&A with upvotes and official answers; tasks with owners and deadlines; notice board; RSVP with companions limit per turma; vendor catalog with quoted/committed values visible to admins only; archive or delete a turma; self-service account deletion.
+Confirmed workflows: private invite code per turma; standard catalog plus custom catalogs (including profile templates); single/multiple/exclusive voting; fixed decisions surfaced in the Votações "Decisões" tab; companion fee (valor por acompanhante, ADR-0026) added to each formando's situation; Q&A with upvotes and official answers; tasks with owners and deadlines; notice board; RSVP with companions limit per turma; vendor catalog with quoted/committed values visible to admins only; archive or delete a turma; self-service account deletion.
 
 Confirmed environments: celular, tablet e TV. The interface must remain operable by touch, keyboard, and TV remote (D-pad) across these.
 

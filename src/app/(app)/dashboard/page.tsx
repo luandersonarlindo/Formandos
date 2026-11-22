@@ -15,16 +15,14 @@ import {
 import { ContagemRegressiva } from "@/components/features/contagem-regressiva";
 import { AcessibilidadeLocal } from "@/components/features/acessibilidade-local";
 import { FormPresenca } from "@/components/features/form-presenca";
-import { HistoricoDecisoes } from "@/components/features/historico-decisoes";
 import { PainelRecolhivel } from "@/components/features/painel-recolhivel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { listarHistoricoDecisoes } from "@/lib/auditoria";
 import { getUltimaMudancaEvento } from "@/lib/evento-publico";
 import { exigirMembro } from "@/lib/dal";
-import { getDadosEvento, getResumosDashboard, listarDecisoes, listarProgramacao } from "@/lib/dashboard";
+import { getDadosEvento, getResumosDashboard, listarProgramacao } from "@/lib/dashboard";
 import { listarUltimosAvisos } from "@/lib/avisos";
 import { linkComoChegar } from "@/lib/evento";
 import { formatarReal } from "@/lib/orcamento";
@@ -45,7 +43,7 @@ function Indicador({ titulo, valor, total, href }: { titulo: string; valor: numb
     <li>
       <Link
         href={href}
-        className="flex h-full flex-col gap-1 rounded-lg border p-2.5 transition-colors sm:p-3 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="flex h-full flex-col gap-1 rounded-lg border border-primary/20 bg-primary/[0.03] p-2.5 transition-colors sm:p-3 hover:bg-primary/10 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <span className="text-xs leading-tight text-muted-foreground sm:text-sm">{titulo}</span>
         <span className="text-xl font-semibold tabular-nums">
@@ -79,7 +77,14 @@ function Pendencia({
 }) {
   return (
     <li className="flex gap-3 py-3 first:pt-0 last:pb-0">
-      <span className={feito ? "mt-0.5 text-muted-foreground" : "mt-0.5 text-primary"} aria-hidden>
+      <span
+        className={
+          feito
+            ? "flex size-9 shrink-0 items-center justify-center rounded-full bg-success/10 text-success"
+            : "flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-destaque dark:bg-primary/25"
+        }
+        aria-hidden
+      >
         {feito ? <CircleCheck className="size-5" /> : icone}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
@@ -103,13 +108,11 @@ export default async function DashboardPage() {
   const ehAdmin = membro.papel === "admin";
   const ehObservador = membro.papel === "observador";
   const presencaTravada = presencaFechada(membro.presencaAte, new Date());
-  const [programacao, { resumo, admin: resumoAdmin }, { detalhes }, decisoes, historico, presenca, avisos, mudancaEvento, minha] =
+  const [programacao, { resumo, admin: resumoAdmin }, { detalhes }, presenca, avisos, mudancaEvento, minha] =
     await Promise.all([
       listarProgramacao(membro),
       getResumosDashboard(membro),
       getDadosEvento(membro),
-      listarDecisoes(membro),
-      listarHistoricoDecisoes(membro.turmaId),
       getMinhaPresenca(membro),
       listarUltimosAvisos(membro),
       getUltimaMudancaEvento(membro.turmaId),
@@ -161,15 +164,15 @@ export default async function DashboardPage() {
         </Alert>
       )}
 
-      <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">{membro.turmaNome}</h1>
-        <div className="flex flex-col gap-1.5 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5">
+      <header className="flex flex-col gap-4 rounded-2xl bg-primary p-5 text-primary-foreground shadow-sm md:p-7">
+        <h1 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">{membro.turmaNome}</h1>
+        <div className="flex flex-col gap-1.5 text-sm text-primary-foreground/85 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5">
           <p className="flex items-start gap-1.5">
             <CalendarDays className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
               {membro.dataEvento ? (
                 <>
-                  <span className="text-foreground">{formatarDataHora.format(membro.dataEvento)}</span>
+                  <span className="font-medium text-primary-foreground">{formatarDataHora.format(membro.dataEvento)}</span>
                   {detalhes.dataFim && <> até {formatarDataHora.format(detalhes.dataFim)}</>}
                   {" · "}
                   <ContagemRegressiva dataIso={membro.dataEvento.toISOString()} />
@@ -181,13 +184,13 @@ export default async function DashboardPage() {
           </p>
           <p className="flex items-start gap-1.5">
             <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span className="wrap-break-word text-foreground">{membro.localEvento ?? "Local ainda não definido"}</span>
+            <span className="wrap-break-word font-medium text-primary-foreground">{membro.localEvento ?? "Local ainda não definido"}</span>
           </p>
         </div>
         {(comoChegar || ehAdmin) && (
           <div className="flex flex-wrap gap-2">
             {comoChegar && (
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="secondary" size="sm">
                 <a href={comoChegar} target="_blank" rel="noopener noreferrer">
                   <Navigation aria-hidden /> Como chegar
                   <span className="sr-only"> (abre em nova aba)</span>
@@ -195,7 +198,12 @@ export default async function DashboardPage() {
               </Button>
             )}
             {ehAdmin && (
-              <Button asChild variant="ghost" size="sm">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
+              >
                 <Link href="/admin/evento">
                   <Pencil aria-hidden /> Editar evento
                 </Link>
@@ -204,187 +212,6 @@ export default async function DashboardPage() {
           </div>
         )}
       </header>
-
-      <section aria-labelledby="para-voce" className="rounded-xl border p-4 md:p-5">
-        <h2 id="para-voce" className="mb-3 text-lg font-semibold">
-          Para você fazer
-        </h2>
-        <ul data-grupo className="divide-y">
-          <Pendencia
-            icone={<UserCheck className="size-5" />}
-            feito={!presencaPendente}
-            titulo="Você vai ao evento?"
-            descricao={
-              <>
-                <p>{respostaPresenca}</p>
-                {/* Prazo da lista (ADR-0013): a data antes, a trava depois. */}
-                {membro.presencaAte && (
-                  <p>
-                    {presencaTravada
-                      ? `A lista fechou em ${formatarDataHora.format(membro.presencaAte)}. Para mudar, fale com a comissão.`
-                      : `Responda até ${formatarDataHora.format(membro.presencaAte)}. Depois disso a resposta trava.`}
-                  </p>
-                )}
-              </>
-            }
-          >
-            {!presencaTravada && (
-              <FormPresenca
-                inicial={presenca}
-                limite={membro.maxAcompanhantes}
-                variante={primaria === "presenca" ? "default" : "outline"}
-              />
-            )}
-          </Pendencia>
-          {votosPendentes > 0 && (
-            <Pendencia
-              icone={<Vote className="size-5" />}
-              titulo={`${votosPendentes === 1 ? "Falta 1 pergunta" : `Faltam ${votosPendentes} perguntas`} para você votar`}
-              descricao={`Você respondeu ${resumo.enquetesRespondidas} de ${resumo.enquetesTotal}.`}
-            >
-              <Button asChild size="sm" variant={primaria === "votos" ? "default" : "outline"}>
-                <Link href="/votacoes">
-                  Votar <ChevronRight aria-hidden />
-                </Link>
-              </Button>
-            </Pendencia>
-          )}
-          {proxima && (
-            <Pendencia
-              icone={<Wallet className="size-5" />}
-              titulo={
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="tabular-nums">
-                    Próxima parcela: {formatarReal.format(proxima.falta)} até {dataBr(proxima.vencimento)}
-                  </span>
-                  {atrasado && <Badge variant="warning">Em atraso</Badge>}
-                </span>
-              }
-              descricao="Só você e a tesouraria veem este valor."
-            >
-              <Button asChild size="sm" variant={primaria === "parcela" ? "default" : "outline"}>
-                <Link href="/minha-situacao">
-                  Minha situação <ChevronRight aria-hidden />
-                </Link>
-              </Button>
-            </Pendencia>
-          )}
-        </ul>
-        {!primaria && <p className="mt-3 text-sm text-muted-foreground">Tudo em dia por aqui.</p>}
-      </section>
-
-      {ehAdmin && resumoAdmin && (
-        <section aria-labelledby="comissao">
-          <h2 id="comissao" className="mb-3 text-lg font-semibold">
-            Comissão
-          </h2>
-          <ul data-grupo className="grid grid-cols-3 gap-2 sm:gap-3">
-            <Indicador
-              titulo="Votaram"
-              valor={resumoAdmin.votantes}
-              total={resumoAdmin.formandos}
-              href="/admin/votacoes"
-            />
-            <Indicador
-              titulo="Presença confirmada"
-              valor={resumoAdmin.confirmados}
-              total={resumoAdmin.membros}
-              href="/admin/presenca"
-            />
-            <Indicador titulo="Dúvidas sem resposta" valor={resumoAdmin.duvidasAbertas} href="/duvidas" />
-          </ul>
-        </section>
-      )}
-
-      {(decisoes.length > 0 || historico.length > 0) && (
-        <section aria-labelledby="decisoes">
-          <h2 id="decisoes" className="text-lg font-semibold">
-            Decisões da turma
-          </h2>
-          <p className="mb-3 text-sm text-muted-foreground">O que a comissão já fixou depois das votações.</p>
-          {decisoes.length > 0 && (
-            <ul data-grupo className="divide-y rounded-xl border">
-              {decisoes.map((d) => (
-                <li key={d.enqueteId} className="flex flex-col gap-1 p-3 md:px-4">
-                  <p className="text-xs text-muted-foreground text-pretty">
-                    {d.categoria} · {d.pergunta}
-                  </p>
-                  <p className="font-medium wrap-break-word">{d.escolhas.join(" · ")}</p>
-                  {/* Números do dia e regra (ADR-0003), numa linha só. Decisões
-                      antigas não têm a fotografia, então ficam só com a escolha. */}
-                  {(d.votantes !== null || d.linkDocumento) && (
-                    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      {d.votantes !== null && (
-                        <>
-                          <span className="tabular-nums">
-                            votaram {d.votantes} de {d.membros}
-                          </span>
-                          {!d.foraDaRegra ? (
-                            <Badge variant="secondary">Dentro da regra</Badge>
-                          ) : (
-                            <Badge variant="warning">Fora da regra</Badge>
-                          )}
-                        </>
-                      )}
-                      {d.linkDocumento && (
-                        <a
-                          href={d.linkDocumento}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground underline underline-offset-4 pointer-coarse:py-2"
-                        >
-                          Ver documento
-                          <span className="sr-only"> de {d.pergunta} (abre em nova aba)</span>
-                        </a>
-                      )}
-                    </p>
-                  )}
-                  {d.justificativa && (
-                    <p className="text-xs text-muted-foreground text-pretty">
-                      Motivo da comissão: “{d.justificativa}”
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-          {historico.length > 0 && (
-            <PainelRecolhivel className="mt-3">
-              <summary className="cursor-pointer text-sm font-medium pointer-coarse:py-2.5">
-                Ver histórico das decisões
-              </summary>
-              <div className="mt-3">
-                <HistoricoDecisoes itens={historico} mostrarPergunta />
-              </div>
-            </PainelRecolhivel>
-          )}
-        </section>
-      )}
-
-      {avisos.length > 0 && (
-        <section aria-labelledby="avisos">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="avisos" className="text-lg font-semibold">
-              Últimos avisos
-            </h2>
-            <Link
-              href="/avisos"
-              className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground pointer-coarse:py-2.5"
-            >
-              Ver todos
-            </Link>
-          </div>
-          {/* Resumo em duas linhas: o recado inteiro está em /avisos. */}
-          <ul className="divide-y rounded-xl border">
-            {avisos.map((a) => (
-              <li key={a.id} className="p-3 md:px-4">
-                <p className="font-medium wrap-break-word">{a.titulo}</p>
-                <p className="mt-0.5 line-clamp-2 wrap-break-word text-sm text-muted-foreground">{a.conteudo}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {/* Sempre há o que mostrar: a acessibilidade aparece mesmo "não informada" (ADR-0024). */}
       <PainelRecolhivel className="group rounded-xl border">
@@ -458,6 +285,125 @@ export default async function DashboardPage() {
           </div>
         </div>
       </PainelRecolhivel>
+
+      <section aria-labelledby="para-voce" className="rounded-xl border border-primary/25 bg-primary/[0.03] p-4 md:p-5">
+        <h2 id="para-voce" className="mb-3 text-lg font-semibold">
+          Para você fazer
+        </h2>
+        <ul data-grupo className="divide-y">
+          <Pendencia
+            icone={<UserCheck className="size-5" />}
+            feito={!presencaPendente}
+            titulo="Você vai ao evento?"
+            descricao={
+              <>
+                <p>{respostaPresenca}</p>
+                {/* Prazo da lista (ADR-0013): a data antes, a trava depois. */}
+                {membro.presencaAte && (
+                  <p>
+                    {presencaTravada
+                      ? `A lista fechou em ${formatarDataHora.format(membro.presencaAte)}. Para mudar, fale com a comissão.`
+                      : `Responda até ${formatarDataHora.format(membro.presencaAte)}. Depois disso a resposta trava.`}
+                  </p>
+                )}
+              </>
+            }
+          >
+            {!presencaTravada && (
+              <FormPresenca
+                inicial={presenca}
+                limite={membro.maxAcompanhantes}
+                valorAcompanhante={membro.valorAcompanhante}
+                variante={primaria === "presenca" ? "default" : "outline"}
+              />
+            )}
+          </Pendencia>
+          {votosPendentes > 0 && (
+            <Pendencia
+              icone={<Vote className="size-5" />}
+              titulo={`${votosPendentes === 1 ? "Falta 1 pergunta" : `Faltam ${votosPendentes} perguntas`} para você votar`}
+              descricao={`Você respondeu ${resumo.enquetesRespondidas} de ${resumo.enquetesTotal}.`}
+            >
+              <Button asChild size="sm" variant={primaria === "votos" ? "default" : "outline"}>
+                <Link href="/votacoes">
+                  Votar <ChevronRight aria-hidden />
+                </Link>
+              </Button>
+            </Pendencia>
+          )}
+          {proxima && (
+            <Pendencia
+              icone={<Wallet className="size-5" />}
+              titulo={
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="tabular-nums">
+                    {proxima.rotulo ? `${proxima.rotulo.split(" (")[0]}:` : "Próxima parcela:"}{" "}
+                    {formatarReal.format(proxima.falta)} até {dataBr(proxima.vencimento)}
+                  </span>
+                  {atrasado && <Badge variant="warning">Em atraso</Badge>}
+                </span>
+              }
+              descricao="Só você e a tesouraria veem este valor."
+            >
+              <Button asChild size="sm" variant={primaria === "parcela" ? "default" : "outline"}>
+                <Link href="/minha-situacao">
+                  Minha situação <ChevronRight aria-hidden />
+                </Link>
+              </Button>
+            </Pendencia>
+          )}
+        </ul>
+        {!primaria && <p className="mt-3 text-sm text-muted-foreground">Tudo em dia por aqui.</p>}
+      </section>
+
+      {ehAdmin && resumoAdmin && (
+        <section aria-labelledby="comissao">
+          <h2 id="comissao" className="mb-3 text-lg font-semibold">
+            Comissão
+          </h2>
+          <ul data-grupo className="grid grid-cols-3 gap-2 sm:gap-3">
+            <Indicador
+              titulo="Votaram"
+              valor={resumoAdmin.votantes}
+              total={resumoAdmin.formandos}
+              href="/admin/votacoes"
+            />
+            <Indicador
+              titulo="Presença confirmada"
+              valor={resumoAdmin.confirmados}
+              total={resumoAdmin.membros}
+              href="/admin/presenca"
+            />
+            <Indicador titulo="Dúvidas sem resposta" valor={resumoAdmin.duvidasAbertas} href="/duvidas" />
+          </ul>
+        </section>
+      )}
+
+      {avisos.length > 0 && (
+        <section aria-labelledby="avisos">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="avisos" className="text-lg font-semibold">
+              Últimos avisos
+            </h2>
+            <Link
+              href="/avisos"
+              className="text-sm font-medium text-destaque underline-offset-4 hover:underline pointer-coarse:py-2.5"
+            >
+              Ver todos
+            </Link>
+          </div>
+          {/* Resumo em duas linhas: o recado inteiro está em /avisos. */}
+          <ul className="divide-y rounded-xl border">
+            {avisos.map((a) => (
+              <li key={a.id} className="p-3 md:px-4">
+                <p className="font-medium wrap-break-word">{a.titulo}</p>
+                <p className="mt-0.5 line-clamp-2 wrap-break-word text-sm text-muted-foreground">{a.conteudo}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
     </div>
   );
 }

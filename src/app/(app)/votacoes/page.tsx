@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { AbasRota } from "@/components/features/abas-rota";
+import { AbasVotacoes } from "@/components/features/abas-votacoes";
 import { CabecalhoPagina } from "@/components/features/cabecalho-pagina";
 import { EstadoVazio } from "@/components/features/estado-vazio";
 import { Badge } from "@/components/ui/badge";
@@ -26,14 +26,7 @@ export default async function VotacoesPage() {
         descricao="Responda as perguntas da turma. Você pode mudar o voto até a comissão decidir."
       />
       {/* Votar e ver os resultados são a mesma área (P-01). */}
-      <AbasRota
-        className="mt-4"
-        rotulo="Votações"
-        abas={[
-          { rotulo: "Votar", href: "/votacoes", ativa: true },
-          { rotulo: "Resultados", href: "/votacoes/relatorio", ativa: false },
-        ]}
-      />
+      <AbasVotacoes atual="votar" className="mt-4" />
 
       {ordenados.length === 0 ? (
         <EstadoVazio className="mt-6" titulo="Nenhum catálogo para votar" descricao="Quando a comissão abrir as votações, elas aparecem aqui." />
@@ -51,7 +44,7 @@ export default async function VotacoesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium">{c.nome}</p>
-                      {feito && <Badge variant="secondary">Tudo respondido</Badge>}
+                      {feito && <Badge variant="success">Tudo respondido</Badge>}
                     </div>
                     <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">
                       {c.votadas} de {c.total} enquetes respondidas
