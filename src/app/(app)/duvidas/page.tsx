@@ -149,7 +149,8 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                         {ehAdmin && (
                           <AcaoForm
                             acao={alternarDestaque}
-                            campos={{ duvidaId: d.id }}
+                            campos={{ duvidaId: d.id, valor: d.destaque ? "nao" : "sim" }}
+                            desfazer={{ duvidaId: d.id, valor: d.destaque ? "sim" : "nao" }}
                             icone={d.destaque ? <StarOff aria-hidden /> : <Star aria-hidden />}
                           >
                             {d.destaque ? "Tirar destaque" : "Destacar"}
@@ -158,7 +159,8 @@ export default async function DuvidasPage({ searchParams }: PageProps<"/duvidas"
                         {ehAdmin && (
                           <AcaoForm
                             acao={alternarRespondida}
-                            campos={{ duvidaId: d.id }}
+                            campos={{ duvidaId: d.id, valor: d.respondida ? "nao" : "sim" }}
+                            desfazer={{ duvidaId: d.id, valor: d.respondida ? "sim" : "nao" }}
                             icone={d.respondida ? <RotateCcw aria-hidden /> : <CircleCheck aria-hidden />}
                           >
                             {d.respondida ? "Reabrir" : "Marcar como respondida"}

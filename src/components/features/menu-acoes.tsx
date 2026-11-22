@@ -206,12 +206,16 @@ export function AcaoForm({
   icone,
   children,
   destrutiva = false,
+  desfazer,
 }: {
   acao: (estado: EstadoForm, formData: FormData) => Promise<EstadoForm | void>;
   campos: Record<string, string>;
   icone?: React.ReactNode;
   children: React.ReactNode;
   destrutiva?: boolean;
+  /** Campos que levam a ação de volta ao estado anterior. Com eles, o toast de
+   *  sucesso ganha o botão "Desfazer", que reenvia a mesma ação. */
+  desfazer?: Record<string, string>;
 }) {
   const { modo, prefixo } = useMenu();
   const id = `${prefixo}-f-${Object.values(campos).join("-")}-${String(children)}`.replace(/[^\w-]/g, "");
@@ -220,10 +224,38 @@ export function AcaoForm({
     return r && typeof r === "object" ? r : { ok: "Feito." };
   }, inicial);
 
+  // O "Desfazer" usa os campos do momento do envio: a resposta da action chega
+  // junto com a página revalidada, e aí `desfazer` já descreve o estado novo
+  // (repetiria a mesma ação em vez de voltar).
+  const desfazerNoEnvio = React.useRef(desfazer);
+
   React.useEffect(() => {
     if (modo !== "fora") return;
-    if (estado.ok) toast.success(estado.ok);
+    const volta = desfazerNoEnvio.current;
+    if (estado.ok) {
+      toast.success(
+        estado.ok,
+        volta
+          ? {
+              action: {
+                label: "Desfazer",
+                onClick: () => {
+                  const dados = new FormData();
+                  for (const [nome, valor] of Object.entries(volta)) dados.set(nome, valor);
+                  React.startTransition(async () => {
+                    const r = await acao({}, dados);
+                    if (r && typeof r === "object" && r.erro) toast.error(r.erro);
+                    else toast.success(r && typeof r === "object" && r.ok ? r.ok : "Desfeito.");
+                  });
+                },
+              },
+            }
+          : undefined,
+      );
+    }
     if (estado.erro) toast.error(estado.erro);
+    // desfazer e acao vêm de fora; só a resposta da action dispara o toast.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado, modo]);
 
   if (modo === "menu") {
@@ -238,7 +270,15 @@ export function AcaoForm({
     );
   }
   return (
-    <form id={id} action={formAcao} hidden aria-busy={pendente}>
+    <form
+      id={id}
+      action={formAcao}
+      hidden
+      aria-busy={pendente}
+      onSubmit={() => {
+        desfazerNoEnvio.current = desfazer;
+      }}
+    >
       {Object.entries(campos).map(([nome, valor]) => (
         <input key={nome} type="hidden" name={nome} value={valor} />
       ))}

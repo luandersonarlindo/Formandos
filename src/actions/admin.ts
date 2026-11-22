@@ -134,6 +134,12 @@ export async function responderDuvida(
   return { ok: resposta ? "Resposta salva." : "Resposta removida." };
 }
 
+// "sim" → true, "nao" → false, qualquer outra coisa → null (alternar).
+function lerValorSimNao(formData: FormData): boolean | null {
+  const v = formData.get("valor");
+  return v === "sim" ? true : v === "nao" ? false : null;
+}
+
 export async function alternarDestaque(
   _estado: EstadoForm,
   formData: FormData,
@@ -141,13 +147,18 @@ export async function alternarDestaque(
   const admin = await exigirAdminEditavel();
   const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dúvida não encontrada." };
-  const { rowCount } = await pool.query(
-    "update duvidas set destaque = not destaque where id = $1 and turma_id = $2",
-    [dados.data.duvidaId, admin.turmaId],
+  // Com `valor` (sim/nao), grava esse valor: é o que o "Desfazer" do toast
+  // manda, para não inverter de novo se alguém mexeu no meio. Sem `valor`,
+  // alterna, como antes.
+  const valor = lerValorSimNao(formData);
+  const { rows } = await pool.query<{ destaque: boolean }>(
+    `update duvidas set destaque = coalesce($3, not destaque)
+      where id = $1 and turma_id = $2 returning destaque`,
+    [dados.data.duvidaId, admin.turmaId, valor],
   );
-  if (!rowCount) return { erro: "Dúvida não encontrada." };
+  if (!rows.length) return { erro: "Dúvida não encontrada." };
   revalidarDuvidas();
-  return { ok: "Destaque atualizado." };
+  return { ok: rows[0].destaque ? "Dúvida destacada." : "Destaque removido." };
 }
 
 export async function alternarRespondida(
@@ -157,13 +168,18 @@ export async function alternarRespondida(
   const admin = await exigirAdminEditavel();
   const dados = esquemaDuvidaId.safeParse(Object.fromEntries(formData));
   if (!dados.success) return { erro: "Dúvida não encontrada." };
-  const { rowCount } = await pool.query(
-    "update duvidas set respondida = not respondida where id = $1 and turma_id = $2",
-    [dados.data.duvidaId, admin.turmaId],
+  // Com `valor` (sim/nao), grava esse valor: é o que o "Desfazer" do toast
+  // manda, para não inverter de novo se alguém mexeu no meio. Sem `valor`,
+  // alterna, como antes.
+  const valor = lerValorSimNao(formData);
+  const { rows } = await pool.query<{ respondida: boolean }>(
+    `update duvidas set respondida = coalesce($3, not respondida)
+      where id = $1 and turma_id = $2 returning respondida`,
+    [dados.data.duvidaId, admin.turmaId, valor],
   );
-  if (!rowCount) return { erro: "Dúvida não encontrada." };
+  if (!rows.length) return { erro: "Dúvida não encontrada." };
   revalidarDuvidas();
-  return { ok: "Situação atualizada." };
+  return { ok: rows[0].respondida ? "Dúvida marcada como respondida." : "Dúvida reaberta." };
 }
 
 export async function apagarDuvida(formData: FormData) {
