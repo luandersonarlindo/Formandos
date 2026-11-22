@@ -44,11 +44,13 @@ function OpcoesStatus() {
 export default async function TarefasPage({ searchParams }: PageProps<"/tarefas">) {
   const membro = await exigirMembro();
   const { status, pagina: paginaParametro } = await searchParams;
-  const filtro = STATUS_TAREFA.find((s) => s === status) ?? "todas";
+  // "minhas": as tarefas abertas de que a pessoa é responsável.
+  const filtro = status === "minhas" ? "minhas" : (STATUS_TAREFA.find((s) => s === status) ?? "todas");
   const ehAdmin = membro.papel === "admin";
-  const [{ itens: visiveis, pagina, totalPaginas, totais }, membros] = await Promise.all([
+  const [{ itens: visiveis, pagina, totalPaginas, totais, minhas }, membros] = await Promise.all([
     listarTarefas(membro, {
-      status: filtro === "todas" ? undefined : filtro,
+      status: filtro === "todas" || filtro === "minhas" ? undefined : filtro,
+      minhas: filtro === "minhas",
       pagina: lerPagina(paginaParametro),
     }),
     ehAdmin ? listarMembros(membro) : Promise.resolve([]),
@@ -87,6 +89,10 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
         rotulo="Filtrar por status"
         filtros={[
           { rotulo: "Todas", href: "/tarefas", ativo: filtro === "todas", contagem: geral },
+          // Só aparece para quem tem tarefa aberta (ou já está no filtro).
+          ...(minhas > 0 || filtro === "minhas"
+            ? [{ rotulo: "Minhas", href: "/tarefas?status=minhas", ativo: filtro === "minhas", contagem: minhas }]
+            : []),
           ...STATUS_TAREFA.map((s) => ({
             rotulo: ROTULO_STATUS[s],
             href: `/tarefas?status=${s}`,

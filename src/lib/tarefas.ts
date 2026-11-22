@@ -36,12 +36,23 @@ export type PaginaTarefas = {
   totalPaginas: number;
   // Turma inteira, por status: contadores dos filtros e progresso geral.
   totais: Record<StatusTarefa, number>;
+  // Tarefas abertas (não concluídas) em que a pessoa é a responsável.
+  minhas: number;
 };
 
 // Pendentes e em andamento primeiro, por prazo; concluídas por último.
 export async function listarTarefas(
   membro: Membro,
-  { status, pagina = 1 }: { status?: StatusTarefa; pagina?: number } = {},
+  {
+    status,
+    minhas = false,
+    pagina = 1,
+  }: {
+    status?: StatusTarefa;
+    /** Só as tarefas abertas de que a pessoa é responsável (filtro "Minhas"). */
+    minhas?: boolean;
+    pagina?: number;
+  } = {},
 ): Promise<PaginaTarefas> {
   const { rows: linhas } = await pool.query<{ status: StatusTarefa; n: number }>(
     `select status, count(*)::int as n
@@ -56,9 +67,25 @@ export async function listarTarefas(
     concluida: 0,
   };
   for (const l of linhas) totais[l.status] = l.n;
+  const {
+    rows: [{ n: minhasAbertas }],
+  } = await pool.query<{ n: number }>(
+    `select count(*)::int as n from tarefas
+      where turma_id = $1 and responsavel_id = $2 and status <> 'concluida'`,
+    [membro.turmaId, membro.usuarioId],
+  );
 
-  const filtro = status ? `and t.status = $2` : "";
-  const parametros: unknown[] = status ? [membro.turmaId, status] : [membro.turmaId];
+  const parametros: unknown[] = [membro.turmaId];
+  const condicoes: string[] = [];
+  if (status) {
+    parametros.push(status);
+    condicoes.push(`and t.status = $${parametros.length}`);
+  }
+  if (minhas) {
+    parametros.push(membro.usuarioId);
+    condicoes.push(`and t.responsavel_id = $${parametros.length} and t.status <> 'concluida'`);
+  }
+  const filtro = condicoes.join(" ");
   const {
     rows: [{ total }],
   } = await pool.query(
@@ -77,7 +104,7 @@ export async function listarTarefas(
       limit ${POR_PAGINA_TAREFAS} offset $${parametros.length + 1}`,
     [...parametros, deslocamento(paginaAtual, POR_PAGINA_TAREFAS)],
   );
-  return { itens: rows, total, pagina: paginaAtual, totalPaginas, totais };
+  return { itens: rows, total, pagina: paginaAtual, totalPaginas, totais, minhas: minhasAbertas };
 }
 
 export async function listarMembros(membro: Membro): Promise<MembroSimples[]> {
